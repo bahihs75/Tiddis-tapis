@@ -3,61 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiddis | Admin Control Panel</title>
+    <title>TIDDIS TAPIS | Admin Panel</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <header class="header">
-        <div class="logo">Tiddis Admin</div>
-        <nav class="nav-links">
-            <a href="index.html">View Store</a>
-        </nav>
-    </header>
 
-    <main class="main-content">
-        <div class="admin-wrapper">
-            <h1 class="admin-title">Store Administration Panel</h1>
-            
-            <!-- External Database & Sheets Connections Config -->
-            <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid var(--border-color);">
-                <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 20px;">Integrations & Database Connections</h3>
-                <div class="form-group">
-                    <label for="imgdb-select">Image Database Provider (ImgBB / Custom DB)</label>
-                    <select id="imgdb-select">
-                        <option value="imgbb">ImgBB API</option>
-                        <option value="custom">Custom Image Database URL</option>
-                    </select>
+    <!-- حماية بسيطة بكلمة مرور -->
+    <script>
+        (function() {
+            const password = "39482202";
+            const userInput = prompt("Enter admin password to access the control panel:");
+            if (userInput !== password) {
+                document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px; color:#4E1A1D;'>Access Denied</h1><p style='text-align:center;'>Incorrect password.</p>";
+                throw new Error("Access Denied");
+            }
+        })();
+    </script>
+
+    <!-- القائمة الجانبية (تطابق تصميم المتجر) -->
+    <div class="sidebar" id="admin-sidebar">
+        <div class="logo-container">
+            <div class="brand-main">TIDDIS</div>
+            <div class="brand-sub">ADMIN</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-section="dashboard">Dashboard</a>
+            <a href="#" class="nav-link" data-section="categories">Categories</a>
+            <a href="#" class="nav-link" data-section="products">Products</a>
+            <a href="#" class="nav-link" data-section="delivery">Delivery Rates</a>
+            <a href="#" class="nav-link" data-section="settings">Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="index.html" class="back-to-store">← Back to Store</a>
+        </div>
+    </div>
+
+    <!-- زر هامبورجر للهواتف -->
+    <div class="mobile-header admin-mobile-header">
+        <div class="mobile-brand">
+            <span class="brand-main">TIDDIS</span>
+            <span class="brand-sub">ADMIN</span>
+        </div>
+        <button class="hamburger" id="admin-hamburger" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+
+    <!-- المحتوى الرئيسي للوحة التحكم -->
+    <main class="main-content admin-content" id="admin-content">
+
+        <!-- Dashboard Section -->
+        <section id="section-dashboard" class="admin-section active">
+            <h2>Dashboard</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Total Products</span>
+                    <span class="stat-value" id="stat-products">0</span>
                 </div>
-                <div class="form-group">
-                    <label for="google-sheets-url">Google Sheets Webhook / Connection URL</label>
-                    <input type="text" id="google-sheets-url" placeholder="Paste your Google Sheets deployment URL here...">
+                <div class="stat-card">
+                    <span class="stat-label">Total Categories</span>
+                    <span class="stat-value" id="stat-categories">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Recent Orders</span>
+                    <span class="stat-value" id="stat-orders">0</span>
                 </div>
             </div>
+            <div id="recent-orders-list" style="margin-top:30px;">
+                <p>No orders yet.</p>
+            </div>
+        </section>
 
-            <!-- Product Management Form -->
-            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 20px;">Add New Rug (KSOR Collection)</h3>
-            <form id="product-form">
-                <div class="form-group">
-                    <label for="product-name">Product Name / Title</label>
-                    <input type="text" id="product-name" value="KSOR Classic" required>
+        <!-- Categories Section -->
+        <section id="section-categories" class="admin-section">
+            <h2>Manage Categories</h2>
+            <div class="admin-card">
+                <h3>Add New Category</h3>
+                <div class="form-row">
+                    <input type="text" id="new-category-name" placeholder="Category name (e.g., KSOR)" class="form-input">
+                    <button id="add-category-btn" class="btn-primary">Add Category</button>
                 </div>
-                <div class="form-group">
-                    <label for="product-size">Size</label>
-                    <input type="text" id="product-size" value="200x280 cm" required>
+            </div>
+            <div class="admin-card">
+                <h3>Existing Categories</h3>
+                <div id="categories-list">
+                    <p>Loading categories...</p>
                 </div>
-                <div class="form-group">
-                    <label for="product-price">Price (DZD)</label>
-                    <input type="number" id="product-price" value="12500" required>
+            </div>
+            <div class="admin-card">
+                <h3>Add Sub-Category</h3>
+                <div class="form-row">
+                    <select id="parent-category-select" class="form-input"></select>
+                    <input type="text" id="new-subcategory-name" placeholder="Sub-category name" class="form-input">
+                    <button id="add-subcategory-btn" class="btn-primary">Add Sub-Category</button>
                 </div>
-                <div class="form-group">
-                    <label for="product-img">Direct Image URL</label>
-                    <input type="url" id="product-img" placeholder="https://i.ibb.co/..." required>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="section-products" class="admin-section">
+            <h2>Manage Products</h2>
+            <div class="admin-card">
+                <h3>Add / Edit Product</h3>
+                <form id="product-form">
+                    <div class="form-group">
+                        <label for="product-id">Product ID (hidden)</label>
+                        <input type="text" id="product-id" style="display:none;">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-name">Product Name *</label>
+                        <input type="text" id="product-name" placeholder="e.g., KSOR Classic" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-category">Sub-Category *</label>
+                        <select id="product-category" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-base-price">Base Price (DZD) *</label>
+                        <input type="number" id="product-base-price" placeholder="12500" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-main-image">Main Image URL *</label>
+                        <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required>
+                        <div id="main-image-preview" class="image-preview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="product-customizable-size">
+                            Allow Size Customization (Customer can request custom size)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Product Additional Images (optional)</label>
+                        <div id="additional-images-container">
+                            <div class="image-upload-row">
+                                <input type="text" class="additional-image-url" placeholder="Image URL">
+                                <button type="button" class="btn-remove-image" style="display:none;">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" id="add-image-row-btn" class="btn-secondary">+ Add Another Image</button>
+                        <div id="additional-images-preview" class="image-preview-grid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>PDF Image Selection</label>
+                        <p style="font-size:0.85rem; color:#666;">Select which image should appear in the downloadable PDF.</p>
+                        <div id="pdf-image-selector">
+                            <!-- سيتم تعبئتها ديناميكياً عبر JavaScript -->
+                        </div>
+                    </div>
+                    <hr>
+                    <h4>Product Variants (Sizes / Colors)</h4>
+                    <div id="variants-container">
+                        <!-- صفوف المتغيرات ستضاف هنا بواسطة admin.js -->
+                    </div>
+                    <button type="button" id="add-variant-btn" class="btn-secondary">+ Add Variant</button>
+                    <hr>
+                    <button type="submit" class="btn-primary" style="width:100%; margin-top:16px;">Save Product</button>
+                </form>
+            </div>
+            <div class="admin-card">
+                <h3>All Products</h3>
+                <div id="products-list">
+                    <p>Loading products...</p>
                 </div>
-                <button type="submit" class="admin-submit-btn">Save Product to Database</button>
-            </form>
-        </div>
+            </div>
+        </section>
+
+        <!-- Delivery Rates Section -->
+        <section id="section-delivery" class="admin-section">
+            <h2>Delivery Rates (Wilayas)</h2>
+            <div class="admin-card">
+                <div class="form-row">
+                    <input type="number" id="bulk-delivery-price" placeholder="Set mutual price (e.g., 500)" class="form-input">
+                    <button id="apply-bulk-price-btn" class="btn-primary">Apply to All Wilayas</button>
+                </div>
+                <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+                    <button id="set-all-free-btn" class="btn-secondary">Set All as Free Delivery</button>
+                    <button id="reset-all-delivery-btn" class="btn-secondary">Reset All Prices</button>
+                </div>
+                <div style="margin-top:24px; max-height:400px; overflow-y:auto;">
+                    <table id="delivery-table" class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Wilaya</th>
+                                <th>Delivery Price (DZD)</th>
+                                <th>Free Delivery</th>
+                            </tr>
+                        </thead>
+                        <tbody id="delivery-table-body">
+                            <!-- سيتم تعبئتها بواسطة admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="section-settings" class="admin-section">
+            <h2>Store Settings</h2>
+            <div class="admin-card">
+                <h3>Google Sheets Integration</h3>
+                <div class="form-group">
+                    <label for="google-sheets-url">Google Sheets Web App URL</label>
+                    <input type="text" id="google-sheets-url" placeholder="https://script.google.com/macros/s/.../exec">
+                    <button id="test-sheets-btn" class="btn-secondary">Test Connection</button>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Image Database API</h3>
+                <div class="form-group">
+                    <label for="image-provider-select">Image Provider</label>
+                    <select id="image-provider-select">
+                        <option value="imgbb">ImgBB API</option>
+                        <option value="cloudinary">Cloudinary API</option>
+                        <option value="pixeldrain">Pixeldrain API</option>
+                        <option value="direct">Direct Link (Manual)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="api-key-group">
+                    <label for="image-api-key">API Key</label>
+                    <input type="password" id="image-api-key" placeholder="Enter your API key">
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>About Us Text</h3>
+                <div class="form-group">
+                    <textarea id="about-us-text" rows="4" class="form-input" placeholder="Enter about us text...">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</textarea>
+                    <button id="save-about-btn" class="btn-primary">Save About Text</button>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Dynamic Logo</h3>
+                <div class="form-group">
+                    <label for="logo-url">Logo URL (SVG or Image link)</label>
+                    <input type="text" id="logo-url" placeholder="https://example.com/logo.svg">
+                    <button id="save-logo-btn" class="btn-primary">Update Logo</button>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Contact Icons (Dynamic)</h3>
+                <div id="contact-icons-list">
+                    <!-- سيتم تعبئتها ديناميكياً -->
+                </div>
+                <div class="form-row" style="margin-top:12px;">
+                    <select id="new-contact-platform" class="form-input">
+                        <option value="phone">Phone</option>
+                        <option value="email">Email</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="pinterest">Pinterest</option>
+                    </select>
+                    <input type="text" id="new-contact-value" placeholder="Link or phone number" class="form-input">
+                    <button id="add-contact-btn" class="btn-primary">Add Contact</button>
+                </div>
+            </div>
+        </section>
+
     </main>
 
+    <!-- تحميل ملفات JavaScript -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/admin.js"></script>
 </body>
