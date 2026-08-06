@@ -1,1 +1,200 @@
+:root {
+    --bg-color: #faf9f6;
+    --card-bg: #ffffff;
+    --text-primary: #111111;
+    --text-muted: #666666;
+    --accent: #c5a059;
+    --border-color: #e5e5e5;
+    --radius: 6px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, sans-serif;
+}
 
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border-color);
+    background: #ffffff;
+}
+
+.logo {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.collection-intro {
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+.collection-intro h2 {
+    font-size: 2rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+/* Store Front Product Grid */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 32px;
+}
+
+.product-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-img {
+    width: 100%;
+    height: 360px;
+    object-fit: cover;
+    background-color: #f0f0f0;
+    display: block;
+}
+
+.product-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Order button horizontally aligned in the same line with product details */
+.product-details-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.product-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.product-price {
+    font-size: 1.05rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.variant-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+/* Slightly larger order button on the same horizontal axis */
+.order-btn {
+    background: var(--text-primary);
+    color: #ffffff;
+    border: none;
+    padding: 14px 26px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease-in-out;
+}
+
+.order-btn:hover {
+    background: var(--accent);
+}
+
+/* Shared Design Language for Admin Panel */
+.admin-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.admin-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.admin-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.form-input, .form-select {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    background: var(--text-primary);
+    color: #fff;
+    border: none;
+    padding: 12px 22px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--accent);
+}
