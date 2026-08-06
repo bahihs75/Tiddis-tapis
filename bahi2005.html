@@ -3,69 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiddis | Admin Panel</title>
+    <title>Tiddis | Admin Control Panel</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header class="header">
-        <div class="logo">Tiddis <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal; letter-spacing: 0;">/ Admin Panel</span></div>
-        <nav>
-            <a href="index.html" style="text-decoration: none; color: var(--text-primary); font-weight: 600;">Back to Store</a>
+        <div class="logo">Tiddis Admin</div>
+        <nav class="nav-links">
+            <a href="index.html">View Store</a>
         </nav>
     </header>
 
-    <main class="admin-container">
-        <section class="collection-intro">
-            <h2>Store Management</h2>
-        </section>
-
-        <!-- Connections Section: Google Sheets & Image DB -->
-        <div class="admin-card">
-            <h3>External Connections</h3>
-            <div class="form-group">
-                <label for="google-sheet-url">Google Sheets Web App URL (For Orders)</label>
-                <input type="text" id="google-sheet-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+    <main class="main-content">
+        <div class="admin-wrapper">
+            <h1 class="admin-title">Store Administration Panel</h1>
+            
+            <!-- External Database & Sheets Connections Config -->
+            <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 20px;">Integrations & Database Connections</h3>
+                <div class="form-group">
+                    <label for="imgdb-select">Image Database Provider (ImgBB / Custom DB)</label>
+                    <select id="imgdb-select">
+                        <option value="imgbb">ImgBB API</option>
+                        <option value="custom">Custom Image Database URL</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="google-sheets-url">Google Sheets Webhook / Connection URL</label>
+                    <input type="text" id="google-sheets-url" placeholder="Paste your Google Sheets deployment URL here...">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="imgbb-api-key">Image DB API Key (ImgBB / Others)</label>
-                <input type="password" id="imgbb-api-key" class="form-input" placeholder="Enter API Key">
-            </div>
-            <button id="save-settings-btn" class="btn-primary">Save Connections</button>
-        </div>
 
-        <!-- Add Product Section -->
-        <div class="admin-card">
-            <h3>Add New Product</h3>
-            <form id="add-product-form">
+            <!-- Product Management Form -->
+            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 20px;">Add New Rug (KSOR Collection)</h3>
+            <form id="product-form">
                 <div class="form-group">
-                    <label for="prod-title">Product Name / Title</label>
-                    <input type="text" id="prod-title" class="form-input" placeholder="e.g., KSOR Classic" required>
+                    <label for="product-name">Product Name / Title</label>
+                    <input type="text" id="product-name" value="KSOR Classic" required>
                 </div>
-                
                 <div class="form-group">
-                    <label for="prod-collection">Collection</label>
-                    <input type="text" id="prod-collection" class="form-input" value="KSOR" required>
+                    <label for="product-size">Size</label>
+                    <input type="text" id="product-size" value="200x280 cm" required>
                 </div>
-
                 <div class="form-group">
-                    <label for="prod-price">Base Price (DZD)</label>
-                    <input type="number" id="prod-price" class="form-input" placeholder="12500" required>
+                    <label for="product-price">Price (DZD)</label>
+                    <input type="number" id="product-price" value="12500" required>
                 </div>
-
                 <div class="form-group">
-                    <label for="prod-image">Default Image URL</label>
-                    <input type="text" id="prod-image" class="form-input" placeholder="Paste direct image link here" required>
+                    <label for="product-img">Direct Image URL</label>
+                    <input type="url" id="product-img" placeholder="https://i.ibb.co/..." required>
                 </div>
-                
-                <h4 style="margin: 24px 0 16px; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Product Variants (Sizes & Colors)</h4>
-                
-                <div id="variants-container">
-                    <!-- Variant input rows will be dynamically injected here -->
-                </div>
-                
-                <button type="button" id="add-variant-btn" class="btn-primary" style="background: #f5f5f5; color: var(--text-primary); border: 1px solid var(--border-color); margin-bottom: 24px;">+ Add Variant</button>
-                
-                <button type="submit" class="btn-primary" style="width: 100%;">Save Product to Database</button>
+                <button type="submit" class="admin-submit-btn">Save Product to Database</button>
             </form>
         </div>
     </main>
