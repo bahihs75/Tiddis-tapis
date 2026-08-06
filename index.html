@@ -3,46 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiddis | High-End Rugs</title>
+    <title>TIDDIS TAPIS | High-End Rugs</title>
+    <!-- ربط ملف التصميم الموحد -->
     <link rel="stylesheet" href="css/style.css">
+    <!-- مكتبة QR Code لاستخدامها في ملف PDF (تحميل من CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- مكتبة html2canvas و jspdf لإنشاء PDF (تحميل من CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <header class="header">
-        <div class="logo">Tiddis</div>
-        <nav class="nav-links">
-            <a href="#collection">Collections</a>
-            <a href="#about">About Us</a>
-            <a href="#contact">Contact</a>
-        </nav>
-    </header>
 
-    <main class="main-content">
-        <section class="search-filter-section" id="collection">
-            <div class="collection-intro">
-                <h2>KSOR Collection</h2>
+    <!-- القائمة الجانبية (Desktop) + هامبورجر (Mobile) -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo-container">
+            <div class="brand-main">TIDDIS</div>
+            <div class="brand-sub">TAPIS</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-section="home">Overview</a>
+            <a href="#" class="nav-link" data-section="products">Products</a>
+            <a href="#" class="nav-link" data-section="about">About Us</a>
+            <a href="#" class="nav-link" data-section="contact">Contact</a>
+        </nav>
+        <div class="sidebar-footer">
+            <span>© TIDDIS TAPIS</span>
+        </div>
+    </div>
+
+    <!-- زر هامبورجر للهواتف -->
+    <div class="mobile-header">
+        <div class="mobile-brand">
+            <span class="brand-main">TIDDIS</span>
+            <span class="brand-sub">TAPIS</span>
+        </div>
+        <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content" id="main-content">
+
+        <!-- قسم الهيرو الصغير (Hero) -->
+        <section class="hero-section">
+            <h1 class="hero-title">T I D D I S &nbsp; T A P I S</h1>
+            <p class="hero-subtitle">INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE</p>
+        </section>
+
+        <!-- شريط البحث والفلاتر -->
+        <section class="search-filter-section">
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="KSOR">KSOR</button>
+                <button class="filter-btn" data-filter="CHAHINE">CHAHINE</button>
+                <button class="filter-btn" data-filter="GALATA">GALATA</button>
+                <button class="filter-btn" data-filter="ORIA">ORIA</button>
+                <button class="filter-btn" data-filter="PLAZA">PLAZA</button>
+                <button class="filter-btn" data-filter="MANISA">MANISA</button>
             </div>
-            <div class="search-bar-container">
-                <input type="text" id="search-input" class="search-input" placeholder="Search rugs by name, size...">
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search rugs by name, size, or color...">
+                <span id="product-count">0 products</span>
             </div>
         </section>
 
-        <!-- Pre-loaded grid container for instant display -->
+        <!-- شبكة المنتجات (عمودين على الديسكتوب، عمود واحد على الموبايل) -->
         <div id="products-grid" class="products-grid">
-            <!-- Products will load dynamically here -->
+            <!-- سيتم تعبئتها بواسطة store.js -->
+            <div class="loading-placeholder">Loading exclusive collection...</div>
         </div>
 
-        <section id="about" class="store-section">
+        <!-- قسم About Us -->
+        <section id="about-section" class="store-section">
             <h3>About Tiddis</h3>
-            <p>Tiddis brings you exclusive, high-end artisanal rugs designed to elevate modern interiors. Every piece in our signature KSOR collection reflects uncompromising craftsmanship, luxury, and timeless design.</p>
+            <p id="about-text">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</p>
         </section>
 
-        <section id="contact" class="store-section">
+        <!-- قسم Contact -->
+        <section id="contact-section" class="store-section">
             <h3>Contact Us</h3>
-            <p>Have questions about custom sizes or orders? Get in touch with our concierge team.</p>
-            <p style="margin-top: 10px; font-weight: 600; color: #111;">Email: support@tiddis.com | Phone: +213 XX XX XX XX</p>
+            <p id="contact-text">Have questions about custom sizes or orders? Get in touch with our concierge team.</p>
+            <div id="contact-icons" class="contact-icons">
+                <!-- سيتم تعبئتها ديناميكياً من Firebase -->
+            </div>
         </section>
+
+        <!-- تذييل الصفحة -->
+        <footer class="main-footer">
+            <p>&copy; 2025 TIDDIS TAPIS — All rights reserved.</p>
+        </footer>
     </main>
 
+    <!-- نافذة الطلب المنبثقة (Modal) -->
+    <div id="order-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <h2>Order Details</h2>
+            <form id="order-form">
+                <div class="form-group">
+                    <label for="customer-name">Full Name</label>
+                    <input type="text" id="customer-name" placeholder="e.g., Ahmed Benali" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-phone">Phone Number</label>
+                    <input type="tel" id="customer-phone" placeholder="0559 123 456" required>
+                </div>
+                <div class="form-group">
+                    <label for="wilaya-select">Wilaya</label>
+                    <select id="wilaya-select" required>
+                        <option value="">-- Select your wilaya --</option>
+                        <!-- سيتم تعبئتها عبر JavaScript -->
+                    </select>
+                </div>
+                <!-- حقل المقاس المخصص (يظهر فقط للمنتجات التي تسمح بذلك) -->
+                <div class="form-group" id="custom-size-group" style="display:none;">
+                    <label for="custom-size">Custom Size (optional)</label>
+                    <input type="text" id="custom-size" placeholder="e.g., 250x350 cm">
+                </div>
+                <div class="order-summary">
+                    <div class="summary-line">
+                        <span>Subtotal:</span>
+                        <span id="modal-subtotal">0 DZD</span>
+                    </div>
+                    <div class="summary-line">
+                        <span>Delivery Fee:</span>
+                        <span id="modal-delivery">0 DZD</span>
+                    </div>
+                    <div class="summary-line total">
+                        <span>Total:</span>
+                        <span id="modal-total">0 DZD</span>
+                    </div>
+                </div>
+                <button type="submit" class="order-submit-btn">Confirm Order</button>
+            </form>
+            <div id="order-status" style="margin-top:10px; font-size:0.9rem;"></div>
+        </div>
+    </div>
+
+    <!-- تحميل ملفات JavaScript (بترتيب صحيح) -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/store.js"></script>
 </body>
