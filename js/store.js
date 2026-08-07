@@ -1,6 +1,6 @@
 // ============================================
-// TIDDIS TAPIS — Storefront Logic (محدث بالكامل)
-// منطق المتجر الرئيسي: العرض، البحث، الفلاتر، القوائم المتداخلة، الطلب، PDF، صفحة التفاصيل
+// TIDDIS TAPIS — Storefront Logic (كود كامل)
+// منطق المتجر الرئيسي: العرض، البحث، الفلاتر، القوائم المتداخلة، الطلب، PDF
 // ============================================
 
 import { db } from './firebase-config.js';
@@ -39,12 +39,8 @@ let currentProductForOrder = null;
 let currentVariantForOrder = null;
 let currentProductId = null;
 let pageSize = 4;
-let lastDoc = null;
 let isLoading = false;
 let allLoaded = false;
-let wilayaList = [];
-let productDetailLoaded = false;
-let gridColumns = 2;
 let isMobile = window.innerWidth <= 900;
 
 // ============================================
@@ -82,7 +78,6 @@ const downloadPdfAfterOrder = document.getElementById('download-pdf-after-order'
 const gridToggleBtn = document.getElementById('grid-toggle-btn');
 
 // عناصر صفحة التفاصيل
-const loader = document.getElementById('product-loader');
 const detailContainer = document.getElementById('product-detail-container');
 const detailName = document.getElementById('product-detail-name');
 const detailImages = document.getElementById('product-detail-images');
@@ -285,6 +280,7 @@ async function loadCategories() {
 function buildSidebarMenu() {
     if (!sidebarNav) return;
 
+    // بناء روابط Overview مع فئاتها
     let overviewHtml = '';
     if (categoriesOverview.length > 0) {
         overviewHtml = `<li class="nav-item">
@@ -316,6 +312,7 @@ function buildSidebarMenu() {
         </li>`;
     }
 
+    // بناء روابط Products مع فئاتها
     let productsHtml = '';
     if (categories.length > 0) {
         productsHtml = `<li class="nav-item">
@@ -364,35 +361,48 @@ function buildSidebarMenu() {
         </ul>
     `;
 
+    // إضافة مستمعات الأحداث للقوائم المتداخلة
     sidebarNav.querySelectorAll('.nav-link[data-section]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const section = this.dataset.section;
             const category = this.dataset.category || null;
             const type = this.dataset.type || null;
-            const parent = this.dataset.parent || null;
 
             const parentLi = this.closest('.nav-item');
             const subMenu = parentLi ? parentLi.querySelector('.sub-menu') : null;
+
+            // تبديل القائمة الفرعية (توسيع/طي)
             if (subMenu) {
                 const isOpen = subMenu.classList.contains('open');
+                // إغلاق جميع القوائم الفرعية في نفس المستوى
                 const siblingMenus = parentLi.parentElement.querySelectorAll('.sub-menu');
-                siblingMenus.forEach(sm => sm.classList.remove('open'));
+                siblingMenus.forEach(sm => {
+                    if (sm !== subMenu) sm.classList.remove('open');
+                });
                 if (!isOpen) {
                     subMenu.classList.add('open');
+                } else {
+                    subMenu.classList.remove('open');
                 }
+                // تبديل أيقونة السهم
                 const icon = this.querySelector('.toggle-icon');
                 if (icon) {
                     icon.classList.toggle('open');
                 }
             }
 
+            // إذا كان هناك تصنيف محدد، قم بتصفية المنتجات
             if (category && type) {
                 currentFilterType = type;
                 currentFilter = category;
+                // إلغاء تحديد أزرار الفلتر
                 filterBtns.forEach(b => b.classList.remove('active'));
+                // تحديث الشبكة
                 filterProducts();
+                // التمرير إلى الشبكة
                 document.getElementById('products-grid')?.scrollIntoView({ behavior: 'smooth' });
+                // إغلاق القائمة الجانبية في الهاتف
                 if (window.innerWidth <= 900) {
                     sidebar.classList.remove('open');
                     hamburgerBtn?.classList.remove('active');
@@ -400,12 +410,20 @@ function buildSidebarMenu() {
                 return;
             }
 
+            // إذا كان قسم (Overview أو Products) وليس تصنيفاً محدداً
+            if (section === 'overview' || section === 'products') {
+                // التمرير إلى الشبكة
+                document.getElementById('products-grid')?.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // التنقل للأقسام الأخرى (About, Contact)
             if (section === 'about') {
                 document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' });
             } else if (section === 'contact') {
                 document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
             }
 
+            // إغلاق القائمة على الهواتف
             if (window.innerWidth <= 900) {
                 sidebar.classList.remove('open');
                 hamburgerBtn?.classList.remove('active');
@@ -413,6 +431,7 @@ function buildSidebarMenu() {
         });
     });
 
+    // فتح القائمة الافتراضية (Products)
     const productsNav = sidebarNav.querySelector('[data-section="products"]');
     if (productsNav) {
         const parentLi = productsNav.closest('.nav-item');
@@ -529,7 +548,7 @@ function createProductCard(product) {
         </div>
     `;
 
-    // Slider مع أزرار أساسية + دعم اللمس
+    // ----- معالجة Slider الصور (أزرار + لمس) -----
     if (hasMultipleImages) {
         let currentImageIndex = 0;
         const img = card.querySelector('.product-main-image');
@@ -562,6 +581,7 @@ function createProductCard(product) {
             });
         }
 
+        // دعم اللمس (Swipe) - طريقة بديلة
         const wrap = card.querySelector('.product-image-wrap');
         if (wrap) {
             wrap.addEventListener('touchstart', (e) => {
@@ -584,7 +604,7 @@ function createProductCard(product) {
         card._allImages = allImages;
     }
 
-    // المتغيرات
+    // ----- معالجة المتغيرات -----
     const variantSelect = card.querySelector('.variant-select');
     if (variantSelect) {
         variantSelect.addEventListener('change', function(e) {
@@ -621,7 +641,7 @@ function createProductCard(product) {
         });
     }
 
-    // زر ORDER
+    // ----- زر ORDER -----
     const orderBtn = card.querySelector('.order-btn');
     orderBtn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -683,6 +703,7 @@ function filterProducts() {
                        (mobileSearchInput ? mobileSearchInput.value.toLowerCase().trim() : '');
 
     filteredProducts = allProducts.filter(product => {
+        // فلترة حسب التصنيف (مع دعم الفئات الفرعية)
         if (currentFilter !== 'all') {
             if (currentFilterType === 'overview') {
                 if (product.overviewCategory === currentFilter) return true;
@@ -724,12 +745,25 @@ function updateProductCount() {
     }
 }
 
+// مستمعات البحث
 if (searchInput) {
     searchInput.addEventListener('input', filterProducts);
 }
 if (mobileSearchInput) {
     mobileSearchInput.addEventListener('input', filterProducts);
 }
+
+// مستمعات أزرار الفلاتر (All, KSOR, CHAHINE, ...)
+filterBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+        // إزالة الفعالية من جميع الأزرار
+        filterBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentFilter = this.dataset.filter;
+        currentFilterType = 'products';
+        filterProducts();
+    });
+});
 
 // ============================================
 // 7. نافذة الطلب المنبثقة (Order Modal)
@@ -915,7 +949,7 @@ if (downloadPdfAfterOrder) {
 }
 
 // ============================================
-// 10. إنشاء ملف PDF التقني
+// 10. إنشاء ملف PDF التقني (متاح عالمياً)
 // ============================================
 
 window.generateProductPDF = async function(productId) {
@@ -941,7 +975,7 @@ window.generateProductPDF = async function(productId) {
 
     const logoUrl = storeSettings.logoUrl || '';
     const logoHtml = logoUrl ? 
-        `<img src="${logoUrl}" alt="TIDDIS TAPIS" style="max-height:50px; margin-bottom:20px;">` :
+        `<img src="${logoUrl}" alt="TIDDIS TAPIS" style="max-height:50px; margin-bottom:20px; background:transparent;">` :
         `<div style="font-family: 'Fraunces', Georgia, serif; font-size:28px; font-weight:600; letter-spacing:4px; color:#1a1a1a;">TIDDIS</div>
          <div style="font-family: 'Fraunces', Georgia, serif; font-size:14px; font-weight:300; letter-spacing:6px; color:#4E1A1D; margin-top:2px;">TAPIS</div>`;
 
@@ -1070,21 +1104,20 @@ window.generateProductPDF = async function(productId) {
 };
 
 // ============================================
-// 11. صفحة تفاصيل المنتج (Product Detail) - مع Loader
+// 11. صفحة تفاصيل المنتج (Product Detail) - بدون Loader
 // ============================================
 
 window.loadProductDetail = async function() {
-    // إظهار الـ Loader وإخفاء المحتوى
-    if (loader) loader.style.display = 'flex';
-    if (detailContainer) detailContainer.style.display = 'none';
+    // عرض رسالة التحميل في الحاوية
+    if (detailContainer) {
+        detailContainer.innerHTML = `<p style="text-align:center; padding:60px 20px; font-family:'Space Mono', monospace; color:#6b6b6b;">Loading product details...</p>`;
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     const productId = urlParams.get('id');
     if (!productId) {
-        if (loader) loader.style.display = 'none';
         if (detailContainer) {
-            detailContainer.style.display = 'block';
-            detailContainer.innerHTML = '<p style="text-align:center; padding:40px;">Product not found.</p>';
+            detailContainer.innerHTML = '<p style="text-align:center; padding:40px; font-family:\'Space Mono\', monospace; color:#c0392b;">Product not found.</p>';
         }
         return;
     }
@@ -1096,111 +1129,154 @@ window.loadProductDetail = async function() {
         const docSnap = await getDoc(docRef);
         
         if (!docSnap.exists()) {
-            if (loader) loader.style.display = 'none';
             if (detailContainer) {
-                detailContainer.style.display = 'block';
-                detailContainer.innerHTML = '<p style="text-align:center; padding:40px;">Product not found.</p>';
+                detailContainer.innerHTML = '<p style="text-align:center; padding:40px; font-family:\'Space Mono\', monospace; color:#c0392b;">Product not found.</p>';
             }
             return;
         }
 
         const product = { id: docSnap.id, ...docSnap.data() };
-        
-        // إخفاء الـ Loader وعرض المحتوى
-        if (loader) loader.style.display = 'none';
-        if (detailContainer) detailContainer.style.display = 'block';
-        
         renderProductDetail(product);
         
     } catch (error) {
         console.error('Error loading product detail:', error);
-        if (loader) loader.style.display = 'none';
         if (detailContainer) {
-            detailContainer.style.display = 'block';
-            detailContainer.innerHTML = '<p style="text-align:center; padding:40px; color:#c0392b;">Error loading product. Please try again.</p>';
+            detailContainer.innerHTML = '<p style="text-align:center; padding:40px; font-family:\'Space Mono\', monospace; color:#c0392b;">Error loading product. Please try again.</p>';
         }
     }
 };
 
 function renderProductDetail(product) {
-    if (detailName) detailName.textContent = product.name || 'KSOR Classic';
-
-    if (detailImages) {
-        detailImages.innerHTML = '';
-        const allImages = [];
-        if (product.imageUrl) allImages.push(product.imageUrl);
-        if (product.additionalImages) {
-            allImages.push(...product.additionalImages);
-        }
-        if (product.variants) {
-            product.variants.forEach(v => {
-                if (v.image && !allImages.includes(v.image)) {
-                    allImages.push(v.image);
-                }
-            });
-        }
-        const uniqueImages = [...new Set(allImages)];
-        
-        if (uniqueImages.length === 0) {
-            detailImages.innerHTML = '<p style="color:#6b6b6b;">No images available.</p>';
-        } else {
-            uniqueImages.forEach((url, index) => {
-                const imgWrapper = document.createElement('div');
-                imgWrapper.className = 'detail-image-wrapper';
-                imgWrapper.style.cssText = 'margin-bottom:20px; width:100%;';
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = `${product.name} - Image ${index + 1}`;
-                img.style.cssText = 'width:100%; height:auto; max-height:600px; object-fit:contain; border-radius:4px; border:1px solid #e2e0d8; background:#f4f2ed;';
-                img.loading = 'eager';
-                imgWrapper.appendChild(img);
-                detailImages.appendChild(imgWrapper);
-            });
-        }
-    }
-
+    if (!detailContainer) return;
+    
+    // بناء HTML صفحة التفاصيل مباشرة
     const hasVariants = product.variants && product.variants.length > 0;
     const firstVariant = hasVariants ? product.variants[0] : null;
     const defaultPrice = (firstVariant && firstVariant.price) ? firstVariant.price : (product.basePrice || 0);
     const defaultSize = firstVariant?.size || product.size || '200x280 cm';
     const defaultColor = firstVariant?.color || '';
 
-    if (detailSize) detailSize.textContent = defaultSize;
-    if (detailColor) detailColor.textContent = defaultColor;
-    if (detailPrice) detailPrice.textContent = defaultPrice + ' DZD';
+    // جمع الصور
+    let allImages = [];
+    if (product.imageUrl) allImages.push(product.imageUrl);
+    if (product.additionalImages) {
+        allImages = allImages.concat(product.additionalImages);
+    }
+    if (product.variants) {
+        product.variants.forEach(v => {
+            if (v.image && !allImages.includes(v.image)) {
+                allImages.push(v.image);
+            }
+        });
+    }
+    const uniqueImages = [...new Set(allImages)];
 
-    if (detailVariant) {
-        detailVariant.innerHTML = '';
-        if (hasVariants) {
-            product.variants.forEach((v, idx) => {
-                const option = document.createElement('option');
-                option.value = idx;
-                option.textContent = v.size ? v.size : (v.color || `Variant ${idx + 1}`);
-                option.dataset.price = v.price || product.basePrice;
-                option.dataset.image = v.image || product.imageUrl || '';
-                option.dataset.size = v.size || '';
-                option.dataset.color = v.color || '';
-                if (idx === 0) option.selected = true;
-                detailVariant.appendChild(option);
-            });
-            detailVariant.style.display = 'block';
-        } else {
-            detailVariant.style.display = 'none';
-        }
+    // بناء معرض الصور
+    let imagesHtml = '';
+    if (uniqueImages.length === 0) {
+        imagesHtml = '<p style="color:#6b6b6b;">No images available.</p>';
+    } else {
+        imagesHtml = uniqueImages.map(url => `
+            <div class="detail-image-wrapper">
+                <img src="${url}" alt="${product.name || 'Product'}" loading="eager">
+            </div>
+        `).join('');
+    }
 
-        detailVariant.addEventListener('change', function() {
+    // بناء قائمة المتغيرات
+    let variantOptionsHtml = '';
+    if (hasVariants) {
+        variantOptionsHtml = `
+            <select id="product-detail-variant" class="variant-select" style="font-size:14px; padding:6px 12px;">
+                ${product.variants.map((v, idx) => `
+                    <option value="${idx}" data-price="${v.price || product.basePrice}" 
+                            data-image="${v.image || product.imageUrl || ''}"
+                            data-size="${v.size || ''}"
+                            data-color="${v.color || ''}"
+                            ${idx === 0 ? 'selected' : ''}>
+                        ${v.size ? v.size : ''} ${v.color ? '- ' + v.color : ''}
+                    </option>
+                `).join('')}
+            </select>
+        `;
+    }
+
+    // بناء الصفحة
+    detailContainer.innerHTML = `
+        <!-- الشعار في أعلى الصفحة -->
+        <div class="product-page-header">
+            <div class="product-page-logo-wrapper">
+                <img id="product-page-logo" src="${storeSettings.logoUrl || ''}" alt="TIDDIS Logo" 
+                     style="${storeSettings.logoUrl ? 'max-height:30px; margin-right:10px; background:transparent;' : 'display:none;'}">
+                <div>
+                    <span class="brand-main" style="font-size:20px;">TIDDIS</span>
+                    <span class="brand-sub" style="font-size:11px;">TAPIS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- اسم المنتج -->
+        <h1 class="product-detail-title">${product.name || 'KSOR Classic'}</h1>
+
+        <!-- معرض الصور (عمودي - واحدة تحت الأخرى) -->
+        <div class="product-detail-images">
+            ${imagesHtml}
+        </div>
+
+        <!-- معلومات المنتج -->
+        <div class="product-detail-info">
+            <div class="product-detail-row">
+                <div class="product-detail-specs">
+                    <span id="product-detail-size">${defaultSize}</span>
+                    <span id="product-detail-color" style="margin-left:12px; color:#6b6b6b;">${defaultColor}</span>
+                </div>
+                <span class="product-detail-price" id="product-detail-price">${defaultPrice} DZD</span>
+            </div>
+
+            <!-- محدد المتغيرات -->
+            <div class="product-detail-variant-row">
+                ${variantOptionsHtml}
+            </div>
+
+            <!-- زر ORDER و PDF -->
+            <div class="product-detail-actions">
+                <button id="product-detail-order-btn" class="order-btn" style="font-size:16px; padding:12px 28px;">ORDER</button>
+                <button id="product-detail-pdf-btn" class="pdf-btn">📄 Download Technical Sheet</button>
+            </div>
+        </div>
+
+        ${product.description ? `
+            <div class="product-detail-description">
+                ${product.description}
+            </div>
+        ` : ''}
+    `;
+
+    // ربط الأحداث بعد بناء DOM
+    const variantSelect = document.getElementById('product-detail-variant');
+    const orderBtn = document.getElementById('product-detail-order-btn');
+    const pdfBtn = document.getElementById('product-detail-pdf-btn');
+    const priceEl = document.getElementById('product-detail-price');
+    const sizeEl = document.getElementById('product-detail-size');
+    const colorEl = document.getElementById('product-detail-color');
+    const imagesContainer = document.querySelector('.product-detail-images');
+
+    // معالجة تغيير المتغير
+    if (variantSelect) {
+        variantSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const newPrice = parseInt(selectedOption.dataset.price) || 0;
             const newImage = selectedOption.dataset.image;
             const newSize = selectedOption.dataset.size || '';
             const newColor = selectedOption.dataset.color || '';
 
-            if (detailPrice) detailPrice.textContent = newPrice + ' DZD';
-            if (detailSize) detailSize.textContent = newSize || defaultSize;
-            if (detailColor) detailColor.textContent = newColor || '';
+            if (priceEl) priceEl.textContent = newPrice + ' DZD';
+            if (sizeEl) sizeEl.textContent = newSize || defaultSize;
+            if (colorEl) colorEl.textContent = newColor || '';
 
-            if (newImage && detailImages) {
-                const firstImg = detailImages.querySelector('img');
+            // تحديث الصورة الأولى فقط (نظرياً)
+            if (newImage && imagesContainer) {
+                const firstImg = imagesContainer.querySelector('img');
                 if (firstImg) {
                     firstImg.src = newImage;
                 }
@@ -1208,9 +1284,10 @@ function renderProductDetail(product) {
         });
     }
 
-    if (detailOrderBtn) {
-        detailOrderBtn.addEventListener('click', function() {
-            const select = detailVariant;
+    // زر ORDER
+    if (orderBtn) {
+        orderBtn.addEventListener('click', function() {
+            const select = document.getElementById('product-detail-variant');
             let selectedVariant = null;
             let selectedIndex = 0;
             if (select && hasVariants) {
@@ -1221,20 +1298,11 @@ function renderProductDetail(product) {
         });
     }
 
-    if (detailPdfBtn) {
-        detailPdfBtn.addEventListener('click', function() {
+    // زر PDF
+    if (pdfBtn) {
+        pdfBtn.addEventListener('click', function() {
             generateProductPDF(product.id);
         });
-    }
-
-    if (productPageLogo && storeSettings.logoUrl) {
-        productPageLogo.src = storeSettings.logoUrl;
-        productPageLogo.style.display = 'inline-block';
-    }
-
-    if (detailDescription && product.description) {
-        detailDescription.textContent = product.description;
-        detailDescription.style.display = 'block';
     }
 }
 
@@ -1243,6 +1311,7 @@ function renderProductDetail(product) {
 // ============================================
 
 function applyStoreSettings() {
+    // الألوان
     if (storeSettings.sidebarBgColor) {
         document.documentElement.style.setProperty('--sidebar-bg', storeSettings.sidebarBgColor);
         const sidebarEl = document.querySelector('.sidebar');
@@ -1253,6 +1322,7 @@ function applyStoreSettings() {
         document.body.style.backgroundColor = storeSettings.mainBgColor;
     }
 
+    // الشعار
     const logoUrl = storeSettings.logoUrl || '';
     const logoElements = [
         document.getElementById('sidebar-logo'),
@@ -1264,16 +1334,19 @@ function applyStoreSettings() {
             if (logoUrl) {
                 el.src = logoUrl;
                 el.style.display = 'inline-block';
+                el.style.background = 'transparent';
             } else {
                 el.style.display = 'none';
             }
         }
     });
 
+    // نص About Us
     if (aboutText && storeSettings.aboutText) {
         aboutText.textContent = storeSettings.aboutText;
     }
 
+    // أيقونات التواصل
     if (contactIcons && storeSettings.contacts) {
         renderContactIcons(storeSettings.contacts);
     }
@@ -1426,4 +1499,5 @@ async function initStore() {
 
 document.addEventListener('DOMContentLoaded', initStore);
 
+// تصدير الوظائف للاستخدام في admin.js
 export { allProducts, categories, categoriesOverview, deliveryRates, storeSettings };
