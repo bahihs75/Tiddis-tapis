@@ -1,5 +1,5 @@
 // ============================================
-// TIDDIS TAPIS — Admin Panel Logic (محدث بالكامل)
+// TIDDIS TAPIS — Admin Panel Logic (كود كامل)
 // منطق لوحة التحكم الإدارية: إدارة المنتجات، الفئات، التوصيل، الطلبات، الإعدادات
 // ============================================
 
@@ -892,9 +892,10 @@ function renderProductsList() {
         btn.addEventListener('click', () => deleteProduct(btn.dataset.id));
     });
     productsList.querySelectorAll('.pdf-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', function() {
+            // استدعاء وظيفة PDF من window (المعرفة في store.js)
             if (window.generateProductPDF) {
-                window.generateProductPDF(btn.dataset.id);
+                window.generateProductPDF(this.dataset.id);
             } else {
                 alert('PDF generation function not loaded. Please refresh the page.');
             }
