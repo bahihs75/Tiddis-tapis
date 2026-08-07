@@ -2,9 +2,34 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Product Details</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- أيقونات TIDDIS المخصصة -->
+    <style>
+        .tiddis-icon {
+            width: 22px;
+            height: 22px;
+            transition: color 0.2s ease, transform 0.2s ease;
+            color: #2b2b2b;
+        }
+        a:hover .tiddis-icon,
+        .tiddis-icon:hover {
+            color: #4E1A1D;
+            transform: translateY(-1px);
+        }
+        .tiddis-icon.outline {
+            stroke: currentColor;
+            stroke-width: 2.2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .tiddis-icon.solid {
+            fill: currentColor;
+            stroke: none;
+        }
+    </style>
     <!-- مكتبات PDF -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -12,25 +37,22 @@
 </head>
 <body>
 
-    <!-- القائمة الجانبية -->
+    <!-- القائمة الجانبية (Desktop) -->
     <div class="sidebar" id="sidebar">
         <div class="logo-container">
             <div class="logo-wrapper">
-                <img id="sidebar-logo" src="" alt="Logo" style="display:none; max-height:32px; margin-right:10px;">
+                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px;">
                 <div>
                     <div class="brand-main">TIDDIS</div>
                     <div class="brand-sub">TAPIS</div>
                 </div>
             </div>
         </div>
-        <nav class="sidebar-nav">
-            <a href="index.html" class="nav-link">Overview</a>
-            <a href="index.html#products-grid" class="nav-link">Products</a>
-            <a href="index.html#about-section" class="nav-link">About Us</a>
-            <a href="index.html#contact-section" class="nav-link">Contact</a>
+        <nav class="sidebar-nav" id="sidebar-nav">
+            <!-- سيتم تعبئة الروابط بواسطة JavaScript مع القوائم المتداخلة -->
         </nav>
         <div class="sidebar-footer">
-            <span>© TIDDIS TAPIS</span>
+            <a href="index.html" class="back-to-store">← Back to Store</a>
         </div>
     </div>
 
@@ -38,16 +60,32 @@
     <div class="mobile-header">
         <div class="mobile-brand">
             <div class="logo-wrapper" style="display:flex; align-items:center;">
-                <img id="mobile-logo" src="" alt="Logo" style="display:none; max-height:24px; margin-right:8px;">
+                <img id="mobile-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:24px; margin-right:8px;">
                 <div>
                     <span class="brand-main">TIDDIS</span>
                     <span class="brand-sub">TAPIS</span>
                 </div>
             </div>
         </div>
-        <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
-            <span></span><span></span><span></span>
-        </button>
+        <div class="mobile-header-actions">
+            <button class="search-toggle-btn" id="search-toggle-btn" aria-label="Search">
+                <svg class="tiddis-icon outline" viewBox="0 0 24 24" width="22" height="22">
+                    <circle cx="11" cy="11" r="7"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </button>
+            <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- شريط البحث القابل للطي -->
+    <div class="mobile-search-bar" id="mobile-search-bar" style="display:none;">
+        <div class="mobile-search-inner">
+            <input type="text" id="mobile-search-input" placeholder="Search rugs by name, size, or color...">
+            <button class="mobile-search-close" id="mobile-search-close">✕</button>
+        </div>
     </div>
 
     <!-- المحتوى الرئيسي -->
@@ -73,7 +111,7 @@
             <!-- الشعار في أعلى الصفحة -->
             <div class="product-page-header">
                 <div class="product-page-logo-wrapper">
-                    <img id="product-page-logo" src="" alt="Logo" style="display:none; max-height:30px; margin-right:10px;">
+                    <img id="product-page-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:30px; margin-right:10px;">
                     <div>
                         <span class="brand-main" style="font-size:20px;">TIDDIS</span>
                         <span class="brand-sub" style="font-size:11px;">TAPIS</span>
@@ -99,7 +137,7 @@
                     <span class="product-detail-price" id="product-detail-price">12500 DZD</span>
                 </div>
 
-                <!-- محدد المتغيرات (في نفس السطر) -->
+                <!-- محدد المتغيرات (في سطر منفصل) -->
                 <div class="product-detail-variant-row">
                     <select id="product-detail-variant" class="variant-select" style="font-size:14px; padding:6px 12px;">
                         <!-- سيتم تعبئتها بواسطة store.js -->
@@ -184,7 +222,7 @@
         </div>
     </div>
 
-    <!-- تحميل JavaScript -->
+    <!-- تحميل ملفات JavaScript -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/store.js"></script>
     <script type="module">
