@@ -11,6 +11,69 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- أيقونات TIDDIS المخصصة -->
+    <style>
+        .tiddis-icon {
+            width: 22px;
+            height: 22px;
+            transition: color 0.2s ease, transform 0.2s ease;
+            color: #2b2b2b;
+        }
+        .tiddis-icon.outline {
+            stroke: currentColor;
+            stroke-width: 2.2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .tiddis-icon.solid {
+            fill: currentColor;
+            stroke: none;
+        }
+        /* زر إضافة منتج جديد */
+        .add-product-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .add-product-toggle .btn-primary {
+            padding: 10px 24px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        .add-product-toggle .btn-primary .plus-icon {
+            font-size: 18px;
+            margin-right: 6px;
+        }
+        .product-form-wrapper {
+            display: none;
+            margin-top: 16px;
+            border-top: 2px solid var(--border-color);
+            padding-top: 20px;
+        }
+        .product-form-wrapper.open {
+            display: block;
+        }
+        /* رسالة فارغة للـ Overview Categories */
+        .empty-state-message {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-color);
+        }
+        .empty-state-message .empty-icon {
+            font-size: 32px;
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
 </head>
 <body>
 
@@ -48,7 +111,7 @@
             // التحقق من "تذكرني"
             const rememberMe = localStorage.getItem('admin_remember') === 'true';
             if (rememberMe) {
-                return; // السماح بالدخول مباشرة
+                return;
             }
 
             // التحقق من المحاولات
@@ -190,7 +253,7 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 3. Overview Categories Section -->
+        <!-- 3. Overview Categories Section (مع رسالة فارغة) -->
         <!-- ========================================== -->
         <section id="section-overview" class="admin-section">
             <h2>Manage Overview Categories</h2>
@@ -221,72 +284,88 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 4. Products Section -->
+        <!-- 4. Products Section (مع زر "Add New Product") -->
         <!-- ========================================== -->
         <section id="section-products" class="admin-section">
             <h2>Manage Products</h2>
-            <div class="admin-card">
-                <h3>Add / Edit Product</h3>
-                <form id="product-form">
-                    <div class="form-group">
-                        <label for="product-id">Product ID (hidden)</label>
-                        <input type="text" id="product-id" style="display:none;">
-                    </div>
-                    <div class="form-group">
-                        <label for="product-name">Product Name *</label>
-                        <input type="text" id="product-name" placeholder="e.g., KSOR Classic" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="product-category">Sub-Category *</label>
-                        <select id="product-category" required>
-                            <option value="">Select sub-category</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="product-overview-category">Overview Category (optional)</label>
-                        <select id="product-overview-category">
-                            <option value="">Select overview category</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="product-base-price">Base Price (DZD) *</label>
-                        <input type="number" id="product-base-price" placeholder="12500" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="product-main-image">Main Image URL *</label>
-                        <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required>
-                        <div id="main-image-preview" class="image-preview"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="product-customizable-size">
-                            Allow Size Customization (Customer can request custom size)
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label>Product Additional Images (optional)</label>
-                        <div id="additional-images-container">
-                            <div class="image-upload-row">
-                                <input type="text" class="additional-image-url" placeholder="Image URL">
-                                <button type="button" class="btn-remove-image" style="display:none;">✕</button>
-                            </div>
-                        </div>
-                        <button type="button" id="add-image-row-btn" class="btn-secondary">+ Add Another Image</button>
-                        <div id="additional-images-preview" class="image-preview-grid"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>PDF Image Selection</label>
-                        <p style="font-size:0.85rem; color:#666;">Select which image should appear in the downloadable PDF.</p>
-                        <div id="pdf-image-selector"></div>
-                    </div>
-                    <hr>
-                    <h4>Product Variants (Sizes / Colors)</h4>
-                    <div id="variants-container"></div>
-                    <button type="button" id="add-variant-btn" class="btn-secondary">+ Add Variant</button>
-                    <hr>
-                    <button type="submit" class="btn-primary" style="width:100%; margin-top:16px;">Save Product</button>
-                </form>
+
+            <!-- زر "Add New Product" -->
+            <div class="add-product-toggle">
+                <button id="toggle-product-form-btn" class="btn-primary">
+                    <span class="plus-icon">+</span> Add New Product
+                </button>
+                <span style="font-family:'Space Mono', monospace; font-size:12px; color:#6b6b6b;">
+                    Click to show/hide the product form
+                </span>
             </div>
+
+            <!-- نموذج إضافة المنتج (مخفي افتراضياً) -->
+            <div id="product-form-wrapper" class="product-form-wrapper">
+                <div class="admin-card" style="margin-bottom:0;">
+                    <h3>Add / Edit Product</h3>
+                    <form id="product-form">
+                        <div class="form-group">
+                            <label for="product-id">Product ID (hidden)</label>
+                            <input type="text" id="product-id" style="display:none;">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-name">Product Name *</label>
+                            <input type="text" id="product-name" placeholder="e.g., KSOR Classic" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-category">Sub-Category *</label>
+                            <select id="product-category" required>
+                                <option value="">Select sub-category</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-overview-category">Overview Category (optional)</label>
+                            <select id="product-overview-category">
+                                <option value="">Select overview category</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-base-price">Base Price (DZD) *</label>
+                            <input type="number" id="product-base-price" placeholder="12500" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-main-image">Main Image URL *</label>
+                            <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required>
+                            <div id="main-image-preview" class="image-preview"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="product-customizable-size">
+                                Allow Size Customization (Customer can request custom size)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Product Additional Images (optional)</label>
+                            <div id="additional-images-container">
+                                <div class="image-upload-row">
+                                    <input type="text" class="additional-image-url" placeholder="Image URL">
+                                    <button type="button" class="btn-remove-image" style="display:none;">✕</button>
+                                </div>
+                            </div>
+                            <button type="button" id="add-image-row-btn" class="btn-secondary">+ Add Another Image</button>
+                            <div id="additional-images-preview" class="image-preview-grid"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>PDF Image Selection</label>
+                            <p style="font-size:0.85rem; color:#666;">Select which image should appear in the downloadable PDF.</p>
+                            <div id="pdf-image-selector"></div>
+                        </div>
+                        <hr>
+                        <h4>Product Variants (Sizes / Colors)</h4>
+                        <div id="variants-container"></div>
+                        <button type="button" id="add-variant-btn" class="btn-secondary">+ Add Variant</button>
+                        <hr>
+                        <button type="submit" class="btn-primary" style="width:100%; margin-top:16px;">Save Product</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- قائمة المنتجات (تظهر دائماً) -->
             <div class="admin-card">
                 <h3>All Products</h3>
                 <div id="products-list">
@@ -449,6 +528,27 @@
     <script type="module" src="js/admin.js"></script>
 
     <!-- ============================================ -->
+    <!-- زر "Add New Product" (Toggle) -->
+    <!-- ============================================ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('toggle-product-form-btn');
+            const formWrapper = document.getElementById('product-form-wrapper');
+
+            if (toggleBtn && formWrapper) {
+                toggleBtn.addEventListener('click', function() {
+                    formWrapper.classList.toggle('open');
+                    if (formWrapper.classList.contains('open')) {
+                        toggleBtn.innerHTML = '<span class="plus-icon">−</span> Close Product Form';
+                    } else {
+                        toggleBtn.innerHTML = '<span class="plus-icon">+</span> Add New Product';
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- ============================================ -->
     <!-- إدارة "تذكرني" (Remember Me) -->
     <!-- ============================================ -->
     <script>
@@ -456,7 +556,6 @@
             const rememberCheckbox = document.getElementById('remember-me-checkbox');
             const clearRememberBtn = document.getElementById('clear-remember-btn');
 
-            // تحميل الحالة الحالية
             if (localStorage.getItem('admin_remember') === 'true') {
                 rememberCheckbox.checked = true;
             }
