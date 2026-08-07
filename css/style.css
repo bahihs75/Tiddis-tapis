@@ -1,5 +1,5 @@
 /* ============================================
-   TIDDIS TAPIS — Global Design System (محدث بالكامل)
+   TIDDIS TAPIS — Global Design System (كود كامل)
    الهوية البصرية الموحدة للمتجر ولوحة التحكم
    ============================================ */
 
@@ -48,7 +48,9 @@ body {
     min-height: 100vh;
 }
 
-/* ---------- القائمة الجانبية (Desktop) ---------- */
+/* ============================================ */
+/* القائمة الجانبية (Desktop) */
+/* ============================================ */
 .sidebar {
     position: fixed;
     top: 0;
@@ -74,11 +76,13 @@ body {
 .logo-wrapper {
     display: flex;
     align-items: center;
+    background: transparent !important;
 }
 
 .logo-wrapper img {
     max-height: 32px;
     margin-right: 10px;
+    background: transparent !important;
 }
 
 .brand-main {
@@ -88,6 +92,7 @@ body {
     letter-spacing: 4px;
     color: var(--text-primary);
     line-height: 1;
+    background: transparent;
 }
 
 .brand-sub {
@@ -98,9 +103,9 @@ body {
     color: var(--accent);
     margin-top: 2px;
     text-transform: uppercase;
+    background: transparent;
 }
 
-/* روابط القائمة الجانبية مع القوائم المتداخلة */
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -211,7 +216,9 @@ body {
     text-decoration: underline;
 }
 
-/* ---------- رأس الهاتف المحمول (Mobile Header) ---------- */
+/* ============================================ */
+/* رأس الهاتف المحمول (Mobile Header) */
+/* ============================================ */
 .mobile-header {
     display: none;
     position: fixed;
@@ -234,21 +241,25 @@ body {
 .mobile-header .mobile-brand .logo-wrapper {
     display: flex;
     align-items: center;
+    background: transparent !important;
 }
 
 .mobile-header .mobile-brand .logo-wrapper img {
     max-height: 24px;
     margin-right: 8px;
+    background: transparent !important;
 }
 
 .mobile-header .brand-main {
     font-size: 18px;
     letter-spacing: 2px;
+    background: transparent;
 }
 
 .mobile-header .brand-sub {
     font-size: 10px;
     letter-spacing: 4px;
+    background: transparent;
 }
 
 .mobile-header-actions {
@@ -297,7 +308,9 @@ body {
     transform: rotate(-45deg) translate(5px, -5px);
 }
 
-/* ---------- شريط البحث القابل للطي (Mobile) ---------- */
+/* ============================================ */
+/* شريط البحث القابل للطي (Mobile) */
+/* ============================================ */
 .mobile-search-bar {
     display: none;
     position: fixed;
@@ -350,7 +363,9 @@ body {
     color: var(--text-primary);
 }
 
-/* ---------- المحتوى الرئيسي ---------- */
+/* ============================================ */
+/* المحتوى الرئيسي */
+/* ============================================ */
 .main-content {
     margin-left: var(--sidebar-width);
     flex: 1;
@@ -361,7 +376,9 @@ body {
     transition: background-color 0.3s ease;
 }
 
-/* ---------- زر العودة إلى المنتجات (مصمم حسب الهوية البصرية) ---------- */
+/* ============================================ */
+/* زر العودة إلى المنتجات (Back to Products) */
+/* ============================================ */
 .back-link-container {
     margin-bottom: 28px;
 }
@@ -399,7 +416,9 @@ body {
     transform: translateX(-4px);
 }
 
-/* ---------- قسم الهيرو الصغير (تم إصلاح التنسيق نهائياً) ---------- */
+/* ============================================ */
+/* قسم الهيرو الصغير */
+/* ============================================ */
 .hero-section {
     text-align: center;
     padding: 8px 0 28px;
@@ -430,7 +449,9 @@ body {
     line-height: 1.4;
 }
 
-/* ---------- شريط البحث والفلاتر (ديسكتوب) ---------- */
+/* ============================================ */
+/* شريط البحث والفلاتر (ديسكتوب) */
+/* ============================================ */
 .search-filter-section {
     display: flex;
     justify-content: space-between;
@@ -502,7 +523,9 @@ body {
     white-space: nowrap;
 }
 
-/* ---------- مفتاح تبديل عرض الشبكة (Grid Toggle) ---------- */
+/* ============================================ */
+/* مفتاح تبديل عرض الشبكة (Grid Toggle) */
+/* ============================================ */
 .grid-toggle-wrapper {
     display: flex;
     align-items: center;
@@ -555,7 +578,9 @@ body {
     opacity: 0.85;
 }
 
-/* ---------- شبكة المنتجات ---------- */
+/* ============================================ */
+/* شبكة المنتجات */
+/* ============================================ */
 .products-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -578,7 +603,9 @@ body {
     }
 }
 
-/* ---------- بطاقة المنتج (Product Card) ---------- */
+/* ============================================ */
+/* بطاقة المنتج (Product Card) */
+/* ============================================ */
 .product-card {
     background: #ffffff;
     border: 1px solid var(--border-color);
@@ -779,7 +806,9 @@ body {
     font-size: 15px;
 }
 
-/* ---------- زر تحميل المزيد ---------- */
+/* ============================================ */
+/* زر تحميل المزيد */
+/* ============================================ */
 #load-more-container {
     text-align: center;
     margin-top: 30px;
@@ -807,7 +836,9 @@ body {
     cursor: not-allowed;
 }
 
-/* ---------- أقسام المتجر (About / Contact) ---------- */
+/* ============================================ */
+/* أقسام المتجر (About / Contact) */
+/* ============================================ */
 .store-section {
     margin-top: 72px;
     padding: 40px 0 20px;
@@ -832,7 +863,9 @@ body {
     line-height: 1.7;
 }
 
+/* ============================================ */
 /* أيقونات التواصل (أيقونة + نص مع خط تحت النص) */
+/* ============================================ */
 .contact-icons-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -878,7 +911,32 @@ body {
     color: var(--accent);
 }
 
-/* ---------- تذييل الصفحة ---------- */
+/* ============================================ */
+/* أيقونات TIDDIS المخصصة */
+/* ============================================ */
+.tiddis-icon {
+    width: 22px;
+    height: 22px;
+    transition: color 0.2s ease, transform 0.2s ease;
+    color: #2b2b2b;
+}
+
+.tiddis-icon.outline {
+    stroke: currentColor;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.tiddis-icon.solid {
+    fill: currentColor;
+    stroke: none;
+}
+
+/* ============================================ */
+/* تذييل الصفحة */
+/* ============================================ */
 .main-footer {
     margin-top: 48px;
     padding: 24px 0 8px;
@@ -890,7 +948,9 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* ---------- نافذة الطلب المنبثقة (Order Modal) ---------- */
+/* ============================================ */
+/* نافذة الطلب المنبثقة (Order Modal) */
+/* ============================================ */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -1035,7 +1095,9 @@ body {
     cursor: not-allowed;
 }
 
-/* ---------- نافذة نجاح الطلب ---------- */
+/* ============================================ */
+/* نافذة نجاح الطلب */
+/* ============================================ */
 .success-modal {
     max-width: 420px;
     text-align: center;
@@ -1080,7 +1142,9 @@ body {
     color: var(--text-primary);
 }
 
-/* ---------- صفحة تفاصيل المنتج ---------- */
+/* ============================================ */
+/* صفحة تفاصيل المنتج */
+/* ============================================ */
 .product-page-header {
     padding: 8px 0 16px;
     border-bottom: 1px solid var(--border-color);
@@ -1090,11 +1154,13 @@ body {
 .product-page-logo-wrapper {
     display: flex;
     align-items: center;
+    background: transparent !important;
 }
 
 .product-page-logo-wrapper img {
     max-height: 30px;
     margin-right: 10px;
+    background: transparent !important;
 }
 
 .product-detail-title {
@@ -1217,70 +1283,9 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* ---------- Loader: TIDDIS TAPIS مع تأثير التعبئة ---------- */
-.tiddis-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    padding: 40px 20px;
-    font-family: var(--font-serif);
-    font-size: 48px;
-    font-weight: 300;
-    letter-spacing: 12px;
-    color: var(--text-muted);
-    text-align: center;
-    line-height: 1.2;
-}
-
-.tiddis-loader .loader-sub {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    letter-spacing: 4px;
-    color: var(--text-muted);
-    margin-top: 8px;
-}
-
-.tiddis-loader .loader-text {
-    display: inline-block;
-    background: linear-gradient(135deg, var(--text-muted) 0%, var(--text-muted) 40%, var(--accent) 60%, var(--accent) 100%);
-    background-size: 300% 100%;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: loader-fill 2.5s ease-in-out infinite;
-}
-
-@keyframes loader-fill {
-    0% { background-position: 300% 0; }
-    100% { background-position: -300% 0; }
-}
-
-.loader-dots {
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-}
-
-.loader-dots span {
-    display: block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--border-color);
-    animation: loader-dot 1.4s ease-in-out infinite;
-}
-
-.loader-dots span:nth-child(2) { animation-delay: 0.2s; }
-.loader-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes loader-dot {
-    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; background: var(--accent); }
-}
-
-/* ---------- تنسيقات لوحة التحكم (Admin) ---------- */
+/* ============================================ */
+/* تنسيقات لوحة التحكم (Admin) */
+/* ============================================ */
 .admin-content {
     padding: 32px 40px 60px;
 }
@@ -1478,7 +1483,9 @@ body {
     background: #a93226;
 }
 
+/* ============================================ */
 /* إحصائيات لوحة التحكم */
+/* ============================================ */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1512,7 +1519,9 @@ body {
     margin-top: 4px;
 }
 
+/* ============================================ */
 /* جدول أسعار التوصيل */
+/* ============================================ */
 .admin-table {
     width: 100%;
     border-collapse: collapse;
@@ -1559,7 +1568,9 @@ body {
     color: var(--text-muted);
 }
 
+/* ============================================ */
 /* قائمة المنتجات في لوحة التحكم */
+/* ============================================ */
 #products-list .product-admin-item {
     display: flex;
     justify-content: space-between;
@@ -1604,7 +1615,9 @@ body {
     color: var(--accent);
 }
 
+/* ============================================ */
 /* الفئات */
+/* ============================================ */
 .category-item,
 .subcategory-item {
     display: flex;
@@ -1638,7 +1651,9 @@ body {
     color: var(--accent);
 }
 
-/* الطلبات */
+/* ============================================ */
+/* الطلبات في لوحة التحكم */
+/* ============================================ */
 #orders-list .admin-table td select {
     padding: 4px 8px;
     border: 1px solid var(--border-color);
@@ -1667,7 +1682,9 @@ body {
     color: #c0392b;
 }
 
+/* ============================================ */
 /* جهات التواصل في الأدمن */
+/* ============================================ */
 .contact-item {
     display: flex;
     justify-content: space-between;
@@ -1694,7 +1711,9 @@ body {
     color: #c0392b;
 }
 
+/* ============================================ */
 /* نافذة تأكيد تغيير الألوان */
+/* ============================================ */
 #color-confirm-modal .modal-box {
     max-width: 400px;
 }
@@ -1713,7 +1732,9 @@ body {
     border: 1px solid var(--border-color);
 }
 
+/* ============================================ */
 /* حالة فارغة للـ Overview Categories */
+/* ============================================ */
 .empty-state-message {
     padding: 20px;
     text-align: center;
@@ -1731,7 +1752,9 @@ body {
     margin-bottom: 8px;
 }
 
+/* ============================================ */
 /* زر إضافة منتج جديد */
+/* ============================================ */
 .add-product-toggle {
     display: flex;
     align-items: center;
@@ -1829,17 +1852,6 @@ body {
     .contact-icons-grid {
         grid-template-columns: 1fr;
         gap: 8px;
-    }
-
-    /* Loader للهاتف */
-    .tiddis-loader {
-        font-size: 32px;
-        letter-spacing: 8px;
-        min-height: 50vh;
-    }
-    .tiddis-loader .loader-sub {
-        font-size: 12px;
-        letter-spacing: 3px;
     }
 
     /* لوحة التحكم */
@@ -1993,16 +2005,5 @@ body {
     }
     .products-grid.grid-2-mobile .product-info-row {
         gap: 4px 6px;
-    }
-
-    /* Loader للهواتف الصغيرة */
-    .tiddis-loader {
-        font-size: 24px;
-        letter-spacing: 6px;
-        min-height: 40vh;
-    }
-    .tiddis-loader .loader-sub {
-        font-size: 11px;
-        letter-spacing: 2px;
     }
 }
