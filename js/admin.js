@@ -46,6 +46,7 @@ let editingOverviewSubCategoryOldName = null;
 const sections = {
     dashboard: document.getElementById('section-dashboard'),
     categories: document.getElementById('section-categories'),
+    overview: document.getElementById('section-overview'),
     products: document.getElementById('section-products'),
     delivery: document.getElementById('section-delivery'),
     orders: document.getElementById('section-orders'),
@@ -62,7 +63,6 @@ const newCategoryName = document.getElementById('new-category-name');
 const newSubcategoryName = document.getElementById('new-subcategory-name');
 const addCategoryBtn = document.getElementById('add-category-btn');
 const addSubcategoryBtn = document.getElementById('add-subcategory-btn');
-const saveCategoriesOrderBtn = document.getElementById('save-categories-order-btn');
 
 // عناصر إدارة فئات Overview
 const overviewCategoriesList = document.getElementById('overview-categories-list');
@@ -71,7 +71,6 @@ const newOverviewCategoryName = document.getElementById('new-overview-category-n
 const newOverviewSubcategoryName = document.getElementById('new-overview-subcategory-name');
 const addOverviewCategoryBtn = document.getElementById('add-overview-category-btn');
 const addOverviewSubcategoryBtn = document.getElementById('add-overview-subcategory-btn');
-const saveOverviewCategoriesOrderBtn = document.getElementById('save-overview-categories-order-btn');
 
 // عناصر إدارة المنتجات
 const productForm = document.getElementById('product-form');
@@ -105,7 +104,6 @@ const resetAllDeliveryBtn = document.getElementById('reset-all-delivery-btn');
 
 // عناصر إدارة الطلبات
 const ordersList = document.getElementById('orders-list');
-const ordersFilter = document.getElementById('orders-filter');
 
 // عناصر الإعدادات
 const googleSheetsUrlInput = document.getElementById('google-sheets-url');
@@ -122,6 +120,7 @@ const saveColorsBtn = document.getElementById('save-colors-btn');
 const colorConfirmModal = document.getElementById('color-confirm-modal');
 const colorConfirmYes = document.getElementById('color-confirm-yes');
 const colorConfirmNo = document.getElementById('color-confirm-no');
+const colorConfirmClose = document.getElementById('color-confirm-close');
 const contactIconsList = document.getElementById('contact-icons-list');
 const newContactPlatform = document.getElementById('new-contact-platform');
 const newContactValue = document.getElementById('new-contact-value');
@@ -222,6 +221,7 @@ adminNavLinks.forEach(link => {
 
         if (section === 'dashboard') loadDashboardData();
         if (section === 'categories') loadCategories();
+        if (section === 'overview') loadOverviewCategories();
         if (section === 'products') loadProducts();
         if (section === 'delivery') loadDeliveryRates();
         if (section === 'orders') loadOrders();
@@ -261,7 +261,6 @@ async function loadCategories() {
 function renderCategories() {
     if (!categoriesList) return;
     
-    // تصفية الفئات من نوع Products فقط
     const productCategories = allCategories.filter(c => c.type !== 'overview');
     
     if (!productCategories || productCategories.length === 0) {
@@ -304,7 +303,6 @@ function renderCategories() {
     html += `<button id="save-products-order-btn" class="btn-primary" style="margin-top:16px;">Save Order</button>`;
     categoriesList.innerHTML = html;
 
-    // مستمعات الأحداث
     categoriesList.querySelectorAll('.edit-cat-btn').forEach(btn => {
         btn.addEventListener('click', () => editCategory(btn.dataset.id, btn.dataset.name));
     });
@@ -318,13 +316,11 @@ function renderCategories() {
         btn.addEventListener('click', () => deleteSubCategory(btn.dataset.catId, btn.dataset.sub));
     });
 
-    // زر حفظ الترتيب
     const saveOrderBtn = document.getElementById('save-products-order-btn');
     if (saveOrderBtn) {
         saveOrderBtn.addEventListener('click', () => saveCategoriesOrder('products'));
     }
 
-    // تفعيل السحب والإفلات (باستخدام SortableJS)
     if (typeof Sortable !== 'undefined') {
         const sortableContainer = document.getElementById('sortable-products');
         if (sortableContainer) {
@@ -332,7 +328,6 @@ function renderCategories() {
                 animation: 150,
                 handle: '.category-item',
                 onEnd: function() {
-                    // تحديث الترتيب محلياً
                     const items = sortableContainer.querySelectorAll('.category-item');
                     items.forEach((item, index) => {
                         item.dataset.order = index;
@@ -370,8 +365,12 @@ function populateCategorySelects() {
         });
     }
 
-    // تعبئة قائمة Overview Categories
+    populateOverviewCategorySelects();
+}
+
+function populateOverviewCategorySelects() {
     const overviewCategories = allCategories.filter(c => c.type === 'overview');
+    
     if (productOverviewCategorySelect) {
         productOverviewCategorySelect.innerHTML = '<option value="">Select overview category</option>';
         overviewCategories.forEach(cat => {
@@ -379,6 +378,16 @@ function populateCategorySelects() {
             option.value = cat.name;
             option.textContent = cat.name;
             productOverviewCategorySelect.appendChild(option);
+        });
+    }
+
+    if (overviewParentCategorySelect) {
+        overviewParentCategorySelect.innerHTML = '<option value="">Select parent category</option>';
+        overviewCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            overviewParentCategorySelect.appendChild(option);
         });
     }
 }
@@ -407,7 +416,6 @@ addCategoryBtn?.addEventListener('click', async function() {
     }
 });
 
-// تعديل فئة رئيسية (Products)
 async function editCategory(categoryId, currentName) {
     const newName = prompt(`Edit category name (current: "${currentName}"):`, currentName);
     if (!newName || newName === currentName) return;
@@ -422,7 +430,6 @@ async function editCategory(categoryId, currentName) {
     }
 }
 
-// حذف فئة رئيسية (Products)
 async function deleteCategory(categoryId) {
     const cat = allCategories.find(c => c.id === categoryId);
     if (!cat) return;
@@ -474,7 +481,6 @@ addSubcategoryBtn?.addEventListener('click', async function() {
     }
 });
 
-// تعديل فئة فرعية (Products)
 async function editSubCategory(categoryId, subName) {
     const newName = prompt(`Edit sub-category name (current: "${subName}"):`, subName);
     if (!newName || newName === subName) return;
@@ -511,7 +517,6 @@ async function editSubCategory(categoryId, subName) {
     }
 }
 
-// حذف فئة فرعية (Products)
 async function deleteSubCategory(categoryId, subName) {
     const hasProducts = allProducts.some(p => p.category === subName);
     if (hasProducts) {
@@ -537,7 +542,6 @@ async function deleteSubCategory(categoryId, subName) {
     }
 }
 
-// حفظ ترتيب الفئات
 async function saveCategoriesOrder(type) {
     try {
         const categoryItems = document.querySelectorAll(`#sortable-${type} .category-item`);
@@ -591,7 +595,12 @@ function renderOverviewCategories() {
     if (!overviewCategoriesList) return;
     
     if (!allCategoriesOverview || allCategoriesOverview.length === 0) {
-        overviewCategoriesList.innerHTML = '<p>No overview categories found. Add your first category above.</p>';
+        overviewCategoriesList.innerHTML = `
+            <div class="empty-state-message">
+                <span class="empty-icon">📂</span>
+                No overview categories found. Add your first category above.
+            </div>
+        `;
         return;
     }
 
@@ -630,7 +639,6 @@ function renderOverviewCategories() {
     html += `<button id="save-overview-order-btn" class="btn-primary" style="margin-top:16px;">Save Order</button>`;
     overviewCategoriesList.innerHTML = html;
 
-    // مستمعات الأحداث
     overviewCategoriesList.querySelectorAll('.edit-overview-cat-btn').forEach(btn => {
         btn.addEventListener('click', () => editOverviewCategory(btn.dataset.id, btn.dataset.name));
     });
@@ -666,18 +674,6 @@ function renderOverviewCategories() {
     }
 }
 
-function populateOverviewCategorySelects() {
-    if (overviewParentCategorySelect) {
-        overviewParentCategorySelect.innerHTML = '<option value="">Select parent category</option>';
-        allCategoriesOverview.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.id;
-            option.textContent = cat.name;
-            overviewParentCategorySelect.appendChild(option);
-        });
-    }
-}
-
 // إضافة فئة Overview رئيسية
 addOverviewCategoryBtn?.addEventListener('click', async function() {
     const name = newOverviewCategoryName?.value.trim();
@@ -703,7 +699,6 @@ addOverviewCategoryBtn?.addEventListener('click', async function() {
     }
 });
 
-// تعديل فئة Overview رئيسية
 async function editOverviewCategory(categoryId, currentName) {
     const newName = prompt(`Edit overview category name (current: "${currentName}"):`, currentName);
     if (!newName || newName === currentName) return;
@@ -719,7 +714,6 @@ async function editOverviewCategory(categoryId, currentName) {
     }
 }
 
-// حذف فئة Overview رئيسية
 async function deleteOverviewCategory(categoryId) {
     const cat = allCategoriesOverview.find(c => c.id === categoryId);
     if (!cat) return;
@@ -773,7 +767,6 @@ addOverviewSubcategoryBtn?.addEventListener('click', async function() {
     }
 });
 
-// تعديل فئة فرعية لـ Overview
 async function editOverviewSubCategory(categoryId, subName) {
     const newName = prompt(`Edit overview sub-category name (current: "${subName}"):`, subName);
     if (!newName || newName === subName) return;
@@ -811,7 +804,6 @@ async function editOverviewSubCategory(categoryId, subName) {
     }
 }
 
-// حذف فئة فرعية لـ Overview
 async function deleteOverviewSubCategory(categoryId, subName) {
     const hasProducts = allProducts.some(p => p.overviewCategory === subName);
     if (hasProducts) {
@@ -910,7 +902,6 @@ function renderProductsList() {
     });
 }
 
-// متغيرات المنتج
 addVariantBtn?.addEventListener('click', function() {
     const row = document.createElement('div');
     row.className = 'variant-row';
@@ -926,7 +917,6 @@ addVariantBtn?.addEventListener('click', function() {
     variantsContainer?.appendChild(row);
 });
 
-// صور إضافية
 addImageRowBtn?.addEventListener('click', function() {
     const row = document.createElement('div');
     row.className = 'image-upload-row';
@@ -994,7 +984,6 @@ productMainImageInput?.addEventListener('input', function() {
     updatePDFImageSelector();
 });
 
-// حفظ المنتج
 productForm?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -1514,33 +1503,33 @@ async function saveStoreSettings() {
     }
 }
 
-// حفظ الألوان مع نافذة تأكيد
 saveColorsBtn?.addEventListener('click', function() {
     const sidebarColor = sidebarBgColorInput?.value || '#ffffff';
     const mainColor = mainBgColorInput?.value || '#faf9f6';
     
-    const confirmModal = document.getElementById('color-confirm-modal');
-    const confirmText = document.getElementById('color-confirm-text');
-    if (confirmModal && confirmText) {
-        confirmText.innerHTML = `
-            <p>Are you sure you want to change the colors?</p>
-            <div style="display:flex; gap:20px; justify-content:center; margin-top:12px;">
-                <div>
-                    <span style="font-size:12px; color:#6b6b6b;">Sidebar</span>
-                    <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${sidebarColor}; margin:0 auto;"></div>
-                    <span style="font-size:11px; font-family:monospace;">${sidebarColor}</span>
+    if (colorConfirmModal) {
+        const confirmText = document.getElementById('color-confirm-text');
+        if (confirmText) {
+            confirmText.innerHTML = `
+                <p>Are you sure you want to change the colors?</p>
+                <div style="display:flex; gap:20px; justify-content:center; margin-top:12px;">
+                    <div>
+                        <span style="font-size:12px; color:#6b6b6b;">Sidebar</span>
+                        <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${sidebarColor}; margin:0 auto;"></div>
+                        <span style="font-size:11px; font-family:monospace;">${sidebarColor}</span>
+                    </div>
+                    <div>
+                        <span style="font-size:12px; color:#6b6b6b;">Main</span>
+                        <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${mainColor}; margin:0 auto;"></div>
+                        <span style="font-size:11px; font-family:monospace;">${mainColor}</span>
+                    </div>
                 </div>
-                <div>
-                    <span style="font-size:12px; color:#6b6b6b;">Main</span>
-                    <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${mainColor}; margin:0 auto;"></div>
-                    <span style="font-size:11px; font-family:monospace;">${mainColor}</span>
-                </div>
-            </div>
-        `;
-        confirmModal.style.display = 'flex';
+            `;
+        }
+        colorConfirmModal.style.display = 'flex';
         
-        document.getElementById('color-confirm-yes').onclick = async function() {
-            confirmModal.style.display = 'none';
+        colorConfirmYes.onclick = async function() {
+            colorConfirmModal.style.display = 'none';
             storeSettings.sidebarBgColor = sidebarColor;
             storeSettings.mainBgColor = mainColor;
             if (await saveStoreSettings()) {
@@ -1552,16 +1541,17 @@ saveColorsBtn?.addEventListener('click', function() {
                 alert('Colors updated successfully!');
             }
         };
-        document.getElementById('color-confirm-no').onclick = function() {
-            confirmModal.style.display = 'none';
+        colorConfirmNo.onclick = function() {
+            colorConfirmModal.style.display = 'none';
         };
-        document.getElementById('color-confirm-close').onclick = function() {
-            confirmModal.style.display = 'none';
-        };
+        if (colorConfirmClose) {
+            colorConfirmClose.onclick = function() {
+                colorConfirmModal.style.display = 'none';
+            };
+        }
     }
 });
 
-// حفظ رابط Google Sheets
 testSheetsBtn?.addEventListener('click', async function() {
     const url = googleSheetsUrlInput?.value.trim();
     if (!url) {
@@ -1618,7 +1608,6 @@ saveLogoBtn?.addEventListener('click', async function() {
     }
 });
 
-// إدارة جهات التواصل
 addContactBtn?.addEventListener('click', async function() {
     const platform = newContactPlatform?.value;
     const value = newContactValue?.value.trim();
@@ -1687,7 +1676,6 @@ function renderContactIconsList(contacts) {
     });
 }
 
-// تغيير مزود الصور
 imageProviderSelect?.addEventListener('change', function() {
     const provider = this.value;
     const apiKeyGroup = document.getElementById('api-key-group');
