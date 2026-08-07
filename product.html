@@ -5,112 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Product Details</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- أيقونات TIDDIS المخصصة -->
-    <style>
-        .tiddis-icon {
-            width: 22px;
-            height: 22px;
-            transition: color 0.2s ease, transform 0.2s ease;
-            color: #2b2b2b;
-        }
-        a:hover .tiddis-icon,
-        .tiddis-icon:hover {
-            color: #4E1A1D;
-            transform: translateY(-1px);
-        }
-        .tiddis-icon.outline {
-            stroke: currentColor;
-            stroke-width: 2.2;
-            fill: none;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .tiddis-icon.solid {
-            fill: currentColor;
-            stroke: none;
-        }
-        /* تنسيق أيقونات التواصل كأيقونة + نص */
-        .contact-item-icon {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-family: 'Space Mono', monospace;
-            font-size: 13px;
-            color: var(--text-primary);
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: color 0.2s ease, border-color 0.2s ease;
-            padding: 4px 0;
-        }
-        .contact-item-icon:hover {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-        .contact-item-icon svg {
-            width: 18px;
-            height: 18px;
-            color: var(--text-primary);
-            transition: color 0.2s ease;
-        }
-        .contact-item-icon:hover svg {
-            color: var(--accent);
-        }
-        /* Loader: TIDDIS TAPIS مع تأثير التعبئة */
-        .tiddis-loader {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            padding: 40px 20px;
-            font-family: 'Fraunces', Georgia, serif;
-            font-size: 48px;
-            font-weight: 300;
-            letter-spacing: 12px;
-            color: var(--text-muted);
-            text-align: center;
-            line-height: 1.2;
-        }
-        .tiddis-loader .loader-sub {
-            font-family: 'Space Mono', monospace;
-            font-size: 14px;
-            letter-spacing: 4px;
-            color: var(--text-muted);
-            margin-top: 8px;
-        }
-        .tiddis-loader .loader-text {
-            display: inline-block;
-            background: linear-gradient(135deg, var(--text-muted) 0%, var(--text-muted) 40%, var(--accent) 60%, var(--accent) 100%);
-            background-size: 300% 100%;
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: loader-fill 2.5s ease-in-out infinite;
-        }
-        @keyframes loader-fill {
-            0% { background-position: 300% 0; }
-            100% { background-position: -300% 0; }
-        }
-        .loader-dots {
-            display: flex;
-            gap: 8px;
-            margin-top: 20px;
-        }
-        .loader-dots span {
-            display: block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--border-color);
-            animation: loader-dot 1.4s ease-in-out infinite;
-        }
-        .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes loader-dot {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-            40% { transform: scale(1); opacity: 1; background: var(--accent); }
-        }
-    </style>
+    <!-- أيقونات TIDDIS المخصصة (مضمنة في style.css) -->
     <!-- مكتبات PDF -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -122,7 +17,7 @@
     <div class="sidebar" id="sidebar">
         <div class="logo-container">
             <div class="logo-wrapper">
-                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px;">
+                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px; background:transparent;">
                 <div>
                     <div class="brand-main">TIDDIS</div>
                     <div class="brand-sub">TAPIS</div>
@@ -141,7 +36,7 @@
     <div class="mobile-header">
         <div class="mobile-brand">
             <div class="logo-wrapper" style="display:flex; align-items:center;">
-                <img id="mobile-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:24px; margin-right:8px;">
+                <img id="mobile-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:24px; margin-right:8px; background:transparent;">
                 <div>
                     <span class="brand-main">TIDDIS</span>
                     <span class="brand-sub">TAPIS</span>
@@ -172,7 +67,7 @@
     <!-- المحتوى الرئيسي -->
     <main class="main-content" id="main-content">
 
-        <!-- زر العودة إلى المنتجات (مصمم حسب الهوية البصرية) -->
+        <!-- زر العودة إلى المنتجات -->
         <div class="back-link-container">
             <a href="index.html#products-grid" class="back-link">
                 <span class="back-arrow">←</span> BACK TO PRODUCTS
@@ -180,67 +75,11 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- LOADER: TIDDIS TAPIS مع تأثير التعبئة -->
+        <!-- محتوى المنتج (يظهر مباشرة، مع رسالة خطأ إن لزم) -->
         <!-- ============================================ -->
-        <div id="product-loader" class="tiddis-loader">
-            <span class="loader-text">TIDDIS TAPIS</span>
-            <span class="loader-sub">Loading product details</span>
-            <div class="loader-dots">
-                <span></span><span></span><span></span>
-            </div>
-        </div>
-
-        <!-- ============================================ -->
-        <!-- محتوى المنتج (يظهر بعد التحميل) -->
-        <!-- ============================================ -->
-        <div id="product-detail-container" style="display:none;">
-            <!-- الشعار في أعلى الصفحة -->
-            <div class="product-page-header">
-                <div class="product-page-logo-wrapper">
-                    <img id="product-page-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:30px; margin-right:10px;">
-                    <div>
-                        <span class="brand-main" style="font-size:20px;">TIDDIS</span>
-                        <span class="brand-sub" style="font-size:11px;">TAPIS</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- اسم المنتج -->
-            <h1 class="product-detail-title" id="product-detail-name">Loading...</h1>
-
-            <!-- معرض الصور (عمودي - واحدة تحت الأخرى) -->
-            <div id="product-detail-images" class="product-detail-images">
-                <!-- سيتم تعبئتها بواسطة store.js -->
-            </div>
-
-            <!-- معلومات المنتج -->
-            <div class="product-detail-info">
-                <div class="product-detail-row">
-                    <div class="product-detail-specs">
-                        <span id="product-detail-size">200x280 cm</span>
-                        <span id="product-detail-color" style="margin-left:12px; color:#6b6b6b;">Grouna</span>
-                    </div>
-                    <span class="product-detail-price" id="product-detail-price">12500 DZD</span>
-                </div>
-
-                <!-- محدد المتغيرات (في سطر منفصل) -->
-                <div class="product-detail-variant-row">
-                    <select id="product-detail-variant" class="variant-select" style="font-size:14px; padding:6px 12px;">
-                        <!-- سيتم تعبئتها بواسطة store.js -->
-                    </select>
-                </div>
-
-                <!-- زر ORDER و PDF -->
-                <div class="product-detail-actions">
-                    <button id="product-detail-order-btn" class="order-btn" style="font-size:16px; padding:12px 28px;">ORDER</button>
-                    <button id="product-detail-pdf-btn" class="pdf-btn">📄 Download Technical Sheet</button>
-                </div>
-            </div>
-
-            <!-- وصف إضافي (اختياري) -->
-            <div class="product-detail-description" id="product-detail-description" style="display:none;">
-                <!-- سيتم تعبئتها إن وجد -->
-            </div>
+        <div id="product-detail-container">
+            <!-- سيتم تعبئتها بواسطة store.js -->
+            <p style="text-align:center; padding:60px 20px; font-family:'Space Mono', monospace; color:#6b6b6b;">Loading product details...</p>
         </div>
 
         <!-- تذييل الصفحة -->
