@@ -2,13 +2,21 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Admin Panel</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- SortableJS لتمكين السحب والإفلات -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- مكتبات PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-    <!-- حماية بسيطة بكلمة مرور مع تذكرني وحد المحاولات -->
+    <!-- ============================================ -->
+    <!-- حماية لوحة التحكم (كلمة مرور + تذكرني + حد محاولات) -->
+    <!-- ============================================ -->
     <script>
         (function() {
             const PASSWORD = "39482202";
@@ -22,8 +30,14 @@
                 const now = Date.now();
                 if (now - lock.timestamp < LOCK_TIME * 60 * 1000) {
                     const remaining = Math.ceil((LOCK_TIME * 60 * 1000 - (now - lock.timestamp)) / 60000);
-                    document.body.innerHTML = `<h1 style="text-align:center; margin-top:100px; color:#4E1A1D;">🔒 Access Locked</h1>
-                        <p style="text-align:center;">Too many failed attempts. Please wait ${remaining} minute(s) before trying again.</p>`;
+                    document.body.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px; text-align:center;">
+                            <div style="font-size:48px; margin-bottom:16px;">🔒</div>
+                            <h1 style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:2px; color:#4E1A1D;">Access Locked</h1>
+                            <p style="font-family:'Space Mono', monospace; color:#6b6b6b; margin-top:8px;">Too many failed attempts. Please wait <strong>${remaining}</strong> minute(s) before trying again.</p>
+                            <button onclick="location.reload()" style="margin-top:20px; padding:12px 32px; background:#4E1A1D; color:#fff; border:none; border-radius:4px; font-family:'Space Mono', monospace; cursor:pointer;">Try Again</button>
+                        </div>
+                    `;
                     throw new Error("Locked");
                 } else {
                     localStorage.removeItem('admin_lock');
@@ -31,36 +45,42 @@
                 }
             }
 
-            // التحقق من المحاولات
-            let attempts = parseInt(localStorage.getItem('admin_attempts')) || 0;
-
             // التحقق من "تذكرني"
             const rememberMe = localStorage.getItem('admin_remember') === 'true';
             if (rememberMe) {
-                // السماح بالدخول مباشرة (يمكننا فحص كلمة مرور مخزنة، لكننا نثق بـ localStorage)
-                // نمرر التحقق
-                return;
+                return; // السماح بالدخول مباشرة
             }
+
+            // التحقق من المحاولات
+            let attempts = parseInt(localStorage.getItem('admin_attempts')) || 0;
 
             const userInput = prompt("Enter admin password to access the control panel:");
             if (userInput === null) {
-                document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px; color:#4E1A1D;'>Access Denied</h1>";
+                document.body.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px; text-align:center;">
+                        <div style="font-size:48px; margin-bottom:16px;">⛔</div>
+                        <h1 style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:2px; color:#4E1A1D;">Access Denied</h1>
+                        <p style="font-family:'Space Mono', monospace; color:#6b6b6b; margin-top:8px;">Authentication required to access the admin panel.</p>
+                    </div>
+                `;
                 throw new Error("Access Denied");
             }
 
             if (userInput === PASSWORD) {
-                // نجاح: إعادة تعيين المحاولات
                 localStorage.removeItem('admin_attempts');
-                // إذا تم اختيار "تذكرني" (سيتم ضبطه لاحقاً من الواجهة)
-                // يمكن للمستخدم تفعيله من خلال خيار في الواجهة
                 return;
             } else {
                 attempts++;
                 localStorage.setItem('admin_attempts', attempts);
                 if (attempts >= MAX_ATTEMPTS) {
                     localStorage.setItem('admin_lock', JSON.stringify({ timestamp: Date.now() }));
-                    document.body.innerHTML = `<h1 style="text-align:center; margin-top:100px; color:#4E1A1D;">🔒 Access Locked</h1>
-                        <p style="text-align:center;">Too many failed attempts. Please wait ${LOCK_TIME} minutes before trying again.</p>`;
+                    document.body.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px; text-align:center;">
+                            <div style="font-size:48px; margin-bottom:16px;">🔒</div>
+                            <h1 style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:2px; color:#4E1A1D;">Access Locked</h1>
+                            <p style="font-family:'Space Mono', monospace; color:#6b6b6b; margin-top:8px;">Too many failed attempts. Please wait <strong>${LOCK_TIME}</strong> minutes before trying again.</p>
+                        </div>
+                    `;
                     throw new Error("Locked");
                 } else {
                     alert(`Incorrect password. ${MAX_ATTEMPTS - attempts} attempt(s) remaining.`);
@@ -70,7 +90,9 @@
         })();
     </script>
 
+    <!-- ============================================ -->
     <!-- القائمة الجانبية (تطابق تصميم المتجر) -->
+    <!-- ============================================ -->
     <div class="sidebar" id="admin-sidebar">
         <div class="logo-container">
             <div class="brand-main">TIDDIS</div>
@@ -79,6 +101,7 @@
         <nav class="sidebar-nav">
             <a href="#" class="nav-link active" data-section="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-section="categories">Categories</a>
+            <a href="#" class="nav-link" data-section="overview">Overview Categories</a>
             <a href="#" class="nav-link" data-section="products">Products</a>
             <a href="#" class="nav-link" data-section="delivery">Delivery</a>
             <a href="#" class="nav-link" data-section="orders">Orders</a>
@@ -89,7 +112,9 @@
         </div>
     </div>
 
-    <!-- زر هامبورجر للهواتف -->
+    <!-- ============================================ -->
+    <!-- رأس الهاتف المحمول -->
+    <!-- ============================================ -->
     <div class="mobile-header admin-mobile-header">
         <div class="mobile-brand">
             <span class="brand-main">TIDDIS</span>
@@ -100,10 +125,14 @@
         </button>
     </div>
 
+    <!-- ============================================ -->
     <!-- المحتوى الرئيسي للوحة التحكم -->
+    <!-- ============================================ -->
     <main class="main-content admin-content" id="admin-content">
 
-        <!-- Dashboard Section -->
+        <!-- ========================================== -->
+        <!-- 1. Dashboard Section -->
+        <!-- ========================================== -->
         <section id="section-dashboard" class="admin-section active">
             <h2>Dashboard</h2>
             <div class="stats-grid">
@@ -112,8 +141,12 @@
                     <span class="stat-value" id="stat-products">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Total Categories</span>
+                    <span class="stat-label">Product Categories</span>
                     <span class="stat-value" id="stat-categories">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Overview Categories</span>
+                    <span class="stat-value" id="stat-categories-overview">0</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-label">Total Orders</span>
@@ -125,18 +158,21 @@
             </div>
         </section>
 
-        <!-- Categories Section -->
+        <!-- ========================================== -->
+        <!-- 2. Products Categories Section -->
+        <!-- ========================================== -->
         <section id="section-categories" class="admin-section">
-            <h2>Manage Categories</h2>
+            <h2>Manage Product Categories</h2>
             <div class="admin-card">
-                <h3>Add New Category</h3>
+                <h3>Add New Product Category</h3>
                 <div class="form-row">
                     <input type="text" id="new-category-name" placeholder="Category name (e.g., KSOR)" class="form-input">
                     <button id="add-category-btn" class="btn-primary">Add Category</button>
                 </div>
             </div>
             <div class="admin-card">
-                <h3>Existing Categories</h3>
+                <h3>Existing Product Categories</h3>
+                <p style="font-size:0.85rem; color:#6b6b6b; margin-bottom:12px;">Drag and drop to reorder. Click "Save Order" when done.</p>
                 <div id="categories-list">
                     <p>Loading categories...</p>
                 </div>
@@ -144,14 +180,49 @@
             <div class="admin-card">
                 <h3>Add Sub-Category</h3>
                 <div class="form-row">
-                    <select id="parent-category-select" class="form-input"></select>
+                    <select id="parent-category-select" class="form-input">
+                        <option value="">Select parent category</option>
+                    </select>
                     <input type="text" id="new-subcategory-name" placeholder="Sub-category name" class="form-input">
                     <button id="add-subcategory-btn" class="btn-primary">Add Sub-Category</button>
                 </div>
             </div>
         </section>
 
-        <!-- Products Section -->
+        <!-- ========================================== -->
+        <!-- 3. Overview Categories Section -->
+        <!-- ========================================== -->
+        <section id="section-overview" class="admin-section">
+            <h2>Manage Overview Categories</h2>
+            <div class="admin-card">
+                <h3>Add New Overview Category</h3>
+                <div class="form-row">
+                    <input type="text" id="new-overview-category-name" placeholder="Overview category name (e.g., Exclusive)" class="form-input">
+                    <button id="add-overview-category-btn" class="btn-primary">Add Category</button>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Existing Overview Categories</h3>
+                <p style="font-size:0.85rem; color:#6b6b6b; margin-bottom:12px;">Drag and drop to reorder. Click "Save Order" when done.</p>
+                <div id="overview-categories-list">
+                    <p>Loading overview categories...</p>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Add Overview Sub-Category</h3>
+                <div class="form-row">
+                    <select id="overview-parent-category-select" class="form-input">
+                        <option value="">Select parent category</option>
+                    </select>
+                    <input type="text" id="new-overview-subcategory-name" placeholder="Sub-category name" class="form-input">
+                    <button id="add-overview-subcategory-btn" class="btn-primary">Add Sub-Category</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 4. Products Section -->
+        <!-- ========================================== -->
         <section id="section-products" class="admin-section">
             <h2>Manage Products</h2>
             <div class="admin-card">
@@ -167,7 +238,15 @@
                     </div>
                     <div class="form-group">
                         <label for="product-category">Sub-Category *</label>
-                        <select id="product-category" required></select>
+                        <select id="product-category" required>
+                            <option value="">Select sub-category</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-overview-category">Overview Category (optional)</label>
+                        <select id="product-overview-category">
+                            <option value="">Select overview category</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="product-base-price">Base Price (DZD) *</label>
@@ -216,7 +295,9 @@
             </div>
         </section>
 
-        <!-- Delivery Rates Section -->
+        <!-- ========================================== -->
+        <!-- 5. Delivery Rates Section -->
+        <!-- ========================================== -->
         <section id="section-delivery" class="admin-section">
             <h2>Delivery Rates (Wilayas)</h2>
             <div class="admin-card">
@@ -244,7 +325,9 @@
             </div>
         </section>
 
-        <!-- Orders Section (جديد) -->
+        <!-- ========================================== -->
+        <!-- 6. Orders Section -->
+        <!-- ========================================== -->
         <section id="section-orders" class="admin-section">
             <h2>Manage Orders</h2>
             <div class="admin-card">
@@ -255,7 +338,9 @@
             </div>
         </section>
 
-        <!-- Settings Section (مع الألوان وتأكيد) -->
+        <!-- ========================================== -->
+        <!-- 7. Settings Section -->
+        <!-- ========================================== -->
         <section id="section-settings" class="admin-section">
             <h2>Store Settings</h2>
             <div class="admin-card">
@@ -320,6 +405,7 @@
                         <option value="instagram">Instagram</option>
                         <option value="facebook">Facebook</option>
                         <option value="tiktok">TikTok</option>
+                        <option value="telegram">Telegram</option>
                         <option value="pinterest">Pinterest</option>
                     </select>
                     <input type="text" id="new-contact-value" placeholder="Link or phone number" class="form-input">
@@ -341,7 +427,9 @@
 
     </main>
 
+    <!-- ============================================ -->
     <!-- نافذة تأكيد تغيير الألوان -->
+    <!-- ============================================ -->
     <div id="color-confirm-modal" class="modal-overlay" style="display:none;">
         <div class="modal-box" style="max-width:400px;">
             <button class="modal-close" id="color-confirm-close">&times;</button>
@@ -354,11 +442,15 @@
         </div>
     </div>
 
-    <!-- تحميل ملفات JavaScript -->
+    <!-- ============================================ -->
+    <!-- تحميل JavaScript -->
+    <!-- ============================================ -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/admin.js"></script>
 
-    <!-- إدارة "تذكرني" -->
+    <!-- ============================================ -->
+    <!-- إدارة "تذكرني" (Remember Me) -->
+    <!-- ============================================ -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const rememberCheckbox = document.getElementById('remember-me-checkbox');
@@ -380,7 +472,7 @@
             clearRememberBtn.addEventListener('click', function() {
                 localStorage.removeItem('admin_remember');
                 rememberCheckbox.checked = false;
-                alert('Remember me cleared.');
+                alert('Remember me cleared. You will need to enter password on next visit.');
             });
         });
     </script>
