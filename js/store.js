@@ -34,7 +34,7 @@ let categoriesOverview = [];
 let deliveryRates = {};
 let storeSettings = {};
 let currentFilter = 'all';
-let currentFilterType = 'products'; // 'products' or 'overview'
+let currentFilterType = 'products';
 let currentProductForOrder = null;
 let currentVariantForOrder = null;
 let currentProductId = null;
@@ -44,7 +44,7 @@ let isLoading = false;
 let allLoaded = false;
 let wilayaList = [];
 let productDetailLoaded = false;
-let gridColumns = 2; // 2 or 4 for desktop, 1 or 2 for mobile
+let gridColumns = 2;
 let isMobile = window.innerWidth <= 900;
 
 // ============================================
@@ -82,7 +82,7 @@ const downloadPdfAfterOrder = document.getElementById('download-pdf-after-order'
 const gridToggleBtn = document.getElementById('grid-toggle-btn');
 
 // عناصر صفحة التفاصيل
-const skeleton = document.getElementById('product-skeleton');
+const loader = document.getElementById('product-loader');
 const detailContainer = document.getElementById('product-detail-container');
 const detailName = document.getElementById('product-detail-name');
 const detailImages = document.getElementById('product-detail-images');
@@ -246,7 +246,6 @@ async function loadCategories() {
                 categories.push(cat);
             }
         });
-        // إذا كانت الفئات فارغة، أنشئ الفئات الافتراضية
         if (categories.length === 0 && categoriesOverview.length === 0) {
             const defaultCategories = [
                 { name: 'KSOR', subcategories: [], type: 'products' },
@@ -259,7 +258,6 @@ async function loadCategories() {
             for (const cat of defaultCategories) {
                 await addDoc(collection(db, 'categories'), cat);
             }
-            // إعادة تحميل
             const newSnapshot = await getDocs(collection(db, 'categories'));
             categories = [];
             categoriesOverview = [];
@@ -287,7 +285,6 @@ async function loadCategories() {
 function buildSidebarMenu() {
     if (!sidebarNav) return;
 
-    // بناء روابط Overview مع فئاتها
     let overviewHtml = '';
     if (categoriesOverview.length > 0) {
         overviewHtml = `<li class="nav-item">
@@ -319,7 +316,6 @@ function buildSidebarMenu() {
         </li>`;
     }
 
-    // بناء روابط Products مع فئاتها
     let productsHtml = '';
     if (categories.length > 0) {
         productsHtml = `<li class="nav-item">
@@ -351,7 +347,6 @@ function buildSidebarMenu() {
         </li>`;
     }
 
-    // إضافة روابط About و Contact كعناصر منفصلة
     const otherHtml = `
         <li class="nav-item">
             <a href="#about-section" class="nav-link" data-section="about">About Us</a>
@@ -369,7 +364,6 @@ function buildSidebarMenu() {
         </ul>
     `;
 
-    // إضافة مستمعات الأحداث للقوائم المتداخلة
     sidebarNav.querySelectorAll('.nav-link[data-section]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -378,35 +372,27 @@ function buildSidebarMenu() {
             const type = this.dataset.type || null;
             const parent = this.dataset.parent || null;
 
-            // تبديل القائمة الفرعية (توسيع/طي)
             const parentLi = this.closest('.nav-item');
             const subMenu = parentLi ? parentLi.querySelector('.sub-menu') : null;
             if (subMenu) {
                 const isOpen = subMenu.classList.contains('open');
-                // إغلاق جميع القوائم الفرعية في نفس المستوى
                 const siblingMenus = parentLi.parentElement.querySelectorAll('.sub-menu');
                 siblingMenus.forEach(sm => sm.classList.remove('open'));
                 if (!isOpen) {
                     subMenu.classList.add('open');
                 }
-                // تبديل أيقونة السهم
                 const icon = this.querySelector('.toggle-icon');
                 if (icon) {
                     icon.classList.toggle('open');
                 }
             }
 
-            // إذا كان هناك تصنيف محدد، قم بتصفية المنتجات
             if (category && type) {
                 currentFilterType = type;
                 currentFilter = category;
-                // إعادة ضبط أزرار الفلتر (إلغاء التحديد)
                 filterBtns.forEach(b => b.classList.remove('active'));
-                // تحديث الشبكة
                 filterProducts();
-                // التمرير إلى الشبكة
                 document.getElementById('products-grid')?.scrollIntoView({ behavior: 'smooth' });
-                // إغلاق القائمة الجانبية في الهاتف
                 if (window.innerWidth <= 900) {
                     sidebar.classList.remove('open');
                     hamburgerBtn?.classList.remove('active');
@@ -414,21 +400,12 @@ function buildSidebarMenu() {
                 return;
             }
 
-            // إذا كان قسم (Overview أو Products) وليس تصنيفاً محدداً
-            if (section === 'overview' || section === 'products') {
-                // قم بتوسيع/طي القائمة الفرعية
-                // التمرير إلى الشبكة
-                document.getElementById('products-grid')?.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            // التنقل للأقسام الأخرى (About, Contact)
             if (section === 'about') {
                 document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' });
             } else if (section === 'contact') {
                 document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
             }
 
-            // إغلاق القائمة على الهواتف
             if (window.innerWidth <= 900) {
                 sidebar.classList.remove('open');
                 hamburgerBtn?.classList.remove('active');
@@ -436,7 +413,6 @@ function buildSidebarMenu() {
         });
     });
 
-    // فتح القائمة الافتراضية (Products)
     const productsNav = sidebarNav.querySelector('[data-section="products"]');
     if (productsNav) {
         const parentLi = productsNav.closest('.nav-item');
@@ -553,7 +529,7 @@ function createProductCard(product) {
         </div>
     `;
 
-    // ----- معالجة Slider الصور -----
+    // Slider مع أزرار أساسية + دعم اللمس
     if (hasMultipleImages) {
         let currentImageIndex = 0;
         const img = card.querySelector('.product-main-image');
@@ -586,7 +562,6 @@ function createProductCard(product) {
             });
         }
 
-        // دعم اللمس (Swipe)
         const wrap = card.querySelector('.product-image-wrap');
         if (wrap) {
             wrap.addEventListener('touchstart', (e) => {
@@ -609,7 +584,7 @@ function createProductCard(product) {
         card._allImages = allImages;
     }
 
-    // ----- معالجة المتغيرات -----
+    // المتغيرات
     const variantSelect = card.querySelector('.variant-select');
     if (variantSelect) {
         variantSelect.addEventListener('change', function(e) {
@@ -646,7 +621,7 @@ function createProductCard(product) {
         });
     }
 
-    // ----- زر ORDER -----
+    // زر ORDER
     const orderBtn = card.querySelector('.order-btn');
     orderBtn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -708,18 +683,13 @@ function filterProducts() {
                        (mobileSearchInput ? mobileSearchInput.value.toLowerCase().trim() : '');
 
     filteredProducts = allProducts.filter(product => {
-        // فلترة حسب التصنيف (مع دعم الفئات الفرعية)
         if (currentFilter !== 'all') {
-            // إذا كان الفلتر من نوع Overview
             if (currentFilterType === 'overview') {
-                // المنتج ينتمي إلى هذه الفئة في Overview
                 if (product.overviewCategory === currentFilter) return true;
-                // أو إذا كانت الفئة الفرعية في Overview
                 const parentOverview = categoriesOverview.find(c => c.subcategories && c.subcategories.includes(currentFilter));
                 if (parentOverview && product.overviewCategory === parentOverview.name) return true;
                 return false;
             } else {
-                // فلتر Products
                 if (product.category === currentFilter) return true;
                 const parentCategory = categories.find(c => c.subcategories && c.subcategories.includes(currentFilter));
                 if (parentCategory && product.category === parentCategory.name) return true;
@@ -754,7 +724,6 @@ function updateProductCount() {
     }
 }
 
-// ربط البحث الديسكتوب والموبايل معاً
 if (searchInput) {
     searchInput.addEventListener('input', filterProducts);
 }
@@ -1101,14 +1070,18 @@ window.generateProductPDF = async function(productId) {
 };
 
 // ============================================
-// 11. صفحة تفاصيل المنتج (Product Detail)
+// 11. صفحة تفاصيل المنتج (Product Detail) - مع Loader
 // ============================================
 
 window.loadProductDetail = async function() {
+    // إظهار الـ Loader وإخفاء المحتوى
+    if (loader) loader.style.display = 'flex';
+    if (detailContainer) detailContainer.style.display = 'none';
+
     const urlParams = new URLSearchParams(window.location.search);
     const productId = urlParams.get('id');
     if (!productId) {
-        if (skeleton) skeleton.style.display = 'none';
+        if (loader) loader.style.display = 'none';
         if (detailContainer) {
             detailContainer.style.display = 'block';
             detailContainer.innerHTML = '<p style="text-align:center; padding:40px;">Product not found.</p>';
@@ -1123,7 +1096,7 @@ window.loadProductDetail = async function() {
         const docSnap = await getDoc(docRef);
         
         if (!docSnap.exists()) {
-            if (skeleton) skeleton.style.display = 'none';
+            if (loader) loader.style.display = 'none';
             if (detailContainer) {
                 detailContainer.style.display = 'block';
                 detailContainer.innerHTML = '<p style="text-align:center; padding:40px;">Product not found.</p>';
@@ -1133,14 +1106,15 @@ window.loadProductDetail = async function() {
 
         const product = { id: docSnap.id, ...docSnap.data() };
         
-        if (skeleton) skeleton.style.display = 'none';
+        // إخفاء الـ Loader وعرض المحتوى
+        if (loader) loader.style.display = 'none';
         if (detailContainer) detailContainer.style.display = 'block';
         
         renderProductDetail(product);
         
     } catch (error) {
         console.error('Error loading product detail:', error);
-        if (skeleton) skeleton.style.display = 'none';
+        if (loader) loader.style.display = 'none';
         if (detailContainer) {
             detailContainer.style.display = 'block';
             detailContainer.innerHTML = '<p style="text-align:center; padding:40px; color:#c0392b;">Error loading product. Please try again.</p>';
@@ -1313,30 +1287,38 @@ function renderContactIcons(contacts) {
         return;
     }
 
-    // أيقونات SVG المخصصة (سيتم استخدامها)
-    const iconMap = {
-        phone: 'phone',
-        email: 'email',
-        whatsapp: 'whatsapp',
-        instagram: 'instagram',
-        facebook: 'facebook',
-        tiktok: 'tiktok',
-        telegram: 'telegram'
+    // SVG icons map
+    const iconSVGs = {
+        phone: `<svg class="tiddis-icon outline" viewBox="0 0 24 24" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+        email: `<svg class="tiddis-icon outline" viewBox="0 0 24 24" width="18" height="18"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6 12 13 2 6"/></svg>`,
+        whatsapp: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.29-1.39a9.9 9.9 0 0 0 4.75 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm0 18.06h-.01a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.12.82.83-3.04-.2-.31a8.15 8.15 0 0 1-1.26-4.3c0-4.5 3.66-8.16 8.17-8.16 2.18 0 4.23.85 5.77 2.4a8.1 8.1 0 0 1 2.39 5.77c0 4.5-3.67 8.14-8.09 8.14zm4.47-6.1c-.24-.12-1.45-.72-1.67-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.43-1.35-1.67-.14-.24-.02-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.32-.75-1.81-.2-.48-.4-.42-.55-.42h-.47c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.13 3.64.58.25 1.03.4 1.38.51.58.18 1.11.16 1.53.1.47-.07 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28z"/></svg>`,
+        instagram: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M12 2.16c2.67 0 2.99.01 4.04.06 1.05.05 1.77.21 2.4.46.65.25 1.2.6 1.75 1.15s.9 1.1 1.15 1.75c.25.63.41 1.35.46 2.4.05 1.05.06 1.37.06 4.04s-.01 2.99-.06 4.04c-.05 1.05-.21 1.77-.46 2.4a4.9 4.9 0 0 1-1.15 1.75 4.9 4.9 0 0 1-1.75 1.15c-.63.25-1.35.41-2.4.46-1.05.05-1.37.06-4.04.06s-2.99-.01-4.04-.06c-1.05-.05-1.77-.21-2.4-.46a4.9 4.9 0 0 1-1.75-1.15 4.9 4.9 0 0 1-1.15-1.75c-.25-.63-.41-1.35-.46-2.4C2.17 14.99 2.16 14.67 2.16 12s.01-2.99.06-4.04c.05-1.05.21-1.77.46-2.4.25-.65.6-1.2 1.15-1.75S4.87 2.91 5.52 2.66c.63-.25 1.35-.41 2.4-.46C8.97 2.17 9.29 2.16 12 2.16zm0 1.8c-2.63 0-2.93.01-3.97.06-.9.04-1.4.19-1.72.31-.43.17-.74.37-1.06.7-.32.32-.52.63-.7 1.06-.12.32-.27.82-.31 1.72-.05 1.04-.06 1.34-.06 3.97s.01 2.93.06 3.97c.04.9.19 1.4.31 1.72.17.43.37.74.7 1.06.32.32.63.52 1.06.7.32.12.82.27 1.72.31 1.04.05 1.34.06 3.97.06s2.93-.01 3.97-.06c.9-.04 1.4-.19 1.72-.31.43-.17.74-.37 1.06-.7.32-.32.52-.63.7-1.06.12-.32.27-.82.31-1.72.05-1.04.06-1.34.06-3.97s-.01-2.93-.06-3.97c-.04-.9-.19-1.4-.31-1.72a2.9 2.9 0 0 0-.7-1.06 2.9 2.9 0 0 0-1.06-.7c-.32-.12-.82-.27-1.72-.31-1.04-.05-1.34-.06-3.97-.06zm0 3.7a4.34 4.34 0 1 1 0 8.68 4.34 4.34 0 0 1 0-8.68zm0 1.8a2.54 2.54 0 1 0 0 5.08 2.54 2.54 0 0 0 0-5.08zm4.53-2a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>`,
+        facebook: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.8 8.44-4.95 8.44-9.94z"/></svg>`,
+        tiktok: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M16.6 2h-3.2v13.4a2.6 2.6 0 1 1-2.6-2.6c.24 0 .47.02.7.07V9.6a5.8 5.8 0 1 0 5.1 5.76V8.9a7.5 7.5 0 0 0 4.4 1.4V7.1a4.3 4.3 0 0 1-4.4-4.1z"/></svg>`,
+        telegram: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M22.05 3.24 2.4 10.9c-.9.35-.9 1.72.02 2.02l4.9 1.58 1.9 6.1c.28.9 1.44 1.13 2.05.4l2.6-3.08 4.94 3.7c.83.62 2.03.16 2.24-.87l3.3-16.02c.22-1.08-.92-1.94-1.9-1.55zM17.9 7.1l-7.87 7.24-.32 3.5-1.55-4.98 9.2-6.28c.4-.27.83.23.54.52z"/></svg>`
+    };
+
+    const displayNames = {
+        phone: 'Phone',
+        email: 'Email',
+        whatsapp: 'WhatsApp',
+        instagram: 'Instagram',
+        facebook: 'Facebook',
+        tiktok: 'TikTok',
+        telegram: 'Telegram'
     };
 
     if (contactIcons) {
         contactIcons.innerHTML = contacts.map(contact => {
-            const iconType = iconMap[contact.platform] || 'phone';
-            // بناء SVG بسيط (سيتم استبداله بالأيقونات الحقيقية في الإصدار النهائي)
-            const svgIcon = `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                <text x="12" y="16" font-size="10" text-anchor="middle" fill="currentColor">${contact.platform[0].toUpperCase()}</text>
-            </svg>`;
-            return `<a href="${contact.value}" target="${contact.platform === 'phone' || contact.platform === 'email' ? '_self' : '_blank'}" 
-                      class="contact-item" style="text-decoration:none; color:var(--text-primary); border-bottom:1px solid transparent; transition:all 0.2s ease;">
-                    <span class="contact-icon">${svgIcon}</span>
-                    <span style="font-family:var(--font-mono); font-size:13px;">${contact.platform.charAt(0).toUpperCase() + contact.platform.slice(1)}</span>
-                </a>`;
+            const iconSvg = iconSVGs[contact.platform] || iconSVGs.phone;
+            const displayName = displayNames[contact.platform] || contact.platform;
+            const href = contact.platform === 'phone' ? `tel:${contact.value}` :
+                         contact.platform === 'email' ? `mailto:${contact.value}` :
+                         contact.value;
+            return `<a href="${href}" target="${contact.platform === 'phone' || contact.platform === 'email' ? '_self' : '_blank'}" class="contact-item">
+                        <span class="contact-icon">${iconSvg}</span>
+                        <span>${displayName}</span>
+                    </a>`;
         }).join('');
     }
 }
@@ -1375,11 +1357,9 @@ if (gridToggleBtn) {
     gridToggleBtn.addEventListener('click', function() {
         const isMobile = window.innerWidth <= 900;
         if (isMobile) {
-            // تبديل بين 1 و 2 عمود في الهاتف
             productsGrid.classList.toggle('grid-2-mobile');
             this.classList.toggle('active');
         } else {
-            // تبديل بين 2 و 4 عمود في الديسكتوب
             productsGrid.classList.toggle('grid-4');
             this.classList.toggle('active');
         }
@@ -1394,7 +1374,6 @@ if (hamburgerBtn) {
     hamburgerBtn.addEventListener('click', function() {
         if (sidebar) sidebar.classList.toggle('open');
         this.classList.toggle('active');
-        // إغلاق شريط البحث عند فتح القائمة
         if (mobileSearchBar) mobileSearchBar.classList.remove('open');
     });
 }
@@ -1403,14 +1382,12 @@ if (loadMoreBtn) {
     loadMoreBtn.addEventListener('click', loadMoreProducts);
 }
 
-// تحديث حجم الصفحة عند تغيير حجم النافذة
 window.addEventListener('resize', function() {
     const newSize = getPageSize();
     if (newSize !== pageSize) {
         pageSize = newSize;
         filterProducts();
     }
-    // تحديث حالة المفتاح حسب الجهاز
     if (gridToggleBtn) {
         const isMobile = window.innerWidth <= 900;
         if (isMobile) {
@@ -1437,7 +1414,6 @@ async function initStore() {
         listenToStoreSettings();
         listenToProducts();
         
-        // إذا كنا في صفحة التفاصيل، لا نقوم بتحميل الشبكة
         if (window.location.pathname.includes('product.html')) {
             return;
         }
@@ -1450,5 +1426,4 @@ async function initStore() {
 
 document.addEventListener('DOMContentLoaded', initStore);
 
-// تصدير الوظائف للاستخدام في admin.js
 export { allProducts, categories, categoriesOverview, deliveryRates, storeSettings };
