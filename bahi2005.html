@@ -11,69 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- أيقونات TIDDIS المخصصة -->
-    <style>
-        .tiddis-icon {
-            width: 22px;
-            height: 22px;
-            transition: color 0.2s ease, transform 0.2s ease;
-            color: #2b2b2b;
-        }
-        .tiddis-icon.outline {
-            stroke: currentColor;
-            stroke-width: 2.2;
-            fill: none;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .tiddis-icon.solid {
-            fill: currentColor;
-            stroke: none;
-        }
-        /* زر إضافة منتج جديد */
-        .add-product-toggle {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .add-product-toggle .btn-primary {
-            padding: 10px 24px;
-            font-family: 'Space Mono', monospace;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-        }
-        .add-product-toggle .btn-primary .plus-icon {
-            font-size: 18px;
-            margin-right: 6px;
-        }
-        .product-form-wrapper {
-            display: none;
-            margin-top: 16px;
-            border-top: 2px solid var(--border-color);
-            padding-top: 20px;
-        }
-        .product-form-wrapper.open {
-            display: block;
-        }
-        /* رسالة فارغة للـ Overview Categories */
-        .empty-state-message {
-            padding: 20px;
-            text-align: center;
-            color: var(--text-muted);
-            font-family: 'Space Mono', monospace;
-            font-size: 14px;
-            border: 1px dashed var(--border-color);
-            border-radius: var(--radius);
-            background: var(--bg-color);
-        }
-        .empty-state-message .empty-icon {
-            font-size: 32px;
-            display: block;
-            margin-bottom: 8px;
-        }
-    </style>
 </head>
 <body>
 
@@ -111,7 +48,7 @@
             // التحقق من "تذكرني"
             const rememberMe = localStorage.getItem('admin_remember') === 'true';
             if (rememberMe) {
-                return;
+                return; // السماح بالدخول مباشرة
             }
 
             // التحقق من المحاولات
@@ -253,7 +190,7 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 3. Overview Categories Section (مع رسالة فارغة) -->
+        <!-- 3. Overview Categories Section -->
         <!-- ========================================== -->
         <section id="section-overview" class="admin-section">
             <h2>Manage Overview Categories</h2>
