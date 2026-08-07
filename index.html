@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- أيقونات TIDDIS المخصصة -->
     <style>
-        /* تم تضمين مجموعة الأيقونات المخصصة مباشرة في الملف */
         .tiddis-icon {
             width: 22px;
             height: 22px;
@@ -30,6 +29,32 @@
             fill: currentColor;
             stroke: none;
         }
+        /* تنسيق أيقونات التواصل كأيقونة + نص */
+        .contact-item-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: color 0.2s ease, border-color 0.2s ease;
+            padding: 4px 0;
+        }
+        .contact-item-icon:hover {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .contact-item-icon svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-primary);
+            transition: color 0.2s ease;
+        }
+        .contact-item-icon:hover svg {
+            color: var(--accent);
+        }
     </style>
     <!-- مكتبات PDF -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -50,7 +75,7 @@
             </div>
         </div>
         <nav class="sidebar-nav" id="sidebar-nav">
-            <!-- سيتم تعبئة الروابط بواسطة JavaScript مع القوائم المتداخلة -->
+            <!-- سيتم تعبئة الروابط بواسطة store.js -->
         </nav>
         <div class="sidebar-footer">
             <span>© TIDDIS TAPIS</span>
@@ -69,14 +94,12 @@
             </div>
         </div>
         <div class="mobile-header-actions">
-            <!-- أيقونة البحث -->
             <button class="search-toggle-btn" id="search-toggle-btn" aria-label="Search">
                 <svg class="tiddis-icon outline" viewBox="0 0 24 24" width="22" height="22">
                     <circle cx="11" cy="11" r="7"/>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
             </button>
-            <!-- زر الهامبورجر -->
             <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
                 <span></span><span></span><span></span>
             </button>
@@ -94,7 +117,7 @@
     <!-- المحتوى الرئيسي -->
     <main class="main-content" id="main-content">
 
-        <!-- قسم الهيرو الصغير -->
+        <!-- قسم الهيرو الصغير (تم إصلاح التنسيق نهائياً) -->
         <section class="hero-section">
             <h1 class="hero-title">T I D D I S &nbsp; T A P I S</h1>
             <p class="hero-subtitle">INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE</p>
@@ -126,7 +149,6 @@
 
         <!-- شبكة المنتجات -->
         <div id="products-grid" class="products-grid">
-            <!-- سيتم تعبئتها بواسطة store.js -->
             <div class="loading-placeholder">Loading exclusive collection...</div>
         </div>
 
@@ -141,12 +163,12 @@
             <p id="about-text">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</p>
         </section>
 
-        <!-- قسم Contact -->
+        <!-- قسم Contact (بأيقونات SVG مخصصة) -->
         <section id="contact-section" class="store-section">
             <h3>Contact Us</h3>
             <p id="contact-text">Have questions about custom sizes or orders? Get in touch with our concierge team.</p>
             <div id="contact-icons" class="contact-icons-grid">
-                <!-- سيتم تعبئتها ديناميكياً من Firebase -->
+                <!-- سيتم تعبئتها ديناميكياً من Firebase بأيقونات SVG -->
             </div>
         </section>
 
