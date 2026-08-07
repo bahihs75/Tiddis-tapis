@@ -2,9 +2,35 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | High-End Rugs</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- أيقونات TIDDIS المخصصة -->
+    <style>
+        /* تم تضمين مجموعة الأيقونات المخصصة مباشرة في الملف */
+        .tiddis-icon {
+            width: 22px;
+            height: 22px;
+            transition: color 0.2s ease, transform 0.2s ease;
+            color: #2b2b2b;
+        }
+        a:hover .tiddis-icon,
+        .tiddis-icon:hover {
+            color: #4E1A1D;
+            transform: translateY(-1px);
+        }
+        .tiddis-icon.outline {
+            stroke: currentColor;
+            stroke-width: 2.2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .tiddis-icon.solid {
+            fill: currentColor;
+            stroke: none;
+        }
+    </style>
     <!-- مكتبات PDF -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -23,11 +49,8 @@
                 </div>
             </div>
         </div>
-        <nav class="sidebar-nav">
-            <a href="#" class="nav-link active" data-section="home">Overview</a>
-            <a href="#products-grid" class="nav-link" data-section="products">Products</a>
-            <a href="#about-section" class="nav-link" data-section="about">About Us</a>
-            <a href="#contact-section" class="nav-link" data-section="contact">Contact</a>
+        <nav class="sidebar-nav" id="sidebar-nav">
+            <!-- سيتم تعبئة الروابط بواسطة JavaScript مع القوائم المتداخلة -->
         </nav>
         <div class="sidebar-footer">
             <span>© TIDDIS TAPIS</span>
@@ -45,9 +68,27 @@
                 </div>
             </div>
         </div>
-        <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
-            <span></span><span></span><span></span>
-        </button>
+        <div class="mobile-header-actions">
+            <!-- أيقونة البحث -->
+            <button class="search-toggle-btn" id="search-toggle-btn" aria-label="Search">
+                <svg class="tiddis-icon outline" viewBox="0 0 24 24" width="22" height="22">
+                    <circle cx="11" cy="11" r="7"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </button>
+            <!-- زر الهامبورجر -->
+            <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- شريط البحث القابل للطي (يظهر عند النقر على أيقونة البحث في الهاتف) -->
+    <div class="mobile-search-bar" id="mobile-search-bar" style="display:none;">
+        <div class="mobile-search-inner">
+            <input type="text" id="mobile-search-input" placeholder="Search rugs by name, size, or color...">
+            <button class="mobile-search-close" id="mobile-search-close">✕</button>
+        </div>
     </div>
 
     <!-- المحتوى الرئيسي -->
@@ -59,8 +100,8 @@
             <p class="hero-subtitle">INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE</p>
         </section>
 
-        <!-- شريط البحث والفلاتر -->
-        <section class="search-filter-section">
+        <!-- شريط البحث والفلاتر (ديسكتوب فقط) -->
+        <section class="search-filter-section" id="search-filter-section">
             <div class="filter-tabs" id="filter-tabs">
                 <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="KSOR">KSOR</button>
@@ -70,19 +111,26 @@
                 <button class="filter-btn" data-filter="PLAZA">PLAZA</button>
                 <button class="filter-btn" data-filter="MANISA">MANISA</button>
             </div>
-            <div class="search-bar">
+            <div class="search-bar desktop-search">
                 <input type="text" id="search-input" placeholder="Search rugs by name, size, or color...">
                 <span id="product-count">0 products</span>
+                <!-- مفتاح تبديل عرض الشبكة (Grid Toggle) -->
+                <div class="grid-toggle-wrapper">
+                    <span class="grid-toggle-label">Grid</span>
+                    <button class="grid-toggle-btn" id="grid-toggle-btn" aria-label="Toggle grid columns">
+                        <span class="grid-toggle-slider"></span>
+                    </button>
+                </div>
             </div>
         </section>
 
-        <!-- شبكة المنتجات (تحميل أولي محدود: 4 ديسكتوب / 2 موبايل) -->
+        <!-- شبكة المنتجات -->
         <div id="products-grid" class="products-grid">
             <!-- سيتم تعبئتها بواسطة store.js -->
             <div class="loading-placeholder">Loading exclusive collection...</div>
         </div>
 
-        <!-- زر تحميل المزيد (يظهر عند الحاجة) -->
+        <!-- زر تحميل المزيد -->
         <div id="load-more-container" style="text-align:center; margin-top:30px; display:none;">
             <button id="load-more-btn" class="btn-secondary">Load More Products</button>
         </div>
@@ -97,7 +145,7 @@
         <section id="contact-section" class="store-section">
             <h3>Contact Us</h3>
             <p id="contact-text">Have questions about custom sizes or orders? Get in touch with our concierge team.</p>
-            <div id="contact-icons" class="contact-icons">
+            <div id="contact-icons" class="contact-icons-grid">
                 <!-- سيتم تعبئتها ديناميكياً من Firebase -->
             </div>
         </section>
