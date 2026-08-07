@@ -8,14 +8,64 @@
 </head>
 <body>
 
-    <!-- حماية بسيطة بكلمة مرور -->
+    <!-- حماية بسيطة بكلمة مرور مع تذكرني وحد المحاولات -->
     <script>
         (function() {
-            const password = "39482202";
+            const PASSWORD = "39482202";
+            const MAX_ATTEMPTS = 3;
+            const LOCK_TIME = 10; // دقائق
+
+            // التحقق من القفل
+            const lockData = localStorage.getItem('admin_lock');
+            if (lockData) {
+                const lock = JSON.parse(lockData);
+                const now = Date.now();
+                if (now - lock.timestamp < LOCK_TIME * 60 * 1000) {
+                    const remaining = Math.ceil((LOCK_TIME * 60 * 1000 - (now - lock.timestamp)) / 60000);
+                    document.body.innerHTML = `<h1 style="text-align:center; margin-top:100px; color:#4E1A1D;">🔒 Access Locked</h1>
+                        <p style="text-align:center;">Too many failed attempts. Please wait ${remaining} minute(s) before trying again.</p>`;
+                    throw new Error("Locked");
+                } else {
+                    localStorage.removeItem('admin_lock');
+                    localStorage.removeItem('admin_attempts');
+                }
+            }
+
+            // التحقق من المحاولات
+            let attempts = parseInt(localStorage.getItem('admin_attempts')) || 0;
+
+            // التحقق من "تذكرني"
+            const rememberMe = localStorage.getItem('admin_remember') === 'true';
+            if (rememberMe) {
+                // السماح بالدخول مباشرة (يمكننا فحص كلمة مرور مخزنة، لكننا نثق بـ localStorage)
+                // نمرر التحقق
+                return;
+            }
+
             const userInput = prompt("Enter admin password to access the control panel:");
-            if (userInput !== password) {
-                document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px; color:#4E1A1D;'>Access Denied</h1><p style='text-align:center;'>Incorrect password.</p>";
+            if (userInput === null) {
+                document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px; color:#4E1A1D;'>Access Denied</h1>";
                 throw new Error("Access Denied");
+            }
+
+            if (userInput === PASSWORD) {
+                // نجاح: إعادة تعيين المحاولات
+                localStorage.removeItem('admin_attempts');
+                // إذا تم اختيار "تذكرني" (سيتم ضبطه لاحقاً من الواجهة)
+                // يمكن للمستخدم تفعيله من خلال خيار في الواجهة
+                return;
+            } else {
+                attempts++;
+                localStorage.setItem('admin_attempts', attempts);
+                if (attempts >= MAX_ATTEMPTS) {
+                    localStorage.setItem('admin_lock', JSON.stringify({ timestamp: Date.now() }));
+                    document.body.innerHTML = `<h1 style="text-align:center; margin-top:100px; color:#4E1A1D;">🔒 Access Locked</h1>
+                        <p style="text-align:center;">Too many failed attempts. Please wait ${LOCK_TIME} minutes before trying again.</p>`;
+                    throw new Error("Locked");
+                } else {
+                    alert(`Incorrect password. ${MAX_ATTEMPTS - attempts} attempt(s) remaining.`);
+                    window.location.reload();
+                }
             }
         })();
     </script>
@@ -30,7 +80,8 @@
             <a href="#" class="nav-link active" data-section="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-section="categories">Categories</a>
             <a href="#" class="nav-link" data-section="products">Products</a>
-            <a href="#" class="nav-link" data-section="delivery">Delivery Rates</a>
+            <a href="#" class="nav-link" data-section="delivery">Delivery</a>
+            <a href="#" class="nav-link" data-section="orders">Orders</a>
             <a href="#" class="nav-link" data-section="settings">Settings</a>
         </nav>
         <div class="sidebar-footer">
@@ -65,12 +116,12 @@
                     <span class="stat-value" id="stat-categories">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Recent Orders</span>
+                    <span class="stat-label">Total Orders</span>
                     <span class="stat-value" id="stat-orders">0</span>
                 </div>
             </div>
             <div id="recent-orders-list" style="margin-top:30px;">
-                <p>No orders yet.</p>
+                <p>No recent orders.</p>
             </div>
         </section>
 
@@ -147,15 +198,11 @@
                     <div class="form-group">
                         <label>PDF Image Selection</label>
                         <p style="font-size:0.85rem; color:#666;">Select which image should appear in the downloadable PDF.</p>
-                        <div id="pdf-image-selector">
-                            <!-- سيتم تعبئتها ديناميكياً عبر JavaScript -->
-                        </div>
+                        <div id="pdf-image-selector"></div>
                     </div>
                     <hr>
                     <h4>Product Variants (Sizes / Colors)</h4>
-                    <div id="variants-container">
-                        <!-- صفوف المتغيرات ستضاف هنا بواسطة admin.js -->
-                    </div>
+                    <div id="variants-container"></div>
                     <button type="button" id="add-variant-btn" class="btn-secondary">+ Add Variant</button>
                     <hr>
                     <button type="submit" class="btn-primary" style="width:100%; margin-top:16px;">Save Product</button>
@@ -191,15 +238,24 @@
                                 <th>Free Delivery</th>
                             </tr>
                         </thead>
-                        <tbody id="delivery-table-body">
-                            <!-- سيتم تعبئتها بواسطة admin.js -->
-                        </tbody>
+                        <tbody id="delivery-table-body"></tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- Settings Section -->
+        <!-- Orders Section (جديد) -->
+        <section id="section-orders" class="admin-section">
+            <h2>Manage Orders</h2>
+            <div class="admin-card">
+                <h3>All Orders</h3>
+                <div id="orders-list">
+                    <p>Loading orders...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section (مع الألوان وتأكيد) -->
         <section id="section-settings" class="admin-section">
             <h2>Store Settings</h2>
             <div class="admin-card">
@@ -207,7 +263,7 @@
                 <div class="form-group">
                     <label for="google-sheets-url">Google Sheets Web App URL</label>
                     <input type="text" id="google-sheets-url" placeholder="https://script.google.com/macros/s/.../exec">
-                    <button id="test-sheets-btn" class="btn-secondary">Test Connection</button>
+                    <button id="test-sheets-btn" class="btn-secondary" style="margin-top:8px;">Test Connection</button>
                 </div>
             </div>
             <div class="admin-card">
@@ -227,10 +283,22 @@
                 </div>
             </div>
             <div class="admin-card">
+                <h3>Colors (Sidebar & Main Background)</h3>
+                <div class="form-group">
+                    <label for="sidebar-bg-color">Sidebar Background Color (HEX)</label>
+                    <input type="text" id="sidebar-bg-color" placeholder="#ffffff" class="form-input" style="font-family:monospace;">
+                </div>
+                <div class="form-group">
+                    <label for="main-bg-color">Main Background Color (HEX)</label>
+                    <input type="text" id="main-bg-color" placeholder="#faf9f6" class="form-input" style="font-family:monospace;">
+                </div>
+                <button id="save-colors-btn" class="btn-primary">Preview & Save Colors</button>
+            </div>
+            <div class="admin-card">
                 <h3>About Us Text</h3>
                 <div class="form-group">
                     <textarea id="about-us-text" rows="4" class="form-input" placeholder="Enter about us text...">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</textarea>
-                    <button id="save-about-btn" class="btn-primary">Save About Text</button>
+                    <button id="save-about-btn" class="btn-primary" style="margin-top:8px;">Save About Text</button>
                 </div>
             </div>
             <div class="admin-card">
@@ -238,14 +306,12 @@
                 <div class="form-group">
                     <label for="logo-url">Logo URL (SVG or Image link)</label>
                     <input type="text" id="logo-url" placeholder="https://example.com/logo.svg">
-                    <button id="save-logo-btn" class="btn-primary">Update Logo</button>
+                    <button id="save-logo-btn" class="btn-primary" style="margin-top:8px;">Update Logo</button>
                 </div>
             </div>
             <div class="admin-card">
                 <h3>Contact Icons (Dynamic)</h3>
-                <div id="contact-icons-list">
-                    <!-- سيتم تعبئتها ديناميكياً -->
-                </div>
+                <div id="contact-icons-list"></div>
                 <div class="form-row" style="margin-top:12px;">
                     <select id="new-contact-platform" class="form-input">
                         <option value="phone">Phone</option>
@@ -260,12 +326,64 @@
                     <button id="add-contact-btn" class="btn-primary">Add Contact</button>
                 </div>
             </div>
+            <div class="admin-card">
+                <h3>Security</h3>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="remember-me-checkbox">
+                        Remember me (stay logged in)
+                    </label>
+                    <p style="font-size:0.85rem; color:#666; margin-top:4px;">This will keep you logged in on this browser. Disable to require password on each visit.</p>
+                </div>
+                <button id="clear-remember-btn" class="btn-secondary">Clear Remember Me</button>
+            </div>
         </section>
 
     </main>
 
+    <!-- نافذة تأكيد تغيير الألوان -->
+    <div id="color-confirm-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box" style="max-width:400px;">
+            <button class="modal-close" id="color-confirm-close">&times;</button>
+            <h2 style="font-family:var(--font-serif); font-weight:400; letter-spacing:1px; margin-bottom:16px;">Confirm Color Change</h2>
+            <div id="color-confirm-text"></div>
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:20px;">
+                <button id="color-confirm-yes" class="btn-primary">Yes, Apply</button>
+                <button id="color-confirm-no" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- تحميل ملفات JavaScript -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/admin.js"></script>
+
+    <!-- إدارة "تذكرني" -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rememberCheckbox = document.getElementById('remember-me-checkbox');
+            const clearRememberBtn = document.getElementById('clear-remember-btn');
+
+            // تحميل الحالة الحالية
+            if (localStorage.getItem('admin_remember') === 'true') {
+                rememberCheckbox.checked = true;
+            }
+
+            rememberCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    localStorage.setItem('admin_remember', 'true');
+                } else {
+                    localStorage.removeItem('admin_remember');
+                }
+            });
+
+            clearRememberBtn.addEventListener('click', function() {
+                localStorage.removeItem('admin_remember');
+                rememberCheckbox.checked = false;
+                alert('Remember me cleared.');
+            });
+        });
+    </script>
+
 </body>
 </html>
