@@ -5,61 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | High-End Rugs</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- أيقونات TIDDIS المخصصة -->
-    <style>
-        .tiddis-icon {
-            width: 22px;
-            height: 22px;
-            transition: color 0.2s ease, transform 0.2s ease;
-            color: #2b2b2b;
-        }
-        a:hover .tiddis-icon,
-        .tiddis-icon:hover {
-            color: #4E1A1D;
-            transform: translateY(-1px);
-        }
-        .tiddis-icon.outline {
-            stroke: currentColor;
-            stroke-width: 2.2;
-            fill: none;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .tiddis-icon.solid {
-            fill: currentColor;
-            stroke: none;
-        }
-        /* تنسيق أيقونات التواصل كأيقونة + نص */
-        .contact-item-icon {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-family: 'Space Mono', monospace;
-            font-size: 13px;
-            color: var(--text-primary);
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: color 0.2s ease, border-color 0.2s ease;
-            padding: 4px 0;
-        }
-        .contact-item-icon:hover {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-        .contact-item-icon svg {
-            width: 18px;
-            height: 18px;
-            color: var(--text-primary);
-            transition: color 0.2s ease;
-        }
-        .contact-item-icon:hover svg {
-            color: var(--accent);
-        }
-    </style>
-    <!-- مكتبات PDF -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- أيقونات TIDDIS المخصصة (مضمنة في style.css) -->
+    <!-- مكتبات PDF (تحميل فقط عند الحاجة في product.html) -->
 </head>
 <body>
 
@@ -67,7 +14,7 @@
     <div class="sidebar" id="sidebar">
         <div class="logo-container">
             <div class="logo-wrapper">
-                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px;">
+                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px; background:transparent;">
                 <div>
                     <div class="brand-main">TIDDIS</div>
                     <div class="brand-sub">TAPIS</div>
@@ -86,7 +33,7 @@
     <div class="mobile-header">
         <div class="mobile-brand">
             <div class="logo-wrapper" style="display:flex; align-items:center;">
-                <img id="mobile-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:24px; margin-right:8px;">
+                <img id="mobile-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:24px; margin-right:8px; background:transparent;">
                 <div>
                     <span class="brand-main">TIDDIS</span>
                     <span class="brand-sub">TAPIS</span>
@@ -117,7 +64,7 @@
     <!-- المحتوى الرئيسي -->
     <main class="main-content" id="main-content">
 
-        <!-- قسم الهيرو الصغير (تم إصلاح التنسيق نهائياً) -->
+        <!-- قسم الهيرو الصغير -->
         <section class="hero-section">
             <h1 class="hero-title">T I D D I S &nbsp; T A P I S</h1>
             <p class="hero-subtitle">INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE</p>
