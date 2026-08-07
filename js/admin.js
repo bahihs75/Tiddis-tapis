@@ -1,6 +1,6 @@
 // ============================================
 // TIDDIS TAPIS — Admin Panel Logic (محدث بالكامل)
-// منطق لوحة التحكم الإدارية: إدارة المنتجات، الفئات، التوصيل، الإعدادات، الطلبات
+// منطق لوحة التحكم الإدارية: إدارة المنتجات، الفئات، التوصيل، الطلبات، الإعدادات
 // ============================================
 
 import { db } from './firebase-config.js';
@@ -26,6 +26,7 @@ import {
 // المتغيرات العامة
 // ============================================
 let allCategories = [];
+let allCategoriesOverview = [];
 let allProducts = [];
 let allOrders = [];
 let deliveryRates = {};
@@ -34,6 +35,9 @@ let editingProductId = null;
 let editingCategoryId = null;
 let editingSubCategoryParentId = null;
 let editingSubCategoryOldName = null;
+let editingOverviewCategoryId = null;
+let editingOverviewSubCategoryParentId = null;
+let editingOverviewSubCategoryOldName = null;
 
 // ============================================
 // عناصر DOM الرئيسية
@@ -51,19 +55,30 @@ const sections = {
 // الروابط الجانبية
 const adminNavLinks = document.querySelectorAll('#admin-sidebar .nav-link');
 
-// عناصر إدارة الفئات
+// عناصر إدارة الفئات (Products)
 const categoriesList = document.getElementById('categories-list');
 const parentCategorySelect = document.getElementById('parent-category-select');
 const newCategoryName = document.getElementById('new-category-name');
 const newSubcategoryName = document.getElementById('new-subcategory-name');
 const addCategoryBtn = document.getElementById('add-category-btn');
 const addSubcategoryBtn = document.getElementById('add-subcategory-btn');
+const saveCategoriesOrderBtn = document.getElementById('save-categories-order-btn');
+
+// عناصر إدارة فئات Overview
+const overviewCategoriesList = document.getElementById('overview-categories-list');
+const overviewParentCategorySelect = document.getElementById('overview-parent-category-select');
+const newOverviewCategoryName = document.getElementById('new-overview-category-name');
+const newOverviewSubcategoryName = document.getElementById('new-overview-subcategory-name');
+const addOverviewCategoryBtn = document.getElementById('add-overview-category-btn');
+const addOverviewSubcategoryBtn = document.getElementById('add-overview-subcategory-btn');
+const saveOverviewCategoriesOrderBtn = document.getElementById('save-overview-categories-order-btn');
 
 // عناصر إدارة المنتجات
 const productForm = document.getElementById('product-form');
 const productIdInput = document.getElementById('product-id');
 const productNameInput = document.getElementById('product-name');
 const productCategorySelect = document.getElementById('product-category');
+const productOverviewCategorySelect = document.getElementById('product-overview-category');
 const productBasePriceInput = document.getElementById('product-base-price');
 const productMainImageInput = document.getElementById('product-main-image');
 const mainImagePreview = document.getElementById('main-image-preview');
@@ -77,6 +92,7 @@ const addVariantBtn = document.getElementById('add-variant-btn');
 const productsList = document.getElementById('products-list');
 const statProducts = document.getElementById('stat-products');
 const statCategories = document.getElementById('stat-categories');
+const statCategoriesOverview = document.getElementById('stat-categories-overview');
 const statOrders = document.getElementById('stat-orders');
 const recentOrdersList = document.getElementById('recent-orders-list');
 
@@ -87,7 +103,7 @@ const applyBulkPriceBtn = document.getElementById('apply-bulk-price-btn');
 const setAllFreeBtn = document.getElementById('set-all-free-btn');
 const resetAllDeliveryBtn = document.getElementById('reset-all-delivery-btn');
 
-// عناصر إدارة الطلبات (جديدة)
+// عناصر إدارة الطلبات
 const ordersList = document.getElementById('orders-list');
 const ordersFilter = document.getElementById('orders-filter');
 
@@ -221,7 +237,7 @@ if (adminHamburger) {
 }
 
 // ============================================
-// 2. إدارة الفئات (Categories) - كاملة
+// 2. إدارة الفئات (Products Categories)
 // ============================================
 
 async function loadCategories() {
@@ -245,15 +261,18 @@ async function loadCategories() {
 function renderCategories() {
     if (!categoriesList) return;
     
-    if (!allCategories || allCategories.length === 0) {
-        categoriesList.innerHTML = '<p>No categories found. Add your first category above.</p>';
+    // تصفية الفئات من نوع Products فقط
+    const productCategories = allCategories.filter(c => c.type !== 'overview');
+    
+    if (!productCategories || productCategories.length === 0) {
+        categoriesList.innerHTML = '<p>No product categories found. Add your first category above.</p>';
         return;
     }
 
-    let html = '';
-    allCategories.forEach(cat => {
+    let html = '<div class="sortable-categories" id="sortable-products">';
+    productCategories.forEach((cat, index) => {
         html += `
-            <div class="category-item" data-id="${cat.id}">
+            <div class="category-item" data-id="${cat.id}" data-order="${index}">
                 <span><strong>${cat.name}</strong></span>
                 <div class="cat-actions">
                     <button class="edit-cat-btn" data-id="${cat.id}" data-name="${cat.name}">✏️</button>
@@ -265,10 +284,10 @@ function renderCategories() {
         `;
         
         if (cat.subcategories && cat.subcategories.length > 0) {
-            cat.subcategories.forEach(sub => {
+            cat.subcategories.forEach((sub, subIndex) => {
                 const hasProducts = allProducts.some(p => p.category === sub);
                 html += `
-                    <div class="subcategory-item" style="padding-left:32px;" data-cat-id="${cat.id}" data-sub="${sub}">
+                    <div class="subcategory-item" style="padding-left:32px;" data-cat-id="${cat.id}" data-sub="${sub}" data-order="${subIndex}">
                         <span>↳ ${sub}</span>
                         <div class="cat-actions">
                             <button class="edit-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">✏️</button>
@@ -281,10 +300,11 @@ function renderCategories() {
             });
         }
     });
-
+    html += '</div>';
+    html += `<button id="save-products-order-btn" class="btn-primary" style="margin-top:16px;">Save Order</button>`;
     categoriesList.innerHTML = html;
 
-    // مستمعات الأحداث للفئات
+    // مستمعات الأحداث
     categoriesList.querySelectorAll('.edit-cat-btn').forEach(btn => {
         btn.addEventListener('click', () => editCategory(btn.dataset.id, btn.dataset.name));
     });
@@ -297,12 +317,38 @@ function renderCategories() {
     categoriesList.querySelectorAll('.delete-sub-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteSubCategory(btn.dataset.catId, btn.dataset.sub));
     });
+
+    // زر حفظ الترتيب
+    const saveOrderBtn = document.getElementById('save-products-order-btn');
+    if (saveOrderBtn) {
+        saveOrderBtn.addEventListener('click', () => saveCategoriesOrder('products'));
+    }
+
+    // تفعيل السحب والإفلات (باستخدام SortableJS)
+    if (typeof Sortable !== 'undefined') {
+        const sortableContainer = document.getElementById('sortable-products');
+        if (sortableContainer) {
+            new Sortable(sortableContainer, {
+                animation: 150,
+                handle: '.category-item',
+                onEnd: function() {
+                    // تحديث الترتيب محلياً
+                    const items = sortableContainer.querySelectorAll('.category-item');
+                    items.forEach((item, index) => {
+                        item.dataset.order = index;
+                    });
+                }
+            });
+        }
+    }
 }
 
 function populateCategorySelects() {
+    const productCategories = allCategories.filter(c => c.type !== 'overview');
+    
     if (productCategorySelect) {
         productCategorySelect.innerHTML = '<option value="">Select sub-category</option>';
-        allCategories.forEach(cat => {
+        productCategories.forEach(cat => {
             if (cat.subcategories) {
                 cat.subcategories.forEach(sub => {
                     const option = document.createElement('option');
@@ -316,16 +362,28 @@ function populateCategorySelects() {
 
     if (parentCategorySelect) {
         parentCategorySelect.innerHTML = '<option value="">Select parent category</option>';
-        allCategories.forEach(cat => {
+        productCategories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
             option.textContent = cat.name;
             parentCategorySelect.appendChild(option);
         });
     }
+
+    // تعبئة قائمة Overview Categories
+    const overviewCategories = allCategories.filter(c => c.type === 'overview');
+    if (productOverviewCategorySelect) {
+        productOverviewCategorySelect.innerHTML = '<option value="">Select overview category</option>';
+        overviewCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.name;
+            option.textContent = cat.name;
+            productOverviewCategorySelect.appendChild(option);
+        });
+    }
 }
 
-// إضافة فئة رئيسية
+// إضافة فئة رئيسية (Products)
 addCategoryBtn?.addEventListener('click', async function() {
     const name = newCategoryName?.value.trim();
     if (!name) {
@@ -336,7 +394,9 @@ addCategoryBtn?.addEventListener('click', async function() {
     try {
         await addDoc(collection(db, 'categories'), {
             name: name,
-            subcategories: []
+            subcategories: [],
+            type: 'products',
+            order: allCategories.filter(c => c.type !== 'overview').length
         });
         if (newCategoryName) newCategoryName.value = '';
         await loadCategories();
@@ -347,7 +407,7 @@ addCategoryBtn?.addEventListener('click', async function() {
     }
 });
 
-// تعديل فئة رئيسية
+// تعديل فئة رئيسية (Products)
 async function editCategory(categoryId, currentName) {
     const newName = prompt(`Edit category name (current: "${currentName}"):`, currentName);
     if (!newName || newName === currentName) return;
@@ -362,7 +422,7 @@ async function editCategory(categoryId, currentName) {
     }
 }
 
-// حذف فئة رئيسية
+// حذف فئة رئيسية (Products)
 async function deleteCategory(categoryId) {
     const cat = allCategories.find(c => c.id === categoryId);
     if (!cat) return;
@@ -382,7 +442,7 @@ async function deleteCategory(categoryId) {
     }
 }
 
-// إضافة فئة فرعية
+// إضافة فئة فرعية (Products)
 addSubcategoryBtn?.addEventListener('click', async function() {
     const parentId = parentCategorySelect?.value;
     const name = newSubcategoryName?.value.trim();
@@ -414,7 +474,7 @@ addSubcategoryBtn?.addEventListener('click', async function() {
     }
 });
 
-// تعديل فئة فرعية
+// تعديل فئة فرعية (Products)
 async function editSubCategory(categoryId, subName) {
     const newName = prompt(`Edit sub-category name (current: "${subName}"):`, subName);
     if (!newName || newName === subName) return;
@@ -433,7 +493,6 @@ async function editSubCategory(categoryId, subName) {
             subcategories[index] = newName;
             await updateDoc(catRef, { subcategories: subcategories });
             
-            // تحديث جميع المنتجات التي تستخدم هذه الفئة الفرعية
             const productsQuery = query(collection(db, 'products'), where('category', '==', subName));
             const productsSnapshot = await getDocs(productsQuery);
             const batch = writeBatch(db);
@@ -452,7 +511,7 @@ async function editSubCategory(categoryId, subName) {
     }
 }
 
-// حذف فئة فرعية
+// حذف فئة فرعية (Products)
 async function deleteSubCategory(categoryId, subName) {
     const hasProducts = allProducts.some(p => p.category === subName);
     if (hasProducts) {
@@ -478,8 +537,309 @@ async function deleteSubCategory(categoryId, subName) {
     }
 }
 
+// حفظ ترتيب الفئات
+async function saveCategoriesOrder(type) {
+    try {
+        const categoryItems = document.querySelectorAll(`#sortable-${type} .category-item`);
+        const orderData = [];
+        categoryItems.forEach((item, index) => {
+            orderData.push({
+                id: item.dataset.id,
+                order: index
+            });
+        });
+
+        const batch = writeBatch(db);
+        for (const item of orderData) {
+            const ref = doc(db, 'categories', item.id);
+            batch.update(ref, { order: item.order });
+        }
+        await batch.commit();
+        alert('Category order saved successfully!');
+    } catch (error) {
+        console.error('Error saving category order:', error);
+        alert('Error saving category order.');
+    }
+}
+
 // ============================================
-// 3. إدارة المنتجات (Products)
+// 3. إدارة فئات Overview
+// ============================================
+
+async function loadOverviewCategories() {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'categories'));
+        allCategoriesOverview = [];
+        querySnapshot.forEach((doc) => {
+            const cat = { id: doc.id, ...doc.data() };
+            if (cat.type === 'overview') {
+                allCategoriesOverview.push(cat);
+            }
+        });
+        renderOverviewCategories();
+        populateOverviewCategorySelects();
+        updateCategoryStats();
+    } catch (error) {
+        console.error('Error loading overview categories:', error);
+        if (overviewCategoriesList) {
+            overviewCategoriesList.innerHTML = '<p style="color:#c0392b;">Error loading overview categories.</p>';
+        }
+    }
+}
+
+function renderOverviewCategories() {
+    if (!overviewCategoriesList) return;
+    
+    if (!allCategoriesOverview || allCategoriesOverview.length === 0) {
+        overviewCategoriesList.innerHTML = '<p>No overview categories found. Add your first category above.</p>';
+        return;
+    }
+
+    let html = '<div class="sortable-categories" id="sortable-overview">';
+    allCategoriesOverview.forEach((cat, index) => {
+        html += `
+            <div class="category-item" data-id="${cat.id}" data-order="${index}">
+                <span><strong>${cat.name}</strong></span>
+                <div class="cat-actions">
+                    <button class="edit-overview-cat-btn" data-id="${cat.id}" data-name="${cat.name}">✏️</button>
+                    <button class="delete-overview-cat-btn" data-id="${cat.id}" ${cat.subcategories && cat.subcategories.length > 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
+                        🗑️ ${cat.subcategories && cat.subcategories.length > 0 ? '(has sub-categories)' : ''}
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        if (cat.subcategories && cat.subcategories.length > 0) {
+            cat.subcategories.forEach((sub, subIndex) => {
+                const hasProducts = allProducts.some(p => p.overviewCategory === sub || p.overviewCategory === cat.name);
+                html += `
+                    <div class="subcategory-item" style="padding-left:32px;" data-cat-id="${cat.id}" data-sub="${sub}" data-order="${subIndex}">
+                        <span>↳ ${sub}</span>
+                        <div class="cat-actions">
+                            <button class="edit-overview-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">✏️</button>
+                            <button class="delete-overview-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${hasProducts ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
+                                🗑️ ${hasProducts ? '(has products)' : ''}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    });
+    html += '</div>';
+    html += `<button id="save-overview-order-btn" class="btn-primary" style="margin-top:16px;">Save Order</button>`;
+    overviewCategoriesList.innerHTML = html;
+
+    // مستمعات الأحداث
+    overviewCategoriesList.querySelectorAll('.edit-overview-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => editOverviewCategory(btn.dataset.id, btn.dataset.name));
+    });
+    overviewCategoriesList.querySelectorAll('.delete-overview-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteOverviewCategory(btn.dataset.id));
+    });
+    overviewCategoriesList.querySelectorAll('.edit-overview-sub-btn').forEach(btn => {
+        btn.addEventListener('click', () => editOverviewSubCategory(btn.dataset.catId, btn.dataset.sub));
+    });
+    overviewCategoriesList.querySelectorAll('.delete-overview-sub-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteOverviewSubCategory(btn.dataset.catId, btn.dataset.sub));
+    });
+
+    const saveOrderBtn = document.getElementById('save-overview-order-btn');
+    if (saveOrderBtn) {
+        saveOrderBtn.addEventListener('click', () => saveCategoriesOrder('overview'));
+    }
+
+    if (typeof Sortable !== 'undefined') {
+        const sortableContainer = document.getElementById('sortable-overview');
+        if (sortableContainer) {
+            new Sortable(sortableContainer, {
+                animation: 150,
+                handle: '.category-item',
+                onEnd: function() {
+                    const items = sortableContainer.querySelectorAll('.category-item');
+                    items.forEach((item, index) => {
+                        item.dataset.order = index;
+                    });
+                }
+            });
+        }
+    }
+}
+
+function populateOverviewCategorySelects() {
+    if (overviewParentCategorySelect) {
+        overviewParentCategorySelect.innerHTML = '<option value="">Select parent category</option>';
+        allCategoriesOverview.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            overviewParentCategorySelect.appendChild(option);
+        });
+    }
+}
+
+// إضافة فئة Overview رئيسية
+addOverviewCategoryBtn?.addEventListener('click', async function() {
+    const name = newOverviewCategoryName?.value.trim();
+    if (!name) {
+        alert('Please enter an overview category name.');
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, 'categories'), {
+            name: name,
+            subcategories: [],
+            type: 'overview',
+            order: allCategoriesOverview.length
+        });
+        if (newOverviewCategoryName) newOverviewCategoryName.value = '';
+        await loadOverviewCategories();
+        await loadCategories();
+        alert(`Overview category "${name}" added successfully!`);
+    } catch (error) {
+        console.error('Error adding overview category:', error);
+        alert('Error adding overview category.');
+    }
+});
+
+// تعديل فئة Overview رئيسية
+async function editOverviewCategory(categoryId, currentName) {
+    const newName = prompt(`Edit overview category name (current: "${currentName}"):`, currentName);
+    if (!newName || newName === currentName) return;
+
+    try {
+        await updateDoc(doc(db, 'categories', categoryId), { name: newName });
+        await loadOverviewCategories();
+        await loadCategories();
+        alert('Overview category updated successfully!');
+    } catch (error) {
+        console.error('Error editing overview category:', error);
+        alert('Error editing overview category.');
+    }
+}
+
+// حذف فئة Overview رئيسية
+async function deleteOverviewCategory(categoryId) {
+    const cat = allCategoriesOverview.find(c => c.id === categoryId);
+    if (!cat) return;
+    if (cat.subcategories && cat.subcategories.length > 0) {
+        alert('Cannot delete a category that has sub-categories. Please delete all sub-categories first.');
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete overview category "${cat.name}"?`)) return;
+
+    try {
+        await deleteDoc(doc(db, 'categories', categoryId));
+        await loadOverviewCategories();
+        await loadCategories();
+        alert('Overview category deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting overview category:', error);
+        alert('Error deleting overview category.');
+    }
+}
+
+// إضافة فئة فرعية لـ Overview
+addOverviewSubcategoryBtn?.addEventListener('click', async function() {
+    const parentId = overviewParentCategorySelect?.value;
+    const name = newOverviewSubcategoryName?.value.trim();
+
+    if (!parentId || !name) {
+        alert('Please select a parent category and enter a sub-category name.');
+        return;
+    }
+
+    try {
+        const catRef = doc(db, 'categories', parentId);
+        const catDoc = await getDoc(catRef);
+        if (catDoc.exists()) {
+            const data = catDoc.data();
+            const subcategories = data.subcategories || [];
+            if (subcategories.includes(name)) {
+                alert('This sub-category already exists.');
+                return;
+            }
+            subcategories.push(name);
+            await updateDoc(catRef, { subcategories: subcategories });
+            if (newOverviewSubcategoryName) newOverviewSubcategoryName.value = '';
+            await loadOverviewCategories();
+            await loadCategories();
+            alert(`Overview sub-category "${name}" added successfully!`);
+        }
+    } catch (error) {
+        console.error('Error adding overview sub-category:', error);
+        alert('Error adding overview sub-category.');
+    }
+});
+
+// تعديل فئة فرعية لـ Overview
+async function editOverviewSubCategory(categoryId, subName) {
+    const newName = prompt(`Edit overview sub-category name (current: "${subName}"):`, subName);
+    if (!newName || newName === subName) return;
+
+    try {
+        const catRef = doc(db, 'categories', categoryId);
+        const catDoc = await getDoc(catRef);
+        if (catDoc.exists()) {
+            const data = catDoc.data();
+            const subcategories = data.subcategories || [];
+            const index = subcategories.indexOf(subName);
+            if (index === -1) {
+                alert('Sub-category not found.');
+                return;
+            }
+            subcategories[index] = newName;
+            await updateDoc(catRef, { subcategories: subcategories });
+            
+            const productsQuery = query(collection(db, 'products'), where('overviewCategory', '==', subName));
+            const productsSnapshot = await getDocs(productsQuery);
+            const batch = writeBatch(db);
+            productsSnapshot.forEach((docSnap) => {
+                batch.update(docSnap.ref, { overviewCategory: newName });
+            });
+            await batch.commit();
+            
+            await loadOverviewCategories();
+            await loadCategories();
+            await loadProducts();
+            alert('Overview sub-category updated successfully!');
+        }
+    } catch (error) {
+        console.error('Error editing overview sub-category:', error);
+        alert('Error editing overview sub-category.');
+    }
+}
+
+// حذف فئة فرعية لـ Overview
+async function deleteOverviewSubCategory(categoryId, subName) {
+    const hasProducts = allProducts.some(p => p.overviewCategory === subName);
+    if (hasProducts) {
+        alert('Cannot delete an overview sub-category that has products. Please delete or move all products first.');
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete overview sub-category "${subName}"?`)) return;
+
+    try {
+        const catRef = doc(db, 'categories', categoryId);
+        const catDoc = await getDoc(catRef);
+        if (catDoc.exists()) {
+            const data = catDoc.data();
+            const subcategories = data.subcategories || [];
+            const updated = subcategories.filter(s => s !== subName);
+            await updateDoc(catRef, { subcategories: updated });
+            await loadOverviewCategories();
+            await loadCategories();
+            alert(`Overview sub-category "${subName}" deleted successfully.`);
+        }
+    } catch (error) {
+        console.error('Error deleting overview sub-category:', error);
+        alert('Error deleting overview sub-category.');
+    }
+}
+
+// ============================================
+// 4. إدارة المنتجات (Products)
 // ============================================
 
 async function loadProducts() {
@@ -492,6 +852,7 @@ async function loadProducts() {
         renderProductsList();
         updateProductStats();
         populateCategorySelects();
+        populateOverviewCategorySelects();
     } catch (error) {
         console.error('Error loading products:', error);
         if (productsList) {
@@ -512,11 +873,13 @@ function renderProductsList() {
     allProducts.forEach(product => {
         const price = product.basePrice || 0;
         const category = product.category || 'Uncategorized';
+        const overview = product.overviewCategory || 'None';
         html += `
             <div class="product-admin-item">
                 <div>
                     <strong>${product.name || 'Unnamed'}</strong>
                     <span style="color:#6b6b6b; font-size:13px; margin-left:12px;">${category}</span>
+                    <span style="color:#4E1A1D; font-size:12px; margin-left:8px;">OV: ${overview}</span>
                     <span style="color:#4E1A1D; font-weight:600; margin-left:12px;">${price} DZD</span>
                 </div>
                 <div class="product-admin-actions">
@@ -637,6 +1000,7 @@ productForm?.addEventListener('submit', async function(e) {
 
     const name = productNameInput?.value.trim();
     const category = productCategorySelect?.value;
+    const overviewCategory = productOverviewCategorySelect?.value || null;
     const basePrice = parseFloat(productBasePriceInput?.value);
     const imageUrl = productMainImageInput?.value.trim();
     const customizableSize = productCustomizableCheckbox?.checked || false;
@@ -665,6 +1029,7 @@ productForm?.addEventListener('submit', async function(e) {
     const productData = {
         name,
         category,
+        overviewCategory,
         basePrice,
         imageUrl,
         additionalImages,
@@ -711,6 +1076,7 @@ productForm?.addEventListener('submit', async function(e) {
 
         await loadProducts();
         populateCategorySelects();
+        populateOverviewCategorySelects();
 
     } catch (error) {
         console.error('Error saving product:', error);
@@ -737,6 +1103,7 @@ async function editProduct(productId) {
 
         if (productNameInput) productNameInput.value = product.name || '';
         if (productCategorySelect) productCategorySelect.value = product.category || '';
+        if (productOverviewCategorySelect) productOverviewCategorySelect.value = product.overviewCategory || '';
         if (productBasePriceInput) productBasePriceInput.value = product.basePrice || '';
         if (productMainImageInput) productMainImageInput.value = product.imageUrl || '';
         if (productCustomizableCheckbox) productCustomizableCheckbox.checked = product.customizableSize || false;
@@ -831,7 +1198,7 @@ async function deleteProduct(productId) {
 }
 
 // ============================================
-// 4. إدارة أسعار التوصيل (Delivery Rates)
+// 5. إدارة أسعار التوصيل (Delivery Rates)
 // ============================================
 
 async function loadDeliveryRates() {
@@ -985,7 +1352,7 @@ resetAllDeliveryBtn?.addEventListener('click', function() {
 });
 
 // ============================================
-// 5. إدارة الطلبات (Orders) - جديدة
+// 6. إدارة الطلبات (Orders)
 // ============================================
 
 async function loadOrders() {
@@ -1059,7 +1426,6 @@ function renderOrders() {
     html += '</tbody></table>';
     ordersList.innerHTML = html;
 
-    // مستمعات الأحداث لتحديث الحالة
     ordersList.querySelectorAll('.order-status-select').forEach(select => {
         select.addEventListener('change', async function() {
             const orderId = this.dataset.orderId;
@@ -1074,7 +1440,6 @@ function renderOrders() {
         });
     });
 
-    // مستمعات الأحداث لحذف الطلب
     ordersList.querySelectorAll('.delete-order-btn').forEach(btn => {
         btn.addEventListener('click', async function() {
             const orderId = this.dataset.orderId;
@@ -1098,7 +1463,7 @@ function updateOrderStats() {
 }
 
 // ============================================
-// 6. إعدادات المتجر (Settings) - مع ألوان وتأكيد
+// 7. إعدادات المتجر (Settings)
 // ============================================
 
 async function loadSettings() {
@@ -1154,7 +1519,6 @@ saveColorsBtn?.addEventListener('click', function() {
     const sidebarColor = sidebarBgColorInput?.value || '#ffffff';
     const mainColor = mainBgColorInput?.value || '#faf9f6';
     
-    // عرض نافذة التأكيد
     const confirmModal = document.getElementById('color-confirm-modal');
     const confirmText = document.getElementById('color-confirm-text');
     if (confirmModal && confirmText) {
@@ -1175,13 +1539,11 @@ saveColorsBtn?.addEventListener('click', function() {
         `;
         confirmModal.style.display = 'flex';
         
-        // ربط أزرار التأكيد
         document.getElementById('color-confirm-yes').onclick = async function() {
             confirmModal.style.display = 'none';
             storeSettings.sidebarBgColor = sidebarColor;
             storeSettings.mainBgColor = mainColor;
             if (await saveStoreSettings()) {
-                // تطبيق الألوان فوراً
                 document.documentElement.style.setProperty('--sidebar-bg', sidebarColor);
                 document.documentElement.style.setProperty('--bg-color', mainColor);
                 const sidebarEl = document.querySelector('.sidebar');
@@ -1191,6 +1553,9 @@ saveColorsBtn?.addEventListener('click', function() {
             }
         };
         document.getElementById('color-confirm-no').onclick = function() {
+            confirmModal.style.display = 'none';
+        };
+        document.getElementById('color-confirm-close').onclick = function() {
             confirmModal.style.display = 'none';
         };
     }
@@ -1288,6 +1653,7 @@ function renderContactIconsList(contacts) {
         instagram: '📷',
         facebook: '👍',
         tiktok: '🎵',
+        telegram: '✈️',
         pinterest: '📌'
     };
 
@@ -1342,12 +1708,17 @@ imageApiKeyInput?.addEventListener('change', function() {
 });
 
 // ============================================
-// 7. لوحة المعلومات (Dashboard)
+// 8. لوحة المعلومات (Dashboard)
 // ============================================
 
 function updateCategoryStats() {
+    const productCats = allCategories.filter(c => c.type !== 'overview');
+    const overviewCats = allCategories.filter(c => c.type === 'overview');
     if (statCategories) {
-        statCategories.textContent = allCategories.length;
+        statCategories.textContent = productCats.length;
+    }
+    if (statCategoriesOverview) {
+        statCategoriesOverview.textContent = overviewCats.length;
     }
 }
 
@@ -1385,12 +1756,13 @@ async function loadDashboardData() {
 }
 
 // ============================================
-// 8. التحميل الأولي (Initialization)
+// 9. التحميل الأولي (Initialization)
 // ============================================
 
 async function initAdmin() {
     try {
         await loadCategories();
+        await loadOverviewCategories();
         await loadProducts();
         await loadDeliveryRates();
         await loadOrders();
