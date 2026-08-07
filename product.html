@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TIDDIS TAPIS | Product Details</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- مكتبات PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+    <!-- القائمة الجانبية -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo-container">
+            <div class="logo-wrapper">
+                <img id="sidebar-logo" src="" alt="Logo" style="display:none; max-height:32px; margin-right:10px;">
+                <div>
+                    <div class="brand-main">TIDDIS</div>
+                    <div class="brand-sub">TAPIS</div>
+                </div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-link">Overview</a>
+            <a href="index.html#products-grid" class="nav-link">Products</a>
+            <a href="index.html#about-section" class="nav-link">About Us</a>
+            <a href="index.html#contact-section" class="nav-link">Contact</a>
+        </nav>
+        <div class="sidebar-footer">
+            <span>© TIDDIS TAPIS</span>
+        </div>
+    </div>
+
+    <!-- رأس الهاتف المحمول -->
+    <div class="mobile-header">
+        <div class="mobile-brand">
+            <div class="logo-wrapper" style="display:flex; align-items:center;">
+                <img id="mobile-logo" src="" alt="Logo" style="display:none; max-height:24px; margin-right:8px;">
+                <div>
+                    <span class="brand-main">TIDDIS</span>
+                    <span class="brand-sub">TAPIS</span>
+                </div>
+            </div>
+        </div>
+        <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content" id="main-content">
+
+        <!-- زر العودة إلى المنتجات -->
+        <div class="back-link-container">
+            <a href="index.html#products-grid" class="back-link">← Back to Products</a>
+        </div>
+
+        <!-- Skeleton Loading (يظهر أثناء التحميل) -->
+        <div id="product-skeleton" class="product-skeleton">
+            <div class="skeleton-image"></div>
+            <div class="skeleton-text"></div>
+            <div class="skeleton-text" style="width:60%;"></div>
+            <div class="skeleton-text" style="width:40%;"></div>
+            <div class="skeleton-variants"></div>
+            <div class="skeleton-actions"></div>
+        </div>
+
+        <!-- محتوى المنتج (يظهر بعد التحميل) -->
+        <div id="product-detail-container" style="display:none;">
+            <!-- الشعار في أعلى الصفحة -->
+            <div class="product-page-header">
+                <div class="product-page-logo-wrapper">
+                    <img id="product-page-logo" src="" alt="Logo" style="display:none; max-height:30px; margin-right:10px;">
+                    <div>
+                        <span class="brand-main" style="font-size:20px;">TIDDIS</span>
+                        <span class="brand-sub" style="font-size:11px;">TAPIS</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- اسم المنتج -->
+            <h1 class="product-detail-title" id="product-detail-name">Loading...</h1>
+
+            <!-- معرض الصور (عمودي - واحدة تحت الأخرى) -->
+            <div id="product-detail-images" class="product-detail-images">
+                <!-- سيتم تعبئتها بواسطة store.js -->
+            </div>
+
+            <!-- معلومات المنتج -->
+            <div class="product-detail-info">
+                <div class="product-detail-row">
+                    <div class="product-detail-specs">
+                        <span id="product-detail-size">200x280 cm</span>
+                        <span id="product-detail-color" style="margin-left:12px; color:#6b6b6b;">Grouna</span>
+                    </div>
+                    <span class="product-detail-price" id="product-detail-price">12500 DZD</span>
+                </div>
+
+                <!-- محدد المتغيرات (في نفس السطر) -->
+                <div class="product-detail-variant-row">
+                    <select id="product-detail-variant" class="variant-select" style="font-size:14px; padding:6px 12px;">
+                        <!-- سيتم تعبئتها بواسطة store.js -->
+                    </select>
+                </div>
+
+                <!-- زر ORDER و PDF -->
+                <div class="product-detail-actions">
+                    <button id="product-detail-order-btn" class="order-btn" style="font-size:16px; padding:12px 28px;">ORDER</button>
+                    <button id="product-detail-pdf-btn" class="pdf-btn">📄 Download Technical Sheet</button>
+                </div>
+            </div>
+
+            <!-- وصف إضافي (اختياري) -->
+            <div class="product-detail-description" id="product-detail-description" style="display:none;">
+                <!-- سيتم تعبئتها إن وجد -->
+            </div>
+        </div>
+
+        <!-- تذييل الصفحة -->
+        <footer class="main-footer">
+            <p>&copy; 2025 TIDDIS TAPIS — All rights reserved.</p>
+        </footer>
+    </main>
+
+    <!-- نافذة الطلب المنبثقة (Order Modal) -->
+    <div id="order-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <h2>Order Details</h2>
+            <form id="order-form">
+                <div class="form-group">
+                    <label for="customer-name">Full Name</label>
+                    <input type="text" id="customer-name" placeholder="e.g., Ahmed Benali" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-phone">Phone Number</label>
+                    <input type="tel" id="customer-phone" placeholder="0559 123 456" required>
+                </div>
+                <div class="form-group">
+                    <label for="wilaya-select">Wilaya</label>
+                    <select id="wilaya-select" required>
+                        <option value="">-- Select your wilaya --</option>
+                    </select>
+                </div>
+                <div class="form-group" id="custom-size-group" style="display:none;">
+                    <label for="custom-size">Custom Size (optional)</label>
+                    <input type="text" id="custom-size" placeholder="e.g., 250x350 cm">
+                </div>
+                <div class="order-summary">
+                    <div class="summary-line">
+                        <span>Subtotal:</span>
+                        <span id="modal-subtotal">0 DZD</span>
+                    </div>
+                    <div class="summary-line">
+                        <span>Delivery Fee:</span>
+                        <span id="modal-delivery">0 DZD</span>
+                    </div>
+                    <div class="summary-line total">
+                        <span>Total:</span>
+                        <span id="modal-total">0 DZD</span>
+                    </div>
+                </div>
+                <button type="submit" class="order-submit-btn">Confirm Order</button>
+            </form>
+            <div id="order-status" style="margin-top:10px; font-size:0.9rem;"></div>
+        </div>
+    </div>
+
+    <!-- نافذة نجاح الطلب + تحميل PDF -->
+    <div id="order-success-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box success-modal">
+            <button class="modal-close" id="success-close">&times;</button>
+            <div style="text-align:center; padding:10px 0;">
+                <div style="font-size:48px; margin-bottom:12px;">✅</div>
+                <h2 style="font-family:var(--font-serif); font-weight:400; letter-spacing:1px; margin-bottom:8px;">Order Confirmed!</h2>
+                <p style="color:#6b6b6b; font-size:15px; margin-bottom:20px;">Thank you for your order. We will contact you shortly.</p>
+                <button id="download-pdf-after-order" class="btn-primary" style="margin-bottom:8px;">📄 Download Technical Sheet</button>
+                <br>
+                <button id="close-success-modal" class="btn-secondary" style="margin-top:4px;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحميل JavaScript -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/store.js"></script>
+    <script type="module">
+        // تشغيل تحميل صفحة التفاصيل
+        import('./js/store.js').then(module => {
+            if (module.loadProductDetail) {
+                module.loadProductDetail();
+            }
+        });
+    </script>
+</body>
+</html>
