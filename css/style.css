@@ -152,7 +152,6 @@ body {
     transform: rotate(90deg);
 }
 
-/* القوائم الفرعية المتداخلة */
 .sidebar-nav .sub-menu {
     padding-left: 20px;
     display: none;
@@ -182,7 +181,6 @@ body {
     font-weight: 700;
 }
 
-/* قائمة فرعية من المستوى الثالث */
 .sidebar-nav .sub-menu .sub-menu {
     padding-left: 16px;
     border-left: 1px solid var(--border-color);
@@ -401,7 +399,7 @@ body {
     transform: translateX(-4px);
 }
 
-/* ---------- قسم الهيرو الصغير ---------- */
+/* ---------- قسم الهيرو الصغير (تم إصلاح التنسيق نهائياً) ---------- */
 .hero-section {
     text-align: center;
     padding: 8px 0 28px;
@@ -416,6 +414,9 @@ body {
     letter-spacing: 12px;
     color: var(--text-primary);
     margin-bottom: 6px;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 .hero-subtitle {
@@ -424,6 +425,9 @@ body {
     letter-spacing: 3px;
     color: var(--accent);
     font-weight: 400;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
 }
 
 /* ---------- شريط البحث والفلاتر (ديسكتوب) ---------- */
@@ -560,12 +564,10 @@ body {
     transition: grid-template-columns 0.3s ease;
 }
 
-/* حالة العرض بأربعة أعمدة (ديسكتوب) */
 .products-grid.grid-4 {
     grid-template-columns: repeat(4, 1fr);
 }
 
-/* حالة العرض بعمودين في الهاتف */
 @media (max-width: 900px) {
     .products-grid {
         grid-template-columns: 1fr;
@@ -612,7 +614,6 @@ body {
     transition: opacity 0.2s ease;
 }
 
-/* أزرار التمرير للصور (الأساسية) */
 .image-nav-btn {
     position: absolute;
     top: 50%;
@@ -831,7 +832,7 @@ body {
     line-height: 1.7;
 }
 
-/* أيقونات التواصل (شبكة بعمودين / عمود واحد) */
+/* أيقونات التواصل (أيقونة + نص مع خط تحت النص) */
 .contact-icons-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -842,15 +843,15 @@ body {
 }
 
 .contact-icons-grid .contact-item {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--text-primary);
     text-decoration: none;
-    transition: color 0.2s ease;
     border-bottom: 1px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
     padding: 4px 0;
 }
 
@@ -1216,54 +1217,67 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* ---------- Skeleton Loading ---------- */
-.product-skeleton {
-    padding: 20px 0;
+/* ---------- Loader: TIDDIS TAPIS مع تأثير التعبئة ---------- */
+.tiddis-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 40px 20px;
+    font-family: var(--font-serif);
+    font-size: 48px;
+    font-weight: 300;
+    letter-spacing: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.2;
 }
 
-.skeleton-image {
-    width: 100%;
-    height: 400px;
-    background: linear-gradient(90deg, #e8e5df 25%, #f4f2ed 50%, #e8e5df 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite;
-    border-radius: 4px;
-    margin-bottom: 20px;
+.tiddis-loader .loader-sub {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--text-muted);
+    margin-top: 8px;
 }
 
-.skeleton-text {
-    height: 20px;
-    background: #e8e5df;
-    border-radius: 4px;
-    margin-bottom: 12px;
-    width: 80%;
-    animation: skeleton-loading 1.5s infinite;
+.tiddis-loader .loader-text {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--text-muted) 0%, var(--text-muted) 40%, var(--accent) 60%, var(--accent) 100%);
+    background-size: 300% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: loader-fill 2.5s ease-in-out infinite;
 }
 
-.skeleton-text:last-child {
-    width: 40%;
+@keyframes loader-fill {
+    0% { background-position: 300% 0; }
+    100% { background-position: -300% 0; }
 }
 
-.skeleton-variants {
-    height: 40px;
-    background: #e8e5df;
-    border-radius: 4px;
-    margin-bottom: 16px;
-    width: 60%;
-    animation: skeleton-loading 1.5s infinite;
+.loader-dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
 }
 
-.skeleton-actions {
-    height: 50px;
-    background: #e8e5df;
-    border-radius: 4px;
-    width: 100%;
-    animation: skeleton-loading 1.5s infinite;
+.loader-dots span {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-color);
+    animation: loader-dot 1.4s ease-in-out infinite;
 }
 
-@keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+.loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes loader-dot {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; background: var(--accent); }
 }
 
 /* ---------- تنسيقات لوحة التحكم (Admin) ---------- */
@@ -1464,6 +1478,7 @@ body {
     background: #a93226;
 }
 
+/* إحصائيات لوحة التحكم */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1497,6 +1512,7 @@ body {
     margin-top: 4px;
 }
 
+/* جدول أسعار التوصيل */
 .admin-table {
     width: 100%;
     border-collapse: collapse;
@@ -1543,6 +1559,7 @@ body {
     color: var(--text-muted);
 }
 
+/* قائمة المنتجات في لوحة التحكم */
 #products-list .product-admin-item {
     display: flex;
     justify-content: space-between;
@@ -1587,6 +1604,7 @@ body {
     color: var(--accent);
 }
 
+/* الفئات */
 .category-item,
 .subcategory-item {
     display: flex;
@@ -1620,6 +1638,7 @@ body {
     color: var(--accent);
 }
 
+/* الطلبات */
 #orders-list .admin-table td select {
     padding: 4px 8px;
     border: 1px solid var(--border-color);
@@ -1648,6 +1667,7 @@ body {
     color: #c0392b;
 }
 
+/* جهات التواصل في الأدمن */
 .contact-item {
     display: flex;
     justify-content: space-between;
@@ -1674,7 +1694,7 @@ body {
     color: #c0392b;
 }
 
-/* ---------- نافذة تأكيد تغيير الألوان (Admin) ---------- */
+/* نافذة تأكيد تغيير الألوان */
 #color-confirm-modal .modal-box {
     max-width: 400px;
 }
@@ -1693,7 +1713,59 @@ body {
     border: 1px solid var(--border-color);
 }
 
-/* ---------- التوافق مع الشاشات الصغيرة (Mobile) ---------- */
+/* حالة فارغة للـ Overview Categories */
+.empty-state-message {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius);
+    background: var(--bg-color);
+}
+
+.empty-state-message .empty-icon {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* زر إضافة منتج جديد */
+.add-product-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.add-product-toggle .btn-primary {
+    padding: 10px 24px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
+.add-product-toggle .btn-primary .plus-icon {
+    font-size: 18px;
+    margin-right: 6px;
+}
+
+.product-form-wrapper {
+    display: none;
+    margin-top: 16px;
+    border-top: 2px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.product-form-wrapper.open {
+    display: block;
+}
+
+/* ============================================ */
+/* التوافق مع الشاشات الصغيرة (Mobile) */
+/* ============================================ */
 @media (max-width: 900px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1735,9 +1807,10 @@ body {
         gap: 16px;
     }
 
+    /* تحسين الهيرو للهاتف */
     .hero-title {
-        font-size: 24px;
-        letter-spacing: 8px;
+        font-size: 22px;
+        letter-spacing: 6px;
     }
 
     .hero-subtitle {
@@ -1756,6 +1829,17 @@ body {
     .contact-icons-grid {
         grid-template-columns: 1fr;
         gap: 8px;
+    }
+
+    /* Loader للهاتف */
+    .tiddis-loader {
+        font-size: 32px;
+        letter-spacing: 8px;
+        min-height: 50vh;
+    }
+    .tiddis-loader .loader-sub {
+        font-size: 12px;
+        letter-spacing: 3px;
     }
 
     /* لوحة التحكم */
@@ -1814,10 +1898,6 @@ body {
         text-align: center;
     }
 
-    .skeleton-image {
-        height: 300px;
-    }
-
     .back-link {
         font-size: 12px;
         letter-spacing: 1px;
@@ -1826,13 +1906,13 @@ body {
 
 @media (max-width: 480px) {
     .hero-title {
-        font-size: 18px;
+        font-size: 16px;
         letter-spacing: 4px;
     }
 
     .hero-subtitle {
         font-size: 10px;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
     }
 
     .mobile-header .brand-main {
@@ -1884,10 +1964,6 @@ body {
         font-size: 17px;
     }
 
-    .skeleton-image {
-        height: 200px;
-    }
-
     .products-grid.grid-2-mobile {
         grid-template-columns: 1fr 1fr;
         gap: 12px;
@@ -1917,5 +1993,16 @@ body {
     }
     .products-grid.grid-2-mobile .product-info-row {
         gap: 4px 6px;
+    }
+
+    /* Loader للهواتف الصغيرة */
+    .tiddis-loader {
+        font-size: 24px;
+        letter-spacing: 6px;
+        min-height: 40vh;
+    }
+    .tiddis-loader .loader-sub {
+        font-size: 11px;
+        letter-spacing: 2px;
     }
 }
