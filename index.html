@@ -4,38 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TIDDIS TAPIS | High-End Rugs</title>
-    <!-- ربط ملف التصميم الموحد -->
     <link rel="stylesheet" href="css/style.css">
-    <!-- مكتبة QR Code لاستخدامها في ملف PDF (تحميل من CDN) -->
+    <!-- مكتبات PDF -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <!-- مكتبة html2canvas و jspdf لإنشاء PDF (تحميل من CDN) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-    <!-- القائمة الجانبية (Desktop) + هامبورجر (Mobile) -->
+    <!-- القائمة الجانبية (Desktop) -->
     <div class="sidebar" id="sidebar">
         <div class="logo-container">
-            <div class="brand-main">TIDDIS</div>
-            <div class="brand-sub">TAPIS</div>
+            <div class="logo-wrapper">
+                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px;">
+                <div>
+                    <div class="brand-main">TIDDIS</div>
+                    <div class="brand-sub">TAPIS</div>
+                </div>
+            </div>
         </div>
         <nav class="sidebar-nav">
             <a href="#" class="nav-link active" data-section="home">Overview</a>
-            <a href="#" class="nav-link" data-section="products">Products</a>
-            <a href="#" class="nav-link" data-section="about">About Us</a>
-            <a href="#" class="nav-link" data-section="contact">Contact</a>
+            <a href="#products-grid" class="nav-link" data-section="products">Products</a>
+            <a href="#about-section" class="nav-link" data-section="about">About Us</a>
+            <a href="#contact-section" class="nav-link" data-section="contact">Contact</a>
         </nav>
         <div class="sidebar-footer">
             <span>© TIDDIS TAPIS</span>
         </div>
     </div>
 
-    <!-- زر هامبورجر للهواتف -->
+    <!-- رأس الهاتف المحمول -->
     <div class="mobile-header">
         <div class="mobile-brand">
-            <span class="brand-main">TIDDIS</span>
-            <span class="brand-sub">TAPIS</span>
+            <div class="logo-wrapper" style="display:flex; align-items:center;">
+                <img id="mobile-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:24px; margin-right:8px;">
+                <div>
+                    <span class="brand-main">TIDDIS</span>
+                    <span class="brand-sub">TAPIS</span>
+                </div>
+            </div>
         </div>
         <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
             <span></span><span></span><span></span>
@@ -45,7 +53,7 @@
     <!-- المحتوى الرئيسي -->
     <main class="main-content" id="main-content">
 
-        <!-- قسم الهيرو الصغير (Hero) -->
+        <!-- قسم الهيرو الصغير -->
         <section class="hero-section">
             <h1 class="hero-title">T I D D I S &nbsp; T A P I S</h1>
             <p class="hero-subtitle">INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE</p>
@@ -53,7 +61,7 @@
 
         <!-- شريط البحث والفلاتر -->
         <section class="search-filter-section">
-            <div class="filter-tabs">
+            <div class="filter-tabs" id="filter-tabs">
                 <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="KSOR">KSOR</button>
                 <button class="filter-btn" data-filter="CHAHINE">CHAHINE</button>
@@ -68,10 +76,15 @@
             </div>
         </section>
 
-        <!-- شبكة المنتجات (عمودين على الديسكتوب، عمود واحد على الموبايل) -->
+        <!-- شبكة المنتجات (تحميل أولي محدود: 4 ديسكتوب / 2 موبايل) -->
         <div id="products-grid" class="products-grid">
             <!-- سيتم تعبئتها بواسطة store.js -->
             <div class="loading-placeholder">Loading exclusive collection...</div>
+        </div>
+
+        <!-- زر تحميل المزيد (يظهر عند الحاجة) -->
+        <div id="load-more-container" style="text-align:center; margin-top:30px; display:none;">
+            <button id="load-more-btn" class="btn-secondary">Load More Products</button>
         </div>
 
         <!-- قسم About Us -->
@@ -95,7 +108,7 @@
         </footer>
     </main>
 
-    <!-- نافذة الطلب المنبثقة (Modal) -->
+    <!-- نافذة الطلب المنبثقة (Order Modal) -->
     <div id="order-modal" class="modal-overlay" style="display:none;">
         <div class="modal-box">
             <button class="modal-close" id="modal-close">&times;</button>
@@ -113,10 +126,8 @@
                     <label for="wilaya-select">Wilaya</label>
                     <select id="wilaya-select" required>
                         <option value="">-- Select your wilaya --</option>
-                        <!-- سيتم تعبئتها عبر JavaScript -->
                     </select>
                 </div>
-                <!-- حقل المقاس المخصص (يظهر فقط للمنتجات التي تسمح بذلك) -->
                 <div class="form-group" id="custom-size-group" style="display:none;">
                     <label for="custom-size">Custom Size (optional)</label>
                     <input type="text" id="custom-size" placeholder="e.g., 250x350 cm">
@@ -141,7 +152,22 @@
         </div>
     </div>
 
-    <!-- تحميل ملفات JavaScript (بترتيب صحيح) -->
+    <!-- نافذة نجاح الطلب + تحميل PDF -->
+    <div id="order-success-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box success-modal">
+            <button class="modal-close" id="success-close">&times;</button>
+            <div style="text-align:center; padding:10px 0;">
+                <div style="font-size:48px; margin-bottom:12px;">✅</div>
+                <h2 style="font-family:var(--font-serif); font-weight:400; letter-spacing:1px; margin-bottom:8px;">Order Confirmed!</h2>
+                <p style="color:#6b6b6b; font-size:15px; margin-bottom:20px;">Thank you for your order. We will contact you shortly.</p>
+                <button id="download-pdf-after-order" class="btn-primary" style="margin-bottom:8px;">📄 Download Technical Sheet</button>
+                <br>
+                <button id="close-success-modal" class="btn-secondary" style="margin-top:4px;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحميل ملفات JavaScript -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/store.js"></script>
 </body>
