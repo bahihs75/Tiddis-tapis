@@ -1,6 +1,6 @@
 // ============================================
-// TIDDIS TAPIS — Admin Panel Logic
-// منطق لوحة التحكم الإدارية (إدارة المنتجات، الفئات، التوصيل، الإعدادات)
+// TIDDIS TAPIS — Admin Panel Logic (محدث بالكامل)
+// منطق لوحة التحكم الإدارية: إدارة المنتجات، الفئات، التوصيل، الإعدادات، الطلبات
 // ============================================
 
 import { db } from './firebase-config.js';
@@ -16,7 +16,10 @@ import {
     onSnapshot,
     query,
     where,
-    writeBatch
+    orderBy,
+    serverTimestamp,
+    writeBatch,
+    increment
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ============================================
@@ -28,6 +31,9 @@ let allOrders = [];
 let deliveryRates = {};
 let storeSettings = {};
 let editingProductId = null;
+let editingCategoryId = null;
+let editingSubCategoryParentId = null;
+let editingSubCategoryOldName = null;
 
 // ============================================
 // عناصر DOM الرئيسية
@@ -38,6 +44,7 @@ const sections = {
     categories: document.getElementById('section-categories'),
     products: document.getElementById('section-products'),
     delivery: document.getElementById('section-delivery'),
+    orders: document.getElementById('section-orders'),
     settings: document.getElementById('section-settings')
 };
 
@@ -80,6 +87,10 @@ const applyBulkPriceBtn = document.getElementById('apply-bulk-price-btn');
 const setAllFreeBtn = document.getElementById('set-all-free-btn');
 const resetAllDeliveryBtn = document.getElementById('reset-all-delivery-btn');
 
+// عناصر إدارة الطلبات (جديدة)
+const ordersList = document.getElementById('orders-list');
+const ordersFilter = document.getElementById('orders-filter');
+
 // عناصر الإعدادات
 const googleSheetsUrlInput = document.getElementById('google-sheets-url');
 const testSheetsBtn = document.getElementById('test-sheets-btn');
@@ -89,6 +100,12 @@ const aboutUsTextarea = document.getElementById('about-us-text');
 const saveAboutBtn = document.getElementById('save-about-btn');
 const logoUrlInput = document.getElementById('logo-url');
 const saveLogoBtn = document.getElementById('save-logo-btn');
+const sidebarBgColorInput = document.getElementById('sidebar-bg-color');
+const mainBgColorInput = document.getElementById('main-bg-color');
+const saveColorsBtn = document.getElementById('save-colors-btn');
+const colorConfirmModal = document.getElementById('color-confirm-modal');
+const colorConfirmYes = document.getElementById('color-confirm-yes');
+const colorConfirmNo = document.getElementById('color-confirm-no');
 const contactIconsList = document.getElementById('contact-icons-list');
 const newContactPlatform = document.getElementById('new-contact-platform');
 const newContactValue = document.getElementById('new-contact-value');
@@ -171,36 +188,31 @@ adminNavLinks.forEach(link => {
         e.preventDefault();
         const section = this.dataset.section;
 
-        // إزالة الفعالية من جميع الروابط
         adminNavLinks.forEach(l => l.classList.remove('active'));
         this.classList.add('active');
 
-        // إخفاء جميع الأقسام
         Object.keys(sections).forEach(key => {
-            sections[key].classList.remove('active');
+            if (sections[key]) sections[key].classList.remove('active');
         });
 
-        // إظهار القسم المطلوب
         if (sections[section]) {
             sections[section].classList.add('active');
         }
 
-        // إغلاق القائمة على الهواتف
         if (window.innerWidth <= 900) {
             adminSidebar.classList.remove('open');
             adminHamburger?.classList.remove('active');
         }
 
-        // تحديث البيانات عند التبديل
         if (section === 'dashboard') loadDashboardData();
         if (section === 'categories') loadCategories();
         if (section === 'products') loadProducts();
         if (section === 'delivery') loadDeliveryRates();
+        if (section === 'orders') loadOrders();
         if (section === 'settings') loadSettings();
     });
 });
 
-// هامبورجر للأدمن
 if (adminHamburger) {
     adminHamburger.addEventListener('click', function() {
         adminSidebar.classList.toggle('open');
@@ -209,7 +221,7 @@ if (adminHamburger) {
 }
 
 // ============================================
-// 2. إدارة الفئات (Categories)
+// 2. إدارة الفئات (Categories) - كاملة
 // ============================================
 
 async function loadCategories() {
@@ -224,11 +236,15 @@ async function loadCategories() {
         updateCategoryStats();
     } catch (error) {
         console.error('Error loading categories:', error);
-        categoriesList.innerHTML = '<p style="color:#c0392b;">Error loading categories.</p>';
+        if (categoriesList) {
+            categoriesList.innerHTML = '<p style="color:#c0392b;">Error loading categories.</p>';
+        }
     }
 }
 
 function renderCategories() {
+    if (!categoriesList) return;
+    
     if (!allCategories || allCategories.length === 0) {
         categoriesList.innerHTML = '<p>No categories found. Add your first category above.</p>';
         return;
@@ -237,26 +253,26 @@ function renderCategories() {
     let html = '';
     allCategories.forEach(cat => {
         html += `
-            <div class="category-item">
+            <div class="category-item" data-id="${cat.id}">
                 <span><strong>${cat.name}</strong></span>
                 <div class="cat-actions">
-                    <button class="edit-btn" data-id="${cat.id}">✏️</button>
-                    <button class="delete-btn" data-id="${cat.id}">🗑️</button>
+                    <button class="edit-cat-btn" data-id="${cat.id}" data-name="${cat.name}">✏️</button>
+                    <button class="delete-cat-btn" data-id="${cat.id}" ${cat.subcategories && cat.subcategories.length > 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
+                        🗑️ ${cat.subcategories && cat.subcategories.length > 0 ? '(has sub-categories)' : ''}
+                    </button>
                 </div>
             </div>
         `;
-        // عرض الفئات الفرعية
+        
         if (cat.subcategories && cat.subcategories.length > 0) {
             cat.subcategories.forEach(sub => {
-                // التحقق من وجود منتجات في هذه الفئة الفرعية
                 const hasProducts = allProducts.some(p => p.category === sub);
-                const deleteDisabled = hasProducts ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : '';
                 html += `
-                    <div class="subcategory-item" style="padding-left:32px;">
+                    <div class="subcategory-item" style="padding-left:32px;" data-cat-id="${cat.id}" data-sub="${sub}">
                         <span>↳ ${sub}</span>
                         <div class="cat-actions">
                             <button class="edit-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">✏️</button>
-                            <button class="delete-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${deleteDisabled}>
+                            <button class="delete-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${hasProducts ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
                                 🗑️ ${hasProducts ? '(has products)' : ''}
                             </button>
                         </div>
@@ -268,9 +284,15 @@ function renderCategories() {
 
     categoriesList.innerHTML = html;
 
-    // إضافة مستمعات الأحداث
-    categoriesList.querySelectorAll('.delete-btn').forEach(btn => {
+    // مستمعات الأحداث للفئات
+    categoriesList.querySelectorAll('.edit-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => editCategory(btn.dataset.id, btn.dataset.name));
+    });
+    categoriesList.querySelectorAll('.delete-cat-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteCategory(btn.dataset.id));
+    });
+    categoriesList.querySelectorAll('.edit-sub-btn').forEach(btn => {
+        btn.addEventListener('click', () => editSubCategory(btn.dataset.catId, btn.dataset.sub));
     });
     categoriesList.querySelectorAll('.delete-sub-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteSubCategory(btn.dataset.catId, btn.dataset.sub));
@@ -278,32 +300,34 @@ function renderCategories() {
 }
 
 function populateCategorySelects() {
-    // تعبئة قائمة الفئات في نموذج المنتج
-    productCategorySelect.innerHTML = '<option value="">Select sub-category</option>';
-    allCategories.forEach(cat => {
-        if (cat.subcategories) {
-            cat.subcategories.forEach(sub => {
-                const option = document.createElement('option');
-                option.value = sub;
-                option.textContent = `${cat.name} → ${sub}`;
-                productCategorySelect.appendChild(option);
-            });
-        }
-    });
+    if (productCategorySelect) {
+        productCategorySelect.innerHTML = '<option value="">Select sub-category</option>';
+        allCategories.forEach(cat => {
+            if (cat.subcategories) {
+                cat.subcategories.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = `${cat.name} → ${sub}`;
+                    productCategorySelect.appendChild(option);
+                });
+            }
+        });
+    }
 
-    // تعبئة قائمة الفئات الأب في نموذج إضافة فئة فرعية
-    parentCategorySelect.innerHTML = '<option value="">Select parent category</option>';
-    allCategories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.id;
-        option.textContent = cat.name;
-        parentCategorySelect.appendChild(option);
-    });
+    if (parentCategorySelect) {
+        parentCategorySelect.innerHTML = '<option value="">Select parent category</option>';
+        allCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            parentCategorySelect.appendChild(option);
+        });
+    }
 }
 
 // إضافة فئة رئيسية
-addCategoryBtn.addEventListener('click', async function() {
-    const name = newCategoryName.value.trim();
+addCategoryBtn?.addEventListener('click', async function() {
+    const name = newCategoryName?.value.trim();
     if (!name) {
         alert('Please enter a category name.');
         return;
@@ -314,7 +338,7 @@ addCategoryBtn.addEventListener('click', async function() {
             name: name,
             subcategories: []
         });
-        newCategoryName.value = '';
+        if (newCategoryName) newCategoryName.value = '';
         await loadCategories();
         alert(`Category "${name}" added successfully!`);
     } catch (error) {
@@ -323,9 +347,30 @@ addCategoryBtn.addEventListener('click', async function() {
     }
 });
 
+// تعديل فئة رئيسية
+async function editCategory(categoryId, currentName) {
+    const newName = prompt(`Edit category name (current: "${currentName}"):`, currentName);
+    if (!newName || newName === currentName) return;
+
+    try {
+        await updateDoc(doc(db, 'categories', categoryId), { name: newName });
+        await loadCategories();
+        alert('Category updated successfully!');
+    } catch (error) {
+        console.error('Error editing category:', error);
+        alert('Error editing category.');
+    }
+}
+
 // حذف فئة رئيسية
 async function deleteCategory(categoryId) {
-    if (!confirm('Are you sure you want to delete this category and all its sub-categories?')) return;
+    const cat = allCategories.find(c => c.id === categoryId);
+    if (!cat) return;
+    if (cat.subcategories && cat.subcategories.length > 0) {
+        alert('Cannot delete a category that has sub-categories. Please delete all sub-categories first.');
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete category "${cat.name}"?`)) return;
 
     try {
         await deleteDoc(doc(db, 'categories', categoryId));
@@ -338,9 +383,9 @@ async function deleteCategory(categoryId) {
 }
 
 // إضافة فئة فرعية
-addSubcategoryBtn.addEventListener('click', async function() {
-    const parentId = parentCategorySelect.value;
-    const name = newSubcategoryName.value.trim();
+addSubcategoryBtn?.addEventListener('click', async function() {
+    const parentId = parentCategorySelect?.value;
+    const name = newSubcategoryName?.value.trim();
 
     if (!parentId || !name) {
         alert('Please select a parent category and enter a sub-category name.');
@@ -359,7 +404,7 @@ addSubcategoryBtn.addEventListener('click', async function() {
             }
             subcategories.push(name);
             await updateDoc(catRef, { subcategories: subcategories });
-            newSubcategoryName.value = '';
+            if (newSubcategoryName) newSubcategoryName.value = '';
             await loadCategories();
             alert(`Sub-category "${name}" added successfully!`);
         }
@@ -369,8 +414,51 @@ addSubcategoryBtn.addEventListener('click', async function() {
     }
 });
 
+// تعديل فئة فرعية
+async function editSubCategory(categoryId, subName) {
+    const newName = prompt(`Edit sub-category name (current: "${subName}"):`, subName);
+    if (!newName || newName === subName) return;
+
+    try {
+        const catRef = doc(db, 'categories', categoryId);
+        const catDoc = await getDoc(catRef);
+        if (catDoc.exists()) {
+            const data = catDoc.data();
+            const subcategories = data.subcategories || [];
+            const index = subcategories.indexOf(subName);
+            if (index === -1) {
+                alert('Sub-category not found.');
+                return;
+            }
+            subcategories[index] = newName;
+            await updateDoc(catRef, { subcategories: subcategories });
+            
+            // تحديث جميع المنتجات التي تستخدم هذه الفئة الفرعية
+            const productsQuery = query(collection(db, 'products'), where('category', '==', subName));
+            const productsSnapshot = await getDocs(productsQuery);
+            const batch = writeBatch(db);
+            productsSnapshot.forEach((docSnap) => {
+                batch.update(docSnap.ref, { category: newName });
+            });
+            await batch.commit();
+            
+            await loadCategories();
+            await loadProducts();
+            alert('Sub-category updated successfully!');
+        }
+    } catch (error) {
+        console.error('Error editing sub-category:', error);
+        alert('Error editing sub-category.');
+    }
+}
+
 // حذف فئة فرعية
 async function deleteSubCategory(categoryId, subName) {
+    const hasProducts = allProducts.some(p => p.category === subName);
+    if (hasProducts) {
+        alert('Cannot delete a sub-category that has products. Please delete or move all products first.');
+        return;
+    }
     if (!confirm(`Are you sure you want to delete sub-category "${subName}"?`)) return;
 
     try {
@@ -403,14 +491,18 @@ async function loadProducts() {
         });
         renderProductsList();
         updateProductStats();
-        populateCategorySelects(); // تحديث قائمة الفئات في نموذج الإضافة
+        populateCategorySelects();
     } catch (error) {
         console.error('Error loading products:', error);
-        productsList.innerHTML = '<p style="color:#c0392b;">Error loading products.</p>';
+        if (productsList) {
+            productsList.innerHTML = '<p style="color:#c0392b;">Error loading products.</p>';
+        }
     }
 }
 
 function renderProductsList() {
+    if (!productsList) return;
+    
     if (!allProducts || allProducts.length === 0) {
         productsList.innerHTML = '<p>No products yet. Add your first product above.</p>';
         return;
@@ -438,7 +530,6 @@ function renderProductsList() {
 
     productsList.innerHTML = html;
 
-    // مستمعات الأحداث
     productsList.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', () => editProduct(btn.dataset.id));
     });
@@ -447,7 +538,6 @@ function renderProductsList() {
     });
     productsList.querySelectorAll('.pdf-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            // استدعاء وظيفة PDF من store.js
             if (window.generateProductPDF) {
                 window.generateProductPDF(btn.dataset.id);
             } else {
@@ -457,8 +547,8 @@ function renderProductsList() {
     });
 }
 
-// إضافة متغير جديد
-addVariantBtn.addEventListener('click', function() {
+// متغيرات المنتج
+addVariantBtn?.addEventListener('click', function() {
     const row = document.createElement('div');
     row.className = 'variant-row';
     row.style.cssText = 'display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
@@ -470,11 +560,11 @@ addVariantBtn.addEventListener('click', function() {
         <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:4px; cursor:pointer;">✕</button>
     `;
     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
-    variantsContainer.appendChild(row);
+    variantsContainer?.appendChild(row);
 });
 
-// إضافة صورة إضافية
-addImageRowBtn.addEventListener('click', function() {
+// صور إضافية
+addImageRowBtn?.addEventListener('click', function() {
     const row = document.createElement('div');
     row.className = 'image-upload-row';
     row.innerHTML = `
@@ -486,30 +576,37 @@ addImageRowBtn.addEventListener('click', function() {
         updatePDFImageSelector();
         updateAdditionalImagesPreview();
     });
-    additionalImagesContainer.appendChild(row);
-    // إضافة مستمع لتحديث المعاينة
+    additionalImagesContainer?.appendChild(row);
     row.querySelector('.additional-image-url').addEventListener('input', () => {
         updateAdditionalImagesPreview();
         updatePDFImageSelector();
     });
 });
 
-// تحديث معاينة الصور الإضافية
+function getAdditionalImageUrls() {
+    if (!additionalImagesContainer) return [];
+    const inputs = additionalImagesContainer.querySelectorAll('.additional-image-url');
+    return Array.from(inputs).map(input => input.value.trim()).filter(url => url);
+}
+
 function updateAdditionalImagesPreview() {
+    if (!additionalImagesPreview) return;
     const urls = getAdditionalImageUrls();
     additionalImagesPreview.innerHTML = urls.map(url =>
         `<img src="${url}" alt="Additional image" onerror="this.style.display='none'">`
     ).join('');
 }
 
-// الحصول على روابط الصور الإضافية
-function getAdditionalImageUrls() {
-    const inputs = additionalImagesContainer.querySelectorAll('.additional-image-url');
-    return Array.from(inputs).map(input => input.value.trim()).filter(url => url);
+function getAllImagesForProduct() {
+    const images = [];
+    const mainImage = productMainImageInput?.value.trim() || '';
+    if (mainImage) images.push(mainImage);
+    images.push(...getAdditionalImageUrls());
+    return images;
 }
 
-// تحديث محدد صورة PDF
 function updatePDFImageSelector() {
+    if (!pdfImageSelector) return;
     const allImages = getAllImagesForProduct();
     pdfImageSelector.innerHTML = allImages.map((url, index) => {
         const checked = index === 0 ? 'checked' : '';
@@ -522,58 +619,46 @@ function updatePDFImageSelector() {
     }).join('');
 }
 
-// الحصول على جميع الصور
-function getAllImagesForProduct() {
-    const images = [];
-    const mainImage = productMainImageInput.value.trim();
-    if (mainImage) images.push(mainImage);
-    images.push(...getAdditionalImageUrls());
-    return images;
-}
-
-// معاينة الصورة الرئيسية
-productMainImageInput.addEventListener('input', function() {
+productMainImageInput?.addEventListener('input', function() {
     const url = this.value.trim();
-    if (url) {
-        mainImagePreview.innerHTML = `<img src="${url}" alt="Preview" onerror="this.style.display='none'">`;
-    } else {
-        mainImagePreview.innerHTML = '';
+    if (mainImagePreview) {
+        if (url) {
+            mainImagePreview.innerHTML = `<img src="${url}" alt="Preview" onerror="this.style.display='none'">`;
+        } else {
+            mainImagePreview.innerHTML = '';
+        }
     }
     updatePDFImageSelector();
 });
 
-// حفظ المنتج (إضافة أو تعديل)
-productForm.addEventListener('submit', async function(e) {
+// حفظ المنتج
+productForm?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const name = productNameInput.value.trim();
-    const category = productCategorySelect.value;
-    const basePrice = parseFloat(productBasePriceInput.value);
-    const imageUrl = productMainImageInput.value.trim();
-    const customizableSize = productCustomizableCheckbox.checked;
+    const name = productNameInput?.value.trim();
+    const category = productCategorySelect?.value;
+    const basePrice = parseFloat(productBasePriceInput?.value);
+    const imageUrl = productMainImageInput?.value.trim();
+    const customizableSize = productCustomizableCheckbox?.checked || false;
 
     if (!name || !category || !basePrice || !imageUrl) {
         alert('Please fill in all required fields (Name, Category, Price, Main Image).');
         return;
     }
 
-    // جمع المتغيرات
-    const variantRows = variantsContainer.querySelectorAll('.variant-row');
+    const variantRows = variantsContainer?.querySelectorAll('.variant-row') || [];
     const variants = [];
     variantRows.forEach(row => {
-        const size = row.querySelector('.var-size').value.trim();
-        const color = row.querySelector('.var-color').value.trim();
-        const price = parseFloat(row.querySelector('.var-price').value) || basePrice;
-        const image = row.querySelector('.var-image').value.trim() || imageUrl;
+        const size = row.querySelector('.var-size')?.value.trim() || '';
+        const color = row.querySelector('.var-color')?.value.trim() || '';
+        const price = parseFloat(row.querySelector('.var-price')?.value) || basePrice;
+        const image = row.querySelector('.var-image')?.value.trim() || imageUrl;
         if (size || color) {
             variants.push({ size, color, price, image });
         }
     });
 
-    // جمع الصور الإضافية
     const additionalImages = getAdditionalImageUrls();
-
-    // الحصول على صورة PDF المحددة
     const pdfImageRadio = document.querySelector('input[name="pdfImage"]:checked');
     const pdfImage = pdfImageRadio ? pdfImageRadio.value : (imageUrl || '');
 
@@ -591,37 +676,39 @@ productForm.addEventListener('submit', async function(e) {
 
     try {
         const submitBtn = this.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Saving...';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+        }
 
         if (editingProductId) {
-            // تحديث منتج موجود
             await updateDoc(doc(db, 'products', editingProductId), productData);
             alert('Product updated successfully!');
         } else {
-            // إضافة منتج جديد
             productData.createdAt = new Date().toISOString();
             await addDoc(collection(db, 'products'), productData);
             alert('Product added successfully!');
         }
 
-        // إعادة تعيين النموذج
         editingProductId = null;
         productForm.reset();
-        variantsContainer.innerHTML = '';
-        additionalImagesContainer.innerHTML = `
-            <div class="image-upload-row">
-                <input type="text" class="additional-image-url form-input" placeholder="Image URL">
-                <button type="button" class="btn-remove-image" style="display:none;">✕</button>
-            </div>
-        `;
-        mainImagePreview.innerHTML = '';
-        additionalImagesPreview.innerHTML = '';
-        pdfImageSelector.innerHTML = '';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Product';
+        if (variantsContainer) variantsContainer.innerHTML = '';
+        if (additionalImagesContainer) {
+            additionalImagesContainer.innerHTML = `
+                <div class="image-upload-row">
+                    <input type="text" class="additional-image-url form-input" placeholder="Image URL">
+                    <button type="button" class="btn-remove-image" style="display:none;">✕</button>
+                </div>
+            `;
+        }
+        if (mainImagePreview) mainImagePreview.innerHTML = '';
+        if (additionalImagesPreview) additionalImagesPreview.innerHTML = '';
+        if (pdfImageSelector) pdfImageSelector.innerHTML = '';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Product';
+        }
 
-        // إعادة تحميل قائمة المنتجات
         await loadProducts();
         populateCategorySelects();
 
@@ -629,12 +716,13 @@ productForm.addEventListener('submit', async function(e) {
         console.error('Error saving product:', error);
         alert('Error saving product. Please check console for details.');
         const submitBtn = this.querySelector('button[type="submit"]');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Product';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Product';
+        }
     }
 });
 
-// تحميل منتج للتعديل
 async function editProduct(productId) {
     try {
         const docRef = doc(db, 'products', productId);
@@ -647,84 +735,81 @@ async function editProduct(productId) {
         const product = docSnap.data();
         editingProductId = productId;
 
-        // تعبئة النموذج
-        productNameInput.value = product.name || '';
-        productCategorySelect.value = product.category || '';
-        productBasePriceInput.value = product.basePrice || '';
-        productMainImageInput.value = product.imageUrl || '';
-        productCustomizableCheckbox.checked = product.customizableSize || false;
+        if (productNameInput) productNameInput.value = product.name || '';
+        if (productCategorySelect) productCategorySelect.value = product.category || '';
+        if (productBasePriceInput) productBasePriceInput.value = product.basePrice || '';
+        if (productMainImageInput) productMainImageInput.value = product.imageUrl || '';
+        if (productCustomizableCheckbox) productCustomizableCheckbox.checked = product.customizableSize || false;
 
-        // تحديث معاينة الصورة الرئيسية
-        if (product.imageUrl) {
+        if (product.imageUrl && mainImagePreview) {
             mainImagePreview.innerHTML = `<img src="${product.imageUrl}" alt="Preview">`;
         }
 
-        // تعبئة الصور الإضافية
-        additionalImagesContainer.innerHTML = '';
-        if (product.additionalImages && product.additionalImages.length > 0) {
-            product.additionalImages.forEach(url => {
+        if (additionalImagesContainer) {
+            additionalImagesContainer.innerHTML = '';
+            if (product.additionalImages && product.additionalImages.length > 0) {
+                product.additionalImages.forEach(url => {
+                    const row = document.createElement('div');
+                    row.className = 'image-upload-row';
+                    row.innerHTML = `
+                        <input type="text" class="additional-image-url form-input" value="${url}">
+                        <button type="button" class="btn-remove-image">✕</button>
+                    `;
+                    row.querySelector('.btn-remove-image').addEventListener('click', () => {
+                        row.remove();
+                        updatePDFImageSelector();
+                        updateAdditionalImagesPreview();
+                    });
+                    additionalImagesContainer.appendChild(row);
+                });
+            } else {
                 const row = document.createElement('div');
                 row.className = 'image-upload-row';
                 row.innerHTML = `
-                    <input type="text" class="additional-image-url form-input" value="${url}">
-                    <button type="button" class="btn-remove-image">✕</button>
+                    <input type="text" class="additional-image-url form-input" placeholder="Image URL">
+                    <button type="button" class="btn-remove-image" style="display:none;">✕</button>
                 `;
-                row.querySelector('.btn-remove-image').addEventListener('click', () => {
-                    row.remove();
-                    updatePDFImageSelector();
-                    updateAdditionalImagesPreview();
-                });
                 additionalImagesContainer.appendChild(row);
+            }
+            additionalImagesContainer.querySelectorAll('.additional-image-url').forEach(input => {
+                input.addEventListener('input', () => {
+                    updateAdditionalImagesPreview();
+                    updatePDFImageSelector();
+                });
             });
-        } else {
-            // إضافة صف فارغ
-            const row = document.createElement('div');
-            row.className = 'image-upload-row';
-            row.innerHTML = `
-                <input type="text" class="additional-image-url form-input" placeholder="Image URL">
-                <button type="button" class="btn-remove-image" style="display:none;">✕</button>
-            `;
-            additionalImagesContainer.appendChild(row);
-        }
-        // إضافة مستمعات للأحداث
-        additionalImagesContainer.querySelectorAll('.additional-image-url').forEach(input => {
-            input.addEventListener('input', () => {
-                updateAdditionalImagesPreview();
-                updatePDFImageSelector();
-            });
-        });
-        updateAdditionalImagesPreview();
-
-        // تعبئة المتغيرات
-        variantsContainer.innerHTML = '';
-        if (product.variants && product.variants.length > 0) {
-            product.variants.forEach(v => {
-                const row = document.createElement('div');
-                row.className = 'variant-row';
-                row.style.cssText = 'display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
-                row.innerHTML = `
-                    <input type="text" class="form-input var-size" value="${v.size || ''}" placeholder="Size" style="flex:1; min-width:100px;">
-                    <input type="text" class="form-input var-color" value="${v.color || ''}" placeholder="Color" style="flex:1; min-width:80px;">
-                    <input type="number" class="form-input var-price" value="${v.price || ''}" placeholder="Price" style="flex:0.7; min-width:80px;">
-                    <input type="text" class="form-input var-image" value="${v.image || ''}" placeholder="Image URL" style="flex:1.5; min-width:120px;">
-                    <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:4px; cursor:pointer;">✕</button>
-                `;
-                row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
-                variantsContainer.appendChild(row);
-            });
+            updateAdditionalImagesPreview();
         }
 
-        // تحديث محدد صورة PDF
+        if (variantsContainer) {
+            variantsContainer.innerHTML = '';
+            if (product.variants && product.variants.length > 0) {
+                product.variants.forEach(v => {
+                    const row = document.createElement('div');
+                    row.className = 'variant-row';
+                    row.style.cssText = 'display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
+                    row.innerHTML = `
+                        <input type="text" class="form-input var-size" value="${v.size || ''}" placeholder="Size" style="flex:1; min-width:100px;">
+                        <input type="text" class="form-input var-color" value="${v.color || ''}" placeholder="Color" style="flex:1; min-width:80px;">
+                        <input type="number" class="form-input var-price" value="${v.price || ''}" placeholder="Price" style="flex:0.7; min-width:80px;">
+                        <input type="text" class="form-input var-image" value="${v.image || ''}" placeholder="Image URL" style="flex:1.5; min-width:120px;">
+                        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:4px; cursor:pointer;">✕</button>
+                    `;
+                    row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
+                    variantsContainer.appendChild(row);
+                });
+            }
+        }
+
         updatePDFImageSelector();
 
-        // التبديل إلى قسم المنتجات
         adminNavLinks.forEach(l => l.classList.remove('active'));
-        document.querySelector('[data-section="products"]').classList.add('active');
-        Object.keys(sections).forEach(key => sections[key].classList.remove('active'));
-        sections.products.classList.add('active');
+        document.querySelector('[data-section="products"]')?.classList.add('active');
+        Object.keys(sections).forEach(key => {
+            if (sections[key]) sections[key].classList.remove('active');
+        });
+        if (sections.products) sections.products.classList.add('active');
 
-        // التمرير إلى النموذج
-        productForm.scrollIntoView({ behavior: 'smooth' });
+        productForm?.scrollIntoView({ behavior: 'smooth' });
 
     } catch (error) {
         console.error('Error loading product for edit:', error);
@@ -732,7 +817,6 @@ async function editProduct(productId) {
     }
 }
 
-// حذف منتج
 async function deleteProduct(productId) {
     if (!confirm('Are you sure you want to delete this product permanently?')) return;
 
@@ -757,7 +841,6 @@ async function loadDeliveryRates() {
         if (docSnap.exists()) {
             deliveryRates = docSnap.data();
         } else {
-            // إنشاء القائمة الافتراضية
             const defaultRates = {};
             WILAYAS.forEach(w => {
                 defaultRates[w.code] = { price: 500, free: false };
@@ -768,11 +851,15 @@ async function loadDeliveryRates() {
         renderDeliveryTable();
     } catch (error) {
         console.error('Error loading delivery rates:', error);
-        deliveryTableBody.innerHTML = '<tr><td colspan="4" style="color:#c0392b;">Error loading delivery rates.</td></tr>';
+        if (deliveryTableBody) {
+            deliveryTableBody.innerHTML = '<tr><td colspan="4" style="color:#c0392b;">Error loading delivery rates.</td></tr>';
+        }
     }
 }
 
 function renderDeliveryTable() {
+    if (!deliveryTableBody) return;
+    
     if (!deliveryRates || Object.keys(deliveryRates).length === 0) {
         deliveryTableBody.innerHTML = '<tr><td colspan="4">No delivery rates configured.</td></tr>';
         return;
@@ -799,7 +886,6 @@ function renderDeliveryTable() {
 
     deliveryTableBody.innerHTML = html;
 
-    // إضافة مستمعات الأحداث للتحديث التلقائي
     deliveryTableBody.querySelectorAll('.delivery-price-input').forEach(input => {
         input.addEventListener('change', function() {
             const code = this.dataset.code;
@@ -817,16 +903,14 @@ function renderDeliveryTable() {
             const free = this.checked;
             if (deliveryRates[code]) {
                 deliveryRates[code].free = free;
+                const priceInput = this.closest('tr').querySelector('.delivery-price-input');
                 if (free) {
-                    // تعطيل حقل السعر وجعله 0
-                    const priceInput = this.closest('tr').querySelector('.delivery-price-input');
                     if (priceInput) {
                         priceInput.value = 0;
                         priceInput.disabled = true;
-                        deliveryRates[code].price = 0;
                     }
+                    deliveryRates[code].price = 0;
                 } else {
-                    const priceInput = this.closest('tr').querySelector('.delivery-price-input');
                     if (priceInput) {
                         priceInput.disabled = false;
                     }
@@ -836,37 +920,32 @@ function renderDeliveryTable() {
         });
     });
 
-    // تفعيل/تعطيل حقول السعر بناءً على حالة free
     deliveryTableBody.querySelectorAll('.free-delivery-checkbox').forEach(checkbox => {
         const priceInput = checkbox.closest('tr').querySelector('.delivery-price-input');
-        if (checkbox.checked) {
+        if (checkbox.checked && priceInput) {
             priceInput.disabled = true;
             priceInput.value = 0;
         }
     });
 }
 
-// حفظ أسعار التوصيل
 async function saveDeliveryRates() {
     try {
         const docRef = doc(db, 'settings', 'deliveryRates');
         await setDoc(docRef, deliveryRates);
-        // console.log('Delivery rates saved successfully.');
     } catch (error) {
         console.error('Error saving delivery rates:', error);
         alert('Error saving delivery rates.');
     }
 }
 
-// تطبيق سعر موحد على جميع الولايات
-applyBulkPriceBtn.addEventListener('click', function() {
-    const price = parseFloat(bulkDeliveryPrice.value);
+applyBulkPriceBtn?.addEventListener('click', function() {
+    const price = parseFloat(bulkDeliveryPrice?.value);
     if (isNaN(price) || price < 0) {
         alert('Please enter a valid price.');
         return;
     }
-
-    if (!confirm(`Apply ${price} DZD to all wilayas? This will override existing prices.`)) return;
+    if (!confirm(`Apply ${price} DZD to all wilayas?`)) return;
 
     WILAYAS.forEach(w => {
         if (deliveryRates[w.code]) {
@@ -874,51 +953,156 @@ applyBulkPriceBtn.addEventListener('click', function() {
             deliveryRates[w.code].free = false;
         }
     });
-
     saveDeliveryRates();
     renderDeliveryTable();
     alert(`Price of ${price} DZD applied to all wilayas.`);
 });
 
-// تعيين جميع الولايات كتوصيل مجاني
-setAllFreeBtn.addEventListener('click', function() {
+setAllFreeBtn?.addEventListener('click', function() {
     if (!confirm('Set all wilayas to Free Delivery?')) return;
-
     WILAYAS.forEach(w => {
         if (deliveryRates[w.code]) {
             deliveryRates[w.code].price = 0;
             deliveryRates[w.code].free = true;
         }
     });
-
     saveDeliveryRates();
     renderDeliveryTable();
     alert('All wilayas set to Free Delivery.');
 });
 
-// إعادة تعيين جميع أسعار التوصيل
-resetAllDeliveryBtn.addEventListener('click', function() {
+resetAllDeliveryBtn?.addEventListener('click', function() {
     if (!confirm('Reset all delivery prices to default (500 DZD)?')) return;
-
     WILAYAS.forEach(w => {
         if (deliveryRates[w.code]) {
             deliveryRates[w.code].price = 500;
             deliveryRates[w.code].free = false;
         }
     });
-
     saveDeliveryRates();
     renderDeliveryTable();
     alert('All delivery prices reset to 500 DZD.');
 });
 
 // ============================================
-// 5. إعدادات المتجر (Settings)
+// 5. إدارة الطلبات (Orders) - جديدة
+// ============================================
+
+async function loadOrders() {
+    try {
+        const q = query(collection(db, 'orders'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        allOrders = [];
+        querySnapshot.forEach((doc) => {
+            allOrders.push({ id: doc.id, ...doc.data() });
+        });
+        renderOrders();
+        updateOrderStats();
+    } catch (error) {
+        console.error('Error loading orders:', error);
+        if (ordersList) {
+            ordersList.innerHTML = '<p style="color:#c0392b;">Error loading orders.</p>';
+        }
+    }
+}
+
+function renderOrders() {
+    if (!ordersList) return;
+    
+    if (!allOrders || allOrders.length === 0) {
+        ordersList.innerHTML = '<p>No orders yet.</p>';
+        return;
+    }
+
+    let html = `
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Product</th>
+                    <th>Size</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    allOrders.forEach(order => {
+        const date = order.timestamp ? new Date(order.timestamp).toLocaleDateString() : 'N/A';
+        const status = order.status || 'en attente';
+        const statusOptions = ['en attente', 'en cours', 'livrée'];
+        
+        html += `
+            <tr>
+                <td>${date}</td>
+                <td>${order.customerName || 'N/A'}</td>
+                <td>${order.customerPhone || 'N/A'}</td>
+                <td>${order.productName || 'N/A'}</td>
+                <td>${order.productSize || 'N/A'}</td>
+                <td style="font-weight:600; color:#4E1A1D;">${order.total || 0} DZD</td>
+                <td>
+                    <select class="order-status-select" data-order-id="${order.id}">
+                        ${statusOptions.map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <button class="delete-order-btn" data-order-id="${order.id}" style="background:none; border:none; cursor:pointer; color:#c0392b;">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    ordersList.innerHTML = html;
+
+    // مستمعات الأحداث لتحديث الحالة
+    ordersList.querySelectorAll('.order-status-select').forEach(select => {
+        select.addEventListener('change', async function() {
+            const orderId = this.dataset.orderId;
+            const newStatus = this.value;
+            try {
+                await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+                alert('Order status updated successfully!');
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                alert('Error updating order status.');
+            }
+        });
+    });
+
+    // مستمعات الأحداث لحذف الطلب
+    ordersList.querySelectorAll('.delete-order-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const orderId = this.dataset.orderId;
+            if (!confirm('Are you sure you want to delete this order?')) return;
+            try {
+                await deleteDoc(doc(db, 'orders', orderId));
+                await loadOrders();
+                alert('Order deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                alert('Error deleting order.');
+            }
+        });
+    });
+}
+
+function updateOrderStats() {
+    if (statOrders) {
+        statOrders.textContent = allOrders.length;
+    }
+}
+
+// ============================================
+// 6. إعدادات المتجر (Settings) - مع ألوان وتأكيد
 // ============================================
 
 async function loadSettings() {
     try {
-        // تحميل إعدادات المتجر
         const settingsRef = doc(db, 'settings', 'storeSettings');
         const settingsSnap = await getDoc(settingsRef);
         if (settingsSnap.exists()) {
@@ -927,6 +1111,8 @@ async function loadSettings() {
             storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
                 logoUrl: '',
+                sidebarBgColor: '#ffffff',
+                mainBgColor: '#faf9f6',
                 contacts: [],
                 googleSheetsUrl: '',
                 imageProvider: 'imgbb',
@@ -935,14 +1121,14 @@ async function loadSettings() {
             await setDoc(settingsRef, storeSettings);
         }
 
-        // تعبئة الحقول
-        googleSheetsUrlInput.value = storeSettings.googleSheetsUrl || '';
-        imageProviderSelect.value = storeSettings.imageProvider || 'imgbb';
-        imageApiKeyInput.value = storeSettings.imageApiKey || '';
-        aboutUsTextarea.value = storeSettings.aboutText || '';
-        logoUrlInput.value = storeSettings.logoUrl || '';
+        if (googleSheetsUrlInput) googleSheetsUrlInput.value = storeSettings.googleSheetsUrl || '';
+        if (imageProviderSelect) imageProviderSelect.value = storeSettings.imageProvider || 'imgbb';
+        if (imageApiKeyInput) imageApiKeyInput.value = storeSettings.imageApiKey || '';
+        if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
+        if (logoUrlInput) logoUrlInput.value = storeSettings.logoUrl || '';
+        if (sidebarBgColorInput) sidebarBgColorInput.value = storeSettings.sidebarBgColor || '#ffffff';
+        if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
 
-        // عرض جهات التواصل
         renderContactIconsList(storeSettings.contacts || []);
 
     } catch (error) {
@@ -951,50 +1137,6 @@ async function loadSettings() {
     }
 }
 
-// حفظ رابط Google Sheets
-testSheetsBtn.addEventListener('click', async function() {
-    const url = googleSheetsUrlInput.value.trim();
-    if (!url) {
-        alert('Please paste a Google Sheets Web App URL first.');
-        return;
-    }
-
-    try {
-        this.disabled = true;
-        this.textContent = 'Testing...';
-
-        // حفظ الرابط
-        storeSettings.googleSheetsUrl = url;
-        await saveStoreSettings();
-
-        // اختبار الاتصال
-        const testData = {
-            productName: 'TEST_CONNECTION',
-            price: '0 DZD',
-            customerDetails: 'System Test',
-            test: true
-        };
-
-        const response = await fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(testData)
-        });
-
-        // بما أننا نستخدم no-cors، لا يمكننا قراءة الرد
-        // لكننا نفترض أن الطلب تم إرساله بنجاح
-        alert('✅ Connection successful! (Check your Google Sheet for a test entry.)');
-    } catch (error) {
-        console.error('Test error:', error);
-        alert('❌ Connection failed. Please check your URL and try again.');
-    } finally {
-        this.disabled = false;
-        this.textContent = 'Test Connection';
-    }
-});
-
-// حفظ إعدادات المتجر
 async function saveStoreSettings() {
     try {
         const settingsRef = doc(db, 'settings', 'storeSettings');
@@ -1007,36 +1149,117 @@ async function saveStoreSettings() {
     }
 }
 
-// حفظ نص "من نحن"
-saveAboutBtn.addEventListener('click', async function() {
-    const text = aboutUsTextarea.value.trim();
+// حفظ الألوان مع نافذة تأكيد
+saveColorsBtn?.addEventListener('click', function() {
+    const sidebarColor = sidebarBgColorInput?.value || '#ffffff';
+    const mainColor = mainBgColorInput?.value || '#faf9f6';
+    
+    // عرض نافذة التأكيد
+    const confirmModal = document.getElementById('color-confirm-modal');
+    const confirmText = document.getElementById('color-confirm-text');
+    if (confirmModal && confirmText) {
+        confirmText.innerHTML = `
+            <p>Are you sure you want to change the colors?</p>
+            <div style="display:flex; gap:20px; justify-content:center; margin-top:12px;">
+                <div>
+                    <span style="font-size:12px; color:#6b6b6b;">Sidebar</span>
+                    <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${sidebarColor}; margin:0 auto;"></div>
+                    <span style="font-size:11px; font-family:monospace;">${sidebarColor}</span>
+                </div>
+                <div>
+                    <span style="font-size:12px; color:#6b6b6b;">Main</span>
+                    <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${mainColor}; margin:0 auto;"></div>
+                    <span style="font-size:11px; font-family:monospace;">${mainColor}</span>
+                </div>
+            </div>
+        `;
+        confirmModal.style.display = 'flex';
+        
+        // ربط أزرار التأكيد
+        document.getElementById('color-confirm-yes').onclick = async function() {
+            confirmModal.style.display = 'none';
+            storeSettings.sidebarBgColor = sidebarColor;
+            storeSettings.mainBgColor = mainColor;
+            if (await saveStoreSettings()) {
+                // تطبيق الألوان فوراً
+                document.documentElement.style.setProperty('--sidebar-bg', sidebarColor);
+                document.documentElement.style.setProperty('--bg-color', mainColor);
+                const sidebarEl = document.querySelector('.sidebar');
+                if (sidebarEl) sidebarEl.style.backgroundColor = sidebarColor;
+                document.body.style.backgroundColor = mainColor;
+                alert('Colors updated successfully!');
+            }
+        };
+        document.getElementById('color-confirm-no').onclick = function() {
+            confirmModal.style.display = 'none';
+        };
+    }
+});
+
+// حفظ رابط Google Sheets
+testSheetsBtn?.addEventListener('click', async function() {
+    const url = googleSheetsUrlInput?.value.trim();
+    if (!url) {
+        alert('Please paste a Google Sheets Web App URL first.');
+        return;
+    }
+
+    try {
+        this.disabled = true;
+        this.textContent = 'Testing...';
+        storeSettings.googleSheetsUrl = url;
+        await saveStoreSettings();
+
+        const testData = {
+            productName: 'TEST_CONNECTION',
+            price: '0 DZD',
+            customerDetails: 'System Test'
+        };
+
+        await fetch(url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(testData)
+        });
+
+        alert('✅ Connection successful! (Check your Google Sheet for a test entry.)');
+    } catch (error) {
+        console.error('Test error:', error);
+        alert('❌ Connection failed. Please check your URL and try again.');
+    } finally {
+        this.disabled = false;
+        this.textContent = 'Test Connection';
+    }
+});
+
+saveAboutBtn?.addEventListener('click', async function() {
+    const text = aboutUsTextarea?.value.trim();
     if (!text) {
         alert('Please enter some text for the About section.');
         return;
     }
-
     storeSettings.aboutText = text;
     if (await saveStoreSettings()) {
         alert('About Us text saved successfully!');
     }
 });
 
-// حفظ الشعار
-saveLogoBtn.addEventListener('click', async function() {
-    const url = logoUrlInput.value.trim();
+saveLogoBtn?.addEventListener('click', async function() {
+    const url = logoUrlInput?.value.trim();
     storeSettings.logoUrl = url;
     if (await saveStoreSettings()) {
         alert('Logo URL saved successfully!');
     }
 });
 
-// إضافة جهة تواصل جديدة
-addContactBtn.addEventListener('click', async function() {
-    const platform = newContactPlatform.value;
-    const value = newContactValue.value.trim();
+// إدارة جهات التواصل
+addContactBtn?.addEventListener('click', async function() {
+    const platform = newContactPlatform?.value;
+    const value = newContactValue?.value.trim();
 
     if (!platform || !value) {
-        alert('Please select a platform and enter a value (link or phone number).');
+        alert('Please select a platform and enter a value.');
         return;
     }
 
@@ -1044,14 +1267,15 @@ addContactBtn.addEventListener('click', async function() {
     storeSettings.contacts.push({ platform, value });
 
     if (await saveStoreSettings()) {
-        newContactValue.value = '';
+        if (newContactValue) newContactValue.value = '';
         renderContactIconsList(storeSettings.contacts);
         alert('Contact added successfully!');
     }
 });
 
-// عرض قائمة جهات التواصل
 function renderContactIconsList(contacts) {
+    if (!contactIconsList) return;
+    
     if (!contacts || contacts.length === 0) {
         contactIconsList.innerHTML = '<p style="color:#6b6b6b;">No contacts configured yet.</p>';
         return;
@@ -1098,28 +1322,27 @@ function renderContactIconsList(contacts) {
 }
 
 // تغيير مزود الصور
-imageProviderSelect.addEventListener('change', function() {
+imageProviderSelect?.addEventListener('change', function() {
     const provider = this.value;
     const apiKeyGroup = document.getElementById('api-key-group');
     if (provider === 'direct') {
-        apiKeyGroup.style.display = 'none';
-        imageApiKeyInput.placeholder = 'Direct link mode - no API key needed';
+        if (apiKeyGroup) apiKeyGroup.style.display = 'none';
+        if (imageApiKeyInput) imageApiKeyInput.placeholder = 'Direct link mode - no API key needed';
     } else {
-        apiKeyGroup.style.display = 'block';
-        imageApiKeyInput.placeholder = `Enter your ${provider} API key`;
+        if (apiKeyGroup) apiKeyGroup.style.display = 'block';
+        if (imageApiKeyInput) imageApiKeyInput.placeholder = `Enter your ${provider} API key`;
     }
     storeSettings.imageProvider = provider;
     saveStoreSettings();
 });
 
-// حفظ مفتاح API للصور
-imageApiKeyInput.addEventListener('change', function() {
+imageApiKeyInput?.addEventListener('change', function() {
     storeSettings.imageApiKey = this.value.trim();
     saveStoreSettings();
 });
 
 // ============================================
-// 6. لوحة المعلومات (Dashboard)
+// 7. لوحة المعلومات (Dashboard)
 // ============================================
 
 function updateCategoryStats() {
@@ -1135,49 +1358,55 @@ function updateProductStats() {
 }
 
 async function loadDashboardData() {
-    try {
-        // تحميل الطلبات من Google Sheets (إذا تم تكوينها)
-        // حالياً، ستعرض فقط عدد المنتجات والفئات
-        updateCategoryStats();
-        updateProductStats();
+    updateCategoryStats();
+    updateProductStats();
+    updateOrderStats();
 
-        // عرض الطلبات الأخيرة (سيتم جلبها من Google Sheets في المستقبل)
-        // يمكن ربطها بـ Google Sheets API إذا لزم الأمر
-        recentOrdersList.innerHTML = `
-            <p style="color:#6b6b6b; font-size:14px;">
-                Order tracking via Google Sheets will appear here once configured.
-                <br>Currently showing: <strong>${allProducts.length}</strong> products, 
-                <strong>${allCategories.length}</strong> categories.
-            </p>
-        `;
-
-    } catch (error) {
-        console.error('Error loading dashboard:', error);
+    if (recentOrdersList) {
+        const recent = allOrders.slice(0, 5);
+        if (recent.length === 0) {
+            recentOrdersList.innerHTML = '<p style="color:#6b6b6b; font-size:14px;">No recent orders.</p>';
+        } else {
+            let html = '<div style="margin-top:12px;"><h4 style="font-family:var(--font-mono); font-size:14px; margin-bottom:8px;">Recent Orders</h4>';
+            recent.forEach(order => {
+                const date = order.timestamp ? new Date(order.timestamp).toLocaleDateString() : 'N/A';
+                html += `
+                    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #e2e0d8; font-size:14px;">
+                        <span>${order.customerName || 'N/A'}</span>
+                        <span style="color:#4E1A1D; font-weight:600;">${order.total || 0} DZD</span>
+                        <span style="color:#6b6b6b; font-size:12px;">${date}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            recentOrdersList.innerHTML = html;
+        }
     }
 }
 
 // ============================================
-// 7. التحميل الأولي (Initialization)
+// 8. التحميل الأولي (Initialization)
 // ============================================
 
 async function initAdmin() {
     try {
-        // تحميل جميع البيانات
         await loadCategories();
         await loadProducts();
         await loadDeliveryRates();
+        await loadOrders();
         await loadSettings();
 
-        // تحديث الإحصائيات
         updateCategoryStats();
         updateProductStats();
+        updateOrderStats();
 
-        // عرض لوحة المعلومات بشكل افتراضي
         Object.keys(sections).forEach(key => {
-            if (key === 'dashboard') {
-                sections[key].classList.add('active');
-            } else {
-                sections[key].classList.remove('active');
+            if (sections[key]) {
+                if (key === 'dashboard') {
+                    sections[key].classList.add('active');
+                } else {
+                    sections[key].classList.remove('active');
+                }
             }
         });
 
@@ -1187,5 +1416,4 @@ async function initAdmin() {
     }
 }
 
-// بدء تشغيل لوحة التحكم
 document.addEventListener('DOMContentLoaded', initAdmin);
