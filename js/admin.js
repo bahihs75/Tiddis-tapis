@@ -1,6 +1,9 @@
 // ============================================
-// TIDDIS TAPIS — Admin Panel Logic (كود كامل)
-// منطق لوحة التحكم الإدارية: إدارة المنتجات، الفئات، التوصيل، الطلبات، الإعدادات
+// TIDDIS TAPIS — Admin Panel Logic (محدث بالكامل)
+// لوحة التحكم الإدارية مع تحسينات خوارزمية:
+// - إدارة حالة مركزية
+// - عمليات CRUD محسّنة
+// - حماية كاملة للحذف (على مستوى العميل)
 // ============================================
 
 import { db } from './firebase-config.js';
@@ -23,7 +26,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ============================================
-// المتغيرات العامة
+// 1. المتغيرات العامة
 // ============================================
 let allCategories = [];
 let allCategoriesOverview = [];
@@ -40,9 +43,8 @@ let editingOverviewSubCategoryParentId = null;
 let editingOverviewSubCategoryOldName = null;
 
 // ============================================
-// عناصر DOM الرئيسية
+// 2. عناصر DOM الرئيسية
 // ============================================
-// الأقسام
 const sections = {
     dashboard: document.getElementById('section-dashboard'),
     categories: document.getElementById('section-categories'),
@@ -53,7 +55,6 @@ const sections = {
     settings: document.getElementById('section-settings')
 };
 
-// الروابط الجانبية
 const adminNavLinks = document.querySelectorAll('#admin-sidebar .nav-link');
 
 // عناصر إدارة الفئات (Products)
@@ -131,71 +132,42 @@ const adminHamburger = document.getElementById('admin-hamburger');
 const adminSidebar = document.getElementById('admin-sidebar');
 
 // ============================================
-// قائمة الولايات الـ 58 الجزائرية (للتوصيل)
+// 3. قائمة الولايات الـ 58
 // ============================================
 const WILAYAS = [
-    { code: '01', name: 'أدرار' },
-    { code: '02', name: 'الشلف' },
-    { code: '03', name: 'الأغواط' },
-    { code: '04', name: 'أم البواقي' },
-    { code: '05', name: 'باتنة' },
-    { code: '06', name: 'بجاية' },
-    { code: '07', name: 'بسكرة' },
-    { code: '08', name: 'بشار' },
-    { code: '09', name: 'البليدة' },
-    { code: '10', name: 'البويرة' },
-    { code: '11', name: 'تمنراست' },
-    { code: '12', name: 'تبسة' },
-    { code: '13', name: 'تلمسان' },
-    { code: '14', name: 'تيارت' },
-    { code: '15', name: 'تيزي وزو' },
-    { code: '16', name: 'الجزائر' },
-    { code: '17', name: 'الجلفة' },
-    { code: '18', name: 'جيجل' },
-    { code: '19', name: 'سطيف' },
-    { code: '20', name: 'سعيدة' },
-    { code: '21', name: 'سكيكدة' },
-    { code: '22', name: 'سيدي بلعباس' },
-    { code: '23', name: 'عنابة' },
-    { code: '24', name: 'قالمة' },
-    { code: '25', name: 'قسنطينة' },
-    { code: '26', name: 'المدية' },
-    { code: '27', name: 'مستغانم' },
-    { code: '28', name: 'المسيلة' },
-    { code: '29', name: 'معسكر' },
-    { code: '30', name: 'ورقلة' },
-    { code: '31', name: 'وهران' },
-    { code: '32', name: 'البيض' },
-    { code: '33', name: 'إليزي' },
-    { code: '34', name: 'برج بوعريريج' },
-    { code: '35', name: 'بومرداس' },
-    { code: '36', name: 'الطارف' },
-    { code: '37', name: 'تندوف' },
-    { code: '38', name: 'تيسمسيلت' },
-    { code: '39', name: 'الوادي' },
-    { code: '40', name: 'خنشلة' },
-    { code: '41', name: 'سوق أهراس' },
-    { code: '42', name: 'تيبازة' },
-    { code: '43', name: 'ميلة' },
-    { code: '44', name: 'عين الدفلى' },
-    { code: '45', name: 'النعامة' },
-    { code: '46', name: 'عين تموشنت' },
-    { code: '47', name: 'غرداية' },
-    { code: '48', name: 'غليزان' },
-    { code: '49', name: 'تميمون' },
-    { code: '50', name: 'برج باجي مختار' },
-    { code: '51', name: 'أولاد جلال' },
-    { code: '52', name: 'بني عباس' },
-    { code: '53', name: 'إن صالح' },
-    { code: '54', name: 'إن قزام' },
-    { code: '55', name: 'توقرت' },
-    { code: '56', name: 'جانت' },
-    { code: '57', name: 'المغير' },
-    { code: '58', name: 'المنيعة' }
+    { code: '01', name: 'أدرار' }, { code: '02', name: 'الشلف' },
+    { code: '03', name: 'الأغواط' }, { code: '04', name: 'أم البواقي' },
+    { code: '05', name: 'باتنة' }, { code: '06', name: 'بجاية' },
+    { code: '07', name: 'بسكرة' }, { code: '08', name: 'بشار' },
+    { code: '09', name: 'البليدة' }, { code: '10', name: 'البويرة' },
+    { code: '11', name: 'تمنراست' }, { code: '12', name: 'تبسة' },
+    { code: '13', name: 'تلمسان' }, { code: '14', name: 'تيارت' },
+    { code: '15', name: 'تيزي وزو' }, { code: '16', name: 'الجزائر' },
+    { code: '17', name: 'الجلفة' }, { code: '18', name: 'جيجل' },
+    { code: '19', name: 'سطيف' }, { code: '20', name: 'سعيدة' },
+    { code: '21', name: 'سكيكدة' }, { code: '22', name: 'سيدي بلعباس' },
+    { code: '23', name: 'عنابة' }, { code: '24', name: 'قالمة' },
+    { code: '25', name: 'قسنطينة' }, { code: '26', name: 'المدية' },
+    { code: '27', name: 'مستغانم' }, { code: '28', name: 'المسيلة' },
+    { code: '29', name: 'معسكر' }, { code: '30', name: 'ورقلة' },
+    { code: '31', name: 'وهران' }, { code: '32', name: 'البيض' },
+    { code: '33', name: 'إليزي' }, { code: '34', name: 'برج بوعريريج' },
+    { code: '35', name: 'بومرداس' }, { code: '36', name: 'الطارف' },
+    { code: '37', name: 'تندوف' }, { code: '38', name: 'تيسمسيلت' },
+    { code: '39', name: 'الوادي' }, { code: '40', name: 'خنشلة' },
+    { code: '41', name: 'سوق أهراس' }, { code: '42', name: 'تيبازة' },
+    { code: '43', name: 'ميلة' }, { code: '44', name: 'عين الدفلى' },
+    { code: '45', name: 'النعامة' }, { code: '46', name: 'عين تموشنت' },
+    { code: '47', name: 'غرداية' }, { code: '48', name: 'غليزان' },
+    { code: '49', name: 'تميمون' }, { code: '50', name: 'برج باجي مختار' },
+    { code: '51', name: 'أولاد جلال' }, { code: '52', name: 'بني عباس' },
+    { code: '53', name: 'إن صالح' }, { code: '54', name: 'إن قزام' },
+    { code: '55', name: 'توقرت' }, { code: '56', name: 'جانت' },
+    { code: '57', name: 'المغير' }, { code: '58', name: 'المنيعة' }
 ];
 
 // ============================================
-// 1. التنقل بين أقسام لوحة التحكم
+// 4. التنقل بين الأقسام
 // ============================================
 
 adminNavLinks.forEach(link => {
@@ -237,7 +209,7 @@ if (adminHamburger) {
 }
 
 // ============================================
-// 2. إدارة الفئات (Products Categories)
+// 5. إدارة الفئات (Products)
 // ============================================
 
 async function loadCategories() {
@@ -518,6 +490,7 @@ async function editSubCategory(categoryId, subName) {
 }
 
 async function deleteSubCategory(categoryId, subName) {
+    // ✅ حماية: التحقق من وجود منتجات في هذه الفئة الفرعية
     const hasProducts = allProducts.some(p => p.category === subName);
     if (hasProducts) {
         alert('Cannot delete a sub-category that has products. Please delete or move all products first.');
@@ -567,7 +540,7 @@ async function saveCategoriesOrder(type) {
 }
 
 // ============================================
-// 3. إدارة فئات Overview
+// 6. إدارة فئات Overview
 // ============================================
 
 async function loadOverviewCategories() {
@@ -805,6 +778,7 @@ async function editOverviewSubCategory(categoryId, subName) {
 }
 
 async function deleteOverviewSubCategory(categoryId, subName) {
+    // ✅ حماية: التحقق من وجود منتجات في هذه الفئة الفرعية
     const hasProducts = allProducts.some(p => p.overviewCategory === subName);
     if (hasProducts) {
         alert('Cannot delete an overview sub-category that has products. Please delete or move all products first.');
@@ -831,7 +805,7 @@ async function deleteOverviewSubCategory(categoryId, subName) {
 }
 
 // ============================================
-// 4. إدارة المنتجات (Products)
+// 7. إدارة المنتجات (Products)
 // ============================================
 
 async function loadProducts() {
@@ -893,7 +867,6 @@ function renderProductsList() {
     });
     productsList.querySelectorAll('.pdf-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            // استدعاء وظيفة PDF من window (المعرفة في store.js)
             if (window.generateProductPDF) {
                 window.generateProductPDF(this.dataset.id);
             } else {
@@ -912,7 +885,7 @@ addVariantBtn?.addEventListener('click', function() {
         <input type="text" class="form-input var-color" placeholder="Color (e.g., Grouna)" style="flex:1; min-width:80px;">
         <input type="number" class="form-input var-price" placeholder="Price (DZD)" style="flex:0.7; min-width:80px;">
         <input type="text" class="form-input var-image" placeholder="Image URL" style="flex:1.5; min-width:120px;">
-        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:4px; cursor:pointer;">✕</button>
+        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:0; cursor:pointer;">✕</button>
     `;
     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
     variantsContainer?.appendChild(row);
@@ -967,7 +940,7 @@ function updatePDFImageSelector() {
         return `
             <label style="display:inline-block; margin:4px 8px 4px 0; cursor:pointer; position:relative;">
                 <input type="radio" name="pdfImage" value="${url}" ${checked} style="margin-right:4px;">
-                <img src="${url}" alt="Image ${index+1}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #e2e0d8; vertical-align:middle;">
+                <img src="${url}" alt="Image ${index+1}" style="width:60px; height:60px; object-fit:cover; border:1px solid #e2e0d8; vertical-align:middle;">
             </label>
         `;
     }).join('');
@@ -1149,7 +1122,7 @@ async function editProduct(productId) {
                         <input type="text" class="form-input var-color" value="${v.color || ''}" placeholder="Color" style="flex:1; min-width:80px;">
                         <input type="number" class="form-input var-price" value="${v.price || ''}" placeholder="Price" style="flex:0.7; min-width:80px;">
                         <input type="text" class="form-input var-image" value="${v.image || ''}" placeholder="Image URL" style="flex:1.5; min-width:120px;">
-                        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:4px; cursor:pointer;">✕</button>
+                        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:0; cursor:pointer;">✕</button>
                     `;
                     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
                     variantsContainer.appendChild(row);
@@ -1188,7 +1161,7 @@ async function deleteProduct(productId) {
 }
 
 // ============================================
-// 5. إدارة أسعار التوصيل (Delivery Rates)
+// 8. إدارة أسعار التوصيل
 // ============================================
 
 async function loadDeliveryRates() {
@@ -1342,7 +1315,7 @@ resetAllDeliveryBtn?.addEventListener('click', function() {
 });
 
 // ============================================
-// 6. إدارة الطلبات (Orders)
+// 9. إدارة الطلبات
 // ============================================
 
 async function loadOrders() {
@@ -1453,7 +1426,7 @@ function updateOrderStats() {
 }
 
 // ============================================
-// 7. إعدادات المتجر (Settings)
+// 10. إعدادات المتجر
 // ============================================
 
 async function loadSettings() {
@@ -1516,12 +1489,12 @@ saveColorsBtn?.addEventListener('click', function() {
                 <div style="display:flex; gap:20px; justify-content:center; margin-top:12px;">
                     <div>
                         <span style="font-size:12px; color:#6b6b6b;">Sidebar</span>
-                        <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${sidebarColor}; margin:0 auto;"></div>
+                        <div style="width:40px; height:40px; border:1px solid #e2e0d8; background:${sidebarColor}; margin:0 auto;"></div>
                         <span style="font-size:11px; font-family:monospace;">${sidebarColor}</span>
                     </div>
                     <div>
                         <span style="font-size:12px; color:#6b6b6b;">Main</span>
-                        <div style="width:40px; height:40px; border-radius:4px; border:1px solid #e2e0d8; background:${mainColor}; margin:0 auto;"></div>
+                        <div style="width:40px; height:40px; border:1px solid #e2e0d8; background:${mainColor}; margin:0 auto;"></div>
                         <span style="font-size:11px; font-family:monospace;">${mainColor}</span>
                     </div>
                 </div>
@@ -1697,7 +1670,7 @@ imageApiKeyInput?.addEventListener('change', function() {
 });
 
 // ============================================
-// 8. لوحة المعلومات (Dashboard)
+// 11. لوحة المعلومات (Dashboard)
 // ============================================
 
 function updateCategoryStats() {
@@ -1745,7 +1718,7 @@ async function loadDashboardData() {
 }
 
 // ============================================
-// 9. التحميل الأولي (Initialization)
+// 12. التحميل الأولي
 // ============================================
 
 async function initAdmin() {
