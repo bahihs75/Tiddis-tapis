@@ -15,80 +15,28 @@
 <body>
 
     <!-- ============================================ -->
-    <!-- حماية لوحة التحكم (كلمة مرور + تذكرني + حد محاولات) -->
+    <!-- شاشة تسجيل الدخول (Firebase Authentication) -->
     <!-- ============================================ -->
-    <script>
-        (function() {
-            const PASSWORD = "39482202";
-            const MAX_ATTEMPTS = 3;
-            const LOCK_TIME = 10; // دقائق
+    <div id="admin-login-screen" style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px;">
+        <div style="width:100%; max-width:340px; text-align:center;">
+            <div style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:3px; font-size:1.8rem; color:#4E1A1D; margin-bottom:4px;">TIDDIS</div>
+            <div style="font-family:'Space Mono', monospace; letter-spacing:2px; font-size:0.75rem; color:#6b6b6b; margin-bottom:32px;">ADMIN ACCESS</div>
+            <form id="admin-login-form" style="display:flex; flex-direction:column; gap:20px;">
+                <input type="email" id="admin-login-email" placeholder="Email" required autocomplete="username"
+                    style="border:none; border-bottom:1px solid #ccc; background:transparent; padding:10px 2px; font-family:'Space Mono', monospace; font-size:0.9rem; text-align:center; outline:none;">
+                <input type="password" id="admin-login-password" placeholder="Password" required autocomplete="current-password"
+                    style="border:none; border-bottom:1px solid #ccc; background:transparent; padding:10px 2px; font-family:'Space Mono', monospace; font-size:0.9rem; text-align:center; outline:none;">
+                <button type="submit" id="admin-login-submit"
+                    style="margin-top:12px; padding:12px 32px; background:#4E1A1D; color:#fff; border:none; font-family:'Space Mono', monospace; letter-spacing:1px; cursor:pointer;">SIGN IN</button>
+            </form>
+            <p id="admin-login-error" style="font-family:'Space Mono', monospace; color:#a33; font-size:0.8rem; margin-top:16px; min-height:1em;"></p>
+        </div>
+    </div>
 
-            // التحقق من القفل
-            const lockData = localStorage.getItem('admin_lock');
-            if (lockData) {
-                const lock = JSON.parse(lockData);
-                const now = Date.now();
-                if (now - lock.timestamp < LOCK_TIME * 60 * 1000) {
-                    const remaining = Math.ceil((LOCK_TIME * 60 * 1000 - (now - lock.timestamp)) / 60000);
-                    document.body.innerHTML = `
-                        <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px; text-align:center;">
-                            <div style="font-size:48px; margin-bottom:16px;">🔒</div>
-                            <h1 style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:2px; color:#4E1A1D;">Access Locked</h1>
-                            <p style="font-family:'Space Mono', monospace; color:#6b6b6b; margin-top:8px;">Too many failed attempts. Please wait <strong>${remaining}</strong> minute(s) before trying again.</p>
-                            <button onclick="location.reload()" style="margin-top:20px; padding:12px 32px; background:#4E1A1D; color:#fff; border:none; border-radius:4px; font-family:'Space Mono', monospace; cursor:pointer;">Try Again</button>
-                        </div>
-                    `;
-                    throw new Error("Locked");
-                } else {
-                    localStorage.removeItem('admin_lock');
-                    localStorage.removeItem('admin_attempts');
-                }
-            }
-
-            // التحقق من "تذكرني"
-            const rememberMe = localStorage.getItem('admin_remember') === 'true';
-            if (rememberMe) {
-                return; // السماح بالدخول مباشرة
-            }
-
-            // التحقق من المحاولات
-            let attempts = parseInt(localStorage.getItem('admin_attempts')) || 0;
-
-            const userInput = prompt("Enter admin password to access the control panel:");
-            if (userInput === null) {
-                document.body.innerHTML = `
-                    <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px; text-align:center;">
-                        <div style="font-size:48px; margin-bottom:16px;">⛔</div>
-                        <h1 style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:2px; color:#4E1A1D;">Access Denied</h1>
-                        <p style="font-family:'Space Mono', monospace; color:#6b6b6b; margin-top:8px;">Authentication required to access the admin panel.</p>
-                    </div>
-                `;
-                throw new Error("Access Denied");
-            }
-
-            if (userInput === PASSWORD) {
-                localStorage.removeItem('admin_attempts');
-                return;
-            } else {
-                attempts++;
-                localStorage.setItem('admin_attempts', attempts);
-                if (attempts >= MAX_ATTEMPTS) {
-                    localStorage.setItem('admin_lock', JSON.stringify({ timestamp: Date.now() }));
-                    document.body.innerHTML = `
-                        <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#faf9f6; flex-direction:column; padding:20px; text-align:center;">
-                            <div style="font-size:48px; margin-bottom:16px;">🔒</div>
-                            <h1 style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:2px; color:#4E1A1D;">Access Locked</h1>
-                            <p style="font-family:'Space Mono', monospace; color:#6b6b6b; margin-top:8px;">Too many failed attempts. Please wait <strong>${LOCK_TIME}</strong> minutes before trying again.</p>
-                        </div>
-                    `;
-                    throw new Error("Locked");
-                } else {
-                    alert(`Incorrect password. ${MAX_ATTEMPTS - attempts} attempt(s) remaining.`);
-                    window.location.reload();
-                }
-            }
-        })();
-    </script>
+    <!-- ============================================ -->
+    <!-- محتوى لوحة التحكم (مخفي حتى يتم التحقق من الهوية) -->
+    <!-- ============================================ -->
+    <div id="admin-app" style="display:none;">
 
     <!-- ============================================ -->
     <!-- القائمة الجانبية (تطابق تصميم المتجر) -->
@@ -431,13 +379,9 @@
             <div class="admin-card">
                 <h3>Security</h3>
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="remember-me-checkbox">
-                        Remember me (stay logged in)
-                    </label>
-                    <p style="font-size:0.85rem; color:#666; margin-top:4px;">This will keep you logged in on this browser. Disable to require password on each visit.</p>
+                    <p style="font-size:0.85rem; color:#666;">Signed in as <strong id="admin-current-email">—</strong></p>
                 </div>
-                <button id="clear-remember-btn" class="btn-secondary">Clear Remember Me</button>
+                <button id="admin-sign-out-btn" class="btn-secondary">Sign Out</button>
             </div>
         </section>
 
@@ -458,11 +402,14 @@
         </div>
     </div>
 
+    </div> <!-- إغلاق admin-app -->
+
     <!-- ============================================ -->
     <!-- تحميل JavaScript -->
     <!-- ============================================ -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/admin-auth.js"></script>
 
     <!-- ============================================ -->
     <!-- زر "Add New Product" (Toggle) -->
@@ -485,33 +432,6 @@
         });
     </script>
 
-    <!-- ============================================ -->
-    <!-- إدارة "تذكرني" (Remember Me) -->
-    <!-- ============================================ -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const rememberCheckbox = document.getElementById('remember-me-checkbox');
-            const clearRememberBtn = document.getElementById('clear-remember-btn');
-
-            if (localStorage.getItem('admin_remember') === 'true') {
-                rememberCheckbox.checked = true;
-            }
-
-            rememberCheckbox.addEventListener('change', function() {
-                if (this.checked) {
-                    localStorage.setItem('admin_remember', 'true');
-                } else {
-                    localStorage.removeItem('admin_remember');
-                }
-            });
-
-            clearRememberBtn.addEventListener('click', function() {
-                localStorage.removeItem('admin_remember');
-                rememberCheckbox.checked = false;
-                alert('Remember me cleared. You will need to enter password on next visit.');
-            });
-        });
-    </script>
 
 </body>
 </html>
