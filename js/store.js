@@ -742,8 +742,6 @@ function createProductCard(product) {
         const dots = card.querySelectorAll('.image-dots span');
         const prevBtn = card.querySelector('.image-nav-btn.prev');
         const nextBtn = card.querySelector('.image-nav-btn.next');
-        let touchStartX = 0;
-        let touchEndX = 0;
         
         function updateImage(index) {
             if (index < 0) index = allImages.length - 1;
@@ -766,25 +764,6 @@ function createProductCard(product) {
                 e.stopPropagation();
                 updateImage(currentImageIndex + 1);
             });
-        }
-        
-        // دعم اللمس
-        const wrap = card.querySelector('.product-image-wrap');
-        if (wrap) {
-            wrap.addEventListener('touchstart', (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-            }, { passive: true });
-            wrap.addEventListener('touchend', (e) => {
-                touchEndX = e.changedTouches[0].screenX;
-                const diff = touchStartX - touchEndX;
-                if (Math.abs(diff) > 30) {
-                    if (diff > 0) {
-                        updateImage(currentImageIndex + 1);
-                    } else {
-                        updateImage(currentImageIndex - 1);
-                    }
-                }
-            }, { passive: true });
         }
         
         card._updateImage = updateImage;
@@ -1560,6 +1539,11 @@ if (DOM.hamburgerBtn) {
         if (DOM.mobileSearchBar) DOM.mobileSearchBar.classList.remove('open');
     });
 }
+
+document.getElementById('mobile-menu-close')?.addEventListener('click', function() {
+    DOM.sidebar?.classList.remove('open');
+    DOM.hamburgerBtn?.classList.remove('active');
+});
 
 // ============================================
 // 20. تحميل المزيد
