@@ -99,7 +99,8 @@ const DOM = {
     successClose: document.getElementById('success-close'),
     closeSuccessBtn: document.getElementById('close-success-modal'),
     downloadPdfAfterOrder: document.getElementById('download-pdf-after-order'),
-    gridToggleBtn: document.getElementById('grid-toggle-btn')
+    gridDensityLoose: document.getElementById('grid-density-loose'),
+    gridDensityDense: document.getElementById('grid-density-dense')
 };
 
 // عناصر صفحة التفاصيل
@@ -1211,7 +1212,7 @@ window.generateProductPDF = async function(productId) {
 // 13. صفحة تفاصيل المنتج (بدون Loader)
 // ============================================
 
-window.loadProductDetail = async function() {
+async function loadProductDetail() {
     const container = DetailDOM.container;
     if (!container) return;
     
@@ -1526,21 +1527,27 @@ DOM.filterBtns.forEach(btn => {
 });
 
 // ============================================
-// 18. مفتاح تبديل الشبكة (Grid Toggle)
+// 18. مفتاح كثافة الشبكة (Grid Density)
 // ============================================
 
-if (DOM.gridToggleBtn) {
-    DOM.gridToggleBtn.addEventListener('click', function() {
-        const isMobile = window.innerWidth <= 900;
-        if (isMobile) {
-            DOM.productsGrid.classList.toggle('grid-2-mobile');
-            this.classList.toggle('active');
-        } else {
-            DOM.productsGrid.classList.toggle('grid-4');
-            this.classList.toggle('active');
-        }
-    });
+function setGridDensity(dense) {
+    const isMobile = window.innerWidth <= 900;
+    const denseClass = isMobile ? 'grid-2-mobile' : 'grid-4';
+
+    if (dense) {
+        DOM.productsGrid.classList.add(denseClass);
+    } else {
+        DOM.productsGrid.classList.remove(denseClass);
+    }
+    DOM.gridDensityDense?.classList.toggle('active', dense);
+    DOM.gridDensityLoose?.classList.toggle('active', !dense);
 }
+
+// الحالة الافتراضية: غير مكثفة
+setGridDensity(false);
+
+DOM.gridDensityLoose?.addEventListener('click', () => setGridDensity(false));
+DOM.gridDensityDense?.addEventListener('click', () => setGridDensity(true));
 
 // ============================================
 // 19. الهامبورجر
@@ -1567,7 +1574,7 @@ if (DOM.loadMoreBtn) {
 // ============================================
 
 window.addEventListener('resize', function() {
-    if (DOM.gridToggleBtn) {
+    if (DOM.gridDensityDense) {
         const isMobile = window.innerWidth <= 900;
         if (isMobile) {
             if (DOM.productsGrid.classList.contains('grid-4')) {
@@ -1582,7 +1589,21 @@ window.addEventListener('resize', function() {
 });
 
 // ============================================
-// 22. التحميل الأولي
+// 22. زر الرجوع للأعلى
+// ============================================
+
+const backToTopBtn = document.getElementById('back-to-top-btn');
+if (backToTopBtn) {
+    window.addEventListener('scroll', () => {
+        backToTopBtn.classList.toggle('visible', window.scrollY > 500);
+    });
+    backToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+// ============================================
+// 23. التحميل الأولي
 // ============================================
 
 async function initStore() {
@@ -1604,5 +1625,5 @@ async function initStore() {
 
 document.addEventListener('DOMContentLoaded', initStore);
 
-// تصدير للاستخدام في admin.js
-export { AppState, filterProducts };
+// تصدير للاستخدام في admin.js وصفحة تفاصيل المنتج
+export { AppState, filterProducts, loadProductDetail };
