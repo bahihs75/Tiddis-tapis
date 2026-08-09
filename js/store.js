@@ -1520,10 +1520,13 @@ DOM.filterBtns.forEach(btn => {
 });
 
 // ============================================
-// 18. مفتاح كثافة الشبكة (Grid Density)
+// 18. مفتاح كثافة الشبكة (Grid Density) — مع حماية من null
 // ============================================
 
 function setGridDensity(dense) {
+    // ✅ الحماية: إذا لم يكن هناك عنصر productsGrid، لا تفعل شيئاً
+    if (!DOM.productsGrid) return;
+    
     const isMobile = window.innerWidth <= 900;
     const denseClass = isMobile ? 'grid-2-mobile' : 'grid-4';
 
@@ -1536,8 +1539,10 @@ function setGridDensity(dense) {
     DOM.gridDensityLoose?.classList.toggle('active', !dense);
 }
 
-// الحالة الافتراضية: غير مكثفة
-setGridDensity(false);
+// الحالة الافتراضية: غير مكثفة — مع الحماية
+if (DOM.productsGrid) {
+    setGridDensity(false);
+}
 
 DOM.gridDensityLoose?.addEventListener('click', () => setGridDensity(false));
 DOM.gridDensityDense?.addEventListener('click', () => setGridDensity(true));
@@ -1575,11 +1580,11 @@ window.addEventListener('resize', function() {
     if (DOM.gridDensityDense) {
         const isMobile = window.innerWidth <= 900;
         if (isMobile) {
-            if (DOM.productsGrid.classList.contains('grid-4')) {
+            if (DOM.productsGrid && DOM.productsGrid.classList.contains('grid-4')) {
                 DOM.productsGrid.classList.remove('grid-4');
             }
         } else {
-            if (DOM.productsGrid.classList.contains('grid-2-mobile')) {
+            if (DOM.productsGrid && DOM.productsGrid.classList.contains('grid-2-mobile')) {
                 DOM.productsGrid.classList.remove('grid-2-mobile');
             }
         }
