@@ -574,6 +574,19 @@ body {
     height: 16px;
 }
 
+.grid-density-btn .icon-mobile {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .grid-density-btn .icon-desktop {
+        display: none;
+    }
+    .grid-density-btn .icon-mobile {
+        display: block;
+    }
+}
+
 .grid-density-btn.active {
     background: var(--accent);
     color: #ffffff;
