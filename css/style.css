@@ -76,6 +76,22 @@ body {
     overflow-y: auto;
 }
 
+.mobile-menu-close {
+    display: none;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
 .logo-container {
     margin-bottom: 48px;
     text-align: left;
@@ -1846,11 +1862,29 @@ body {
 @media (max-width: 900px) {
     .sidebar {
         transform: translateX(-100%);
-        width: 280px;
+        width: 100%;
+        z-index: 200;
     }
 
     .sidebar.open {
         transform: translateX(0);
+    }
+
+    .sidebar-nav .nav-link {
+        font-size: 20px;
+        padding: 16px 0;
+    }
+
+    .sidebar-nav .sub-menu .nav-link {
+        font-size: 16px;
+    }
+
+    .mobile-menu-close {
+        display: flex;
+    }
+
+    .sidebar {
+        padding-top: 80px;
     }
 
     .mobile-header {
