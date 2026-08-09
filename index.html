@@ -82,11 +82,13 @@
             <div class="search-bar desktop-search">
                 <input type="text" id="search-input" placeholder="Search rugs by name, size, or color...">
                 <span id="product-count">0 products</span>
-                <!-- مفتاح تبديل عرض الشبكة (Grid Toggle) -->
+                <!-- مفتاح كثافة الشبكة (Grid Density) -->
                 <div class="grid-toggle-wrapper">
-                    <span class="grid-toggle-label">Grid</span>
-                    <button class="grid-toggle-btn" id="grid-toggle-btn" aria-label="Toggle grid columns">
-                        <span class="grid-toggle-slider"></span>
+                    <button class="grid-density-btn" id="grid-density-loose" aria-label="Fewer columns" title="Fewer columns">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7"/><rect x="9" y="0" width="7" height="7"/><rect x="0" y="9" width="7" height="7"/><rect x="9" y="9" width="7" height="7"/></svg>
+                    </button>
+                    <button class="grid-density-btn" id="grid-density-dense" aria-label="More columns" title="More columns">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="3" height="3"/><rect x="4.3" y="0" width="3" height="3"/><rect x="8.6" y="0" width="3" height="3"/><rect x="13" y="0" width="3" height="3"/><rect x="0" y="4.3" width="3" height="3"/><rect x="4.3" y="4.3" width="3" height="3"/><rect x="8.6" y="4.3" width="3" height="3"/><rect x="13" y="4.3" width="3" height="3"/><rect x="0" y="8.6" width="3" height="3"/><rect x="4.3" y="8.6" width="3" height="3"/><rect x="8.6" y="8.6" width="3" height="3"/><rect x="13" y="8.6" width="3" height="3"/><rect x="0" y="13" width="3" height="3"/><rect x="4.3" y="13" width="3" height="3"/><rect x="8.6" y="13" width="3" height="3"/><rect x="13" y="13" width="3" height="3"/></svg>
                     </button>
                 </div>
             </div>
@@ -94,7 +96,10 @@
 
         <!-- شبكة المنتجات -->
         <div id="products-grid" class="products-grid">
-            <div class="loading-placeholder">Loading exclusive collection...</div>
+            <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
         </div>
 
         <!-- زر تحميل المزيد -->
@@ -122,6 +127,11 @@
             <p>&copy; 2025 TIDDIS TAPIS — All rights reserved.</p>
         </footer>
     </main>
+
+    <!-- زر الرجوع للأعلى -->
+    <button id="back-to-top-btn" aria-label="Back to top" title="Back to top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+    </button>
 
     <!-- نافذة الطلب المنبثقة (Order Modal) -->
     <div id="order-modal" class="modal-overlay" style="display:none;">
