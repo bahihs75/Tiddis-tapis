@@ -1937,6 +1937,47 @@ async function loadDashboardData() {
 }
 
 // ============================================
+// 11. Tiddis API & Data Service (معيارية متطورة مستوحاة من AFAK)
+// ============================================
+const TiddisAPI = {
+    async getProducts() {
+        try {
+            const snap = await getDocs(collection(db, 'products'));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+            console.error('API Error [getProducts]:', e);
+            return [];
+        }
+    },
+    async saveProduct(id, data) {
+        if (id) {
+            await updateDoc(doc(db, 'products', id), data);
+            return id;
+        } else {
+            data.createdAt = new Date().toISOString();
+            const ref = await addDoc(collection(db, 'products'), data);
+            return ref.id;
+        }
+    },
+    async deleteProduct(id) {
+        await deleteDoc(doc(db, 'products', id));
+        return true;
+    },
+    async getCategories() {
+        try {
+            const snap = await getDocs(collection(db, 'categories'));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+            console.error('API Error [getCategories]:', e);
+            return [];
+        }
+    }
+};
+
+// جعل الـ API متاحاً عالمياً للتصحيح والاستخدام
+window.TiddisAPI = TiddisAPI;
+
+// ============================================
 // 12. التحميل الأولي
 // ============================================
 

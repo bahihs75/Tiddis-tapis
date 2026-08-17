@@ -404,18 +404,40 @@ function renderFilterUI() {
         `).join('');
     }
 
-    // 2. رندر السمات الديناميكية
+    // 2. رندر السمات الديناميكية (مع دعم خاص للون لعرض الأيقونات الدائرية إذا كانت السمة تخص اللون)
     if (DOM.dynamicFilterGroups) {
-        DOM.dynamicFilterGroups.innerHTML = AppState.attributes.map(attr => `
-            <div class="filter-group">
-                <h4>${attr.label}</h4>
-                <div class="filter-options">
-                    ${(attr.options || []).map(opt => `
-                        <label><input type="checkbox" class="attribute-filter" data-attr-id="${attr.id}" value="${opt}"> ${opt}</label>
-                    `).join('')}
+        DOM.dynamicFilterGroups.innerHTML = AppState.attributes.map(attr => {
+            const isColorAttr = attr.id.toLowerCase() === 'color' || attr.label.toLowerCase().includes('color') || attr.label.includes('لون');
+            return `
+                <div class="filter-group">
+                    <h4>${attr.label}</h4>
+                    <div class="filter-options ${isColorAttr ? 'color-filter-options' : ''}">
+                        ${(attr.options || []).map(opt => {
+                            if (isColorAttr) {
+                                // محاولة إيجاد لون حقيقي أو رمز للأيقونة
+                                const colorMap = {
+                                    'Beige': '#f5f5dc', 'Gold': '#d4af37', 'Red': '#800020', 'Blue': '#1e3f66',
+                                    'Black': '#111111', 'White': '#ffffff', 'Gray': '#808080', 'Green': '#2c5e3a',
+                                    'Brown': '#654321', 'Burgundy': '#6b1d2f', 'Navy': '#000080', 'Cream': '#fffdd0'
+                                };
+                                const bgHex = colorMap[opt] || opt;
+                                return `
+                                    <label class="color-checkbox-label" title="${opt}">
+                                        <input type="checkbox" class="attribute-filter" data-attr-id="${attr.id}" value="${opt}">
+                                        <span class="color-swatch-icon" style="background-color: ${bgHex};"></span>
+                                        <span>${opt}</span>
+                                    </label>
+                                `;
+                            } else {
+                                return `
+                                    <label><input type="checkbox" class="attribute-filter" data-attr-id="${attr.id}" value="${opt}"> ${opt}</label>
+                                `;
+                            }
+                        }).join('')}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 }
 
