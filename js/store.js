@@ -544,6 +544,22 @@ function handleSidebarClick(e) {
     const category = link.dataset.category || null;
     const type = link.dataset.type || null;
     
+    // إذا كنا في صفحة تفاصيل المنتج، توجيه المستخدم للصفحة الرئيسية عند النقر على الفئات أو الأقسام
+    if (window.location.pathname.includes('product.html')) {
+        if (category && type) {
+            window.location.href = `index.html?category=${encodeURIComponent(category)}&type=${encodeURIComponent(type)}`;
+            return;
+        }
+        if (section === 'about' || section === 'contact') {
+            window.location.href = `index.html#${section}-section`;
+            return;
+        }
+        if (link.classList.contains('back-to-store') || section === 'all') {
+            window.location.href = 'index.html';
+            return;
+        }
+    }
+    
     // تبديل القائمة الفرعية (إغلاق الأشقاء)
     const parentLi = link.closest('.nav-item');
     if (parentLi) {
