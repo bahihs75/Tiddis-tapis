@@ -3909,3 +3909,110 @@ body.sidebar-active .sidebar::after {
         padding-inline: 10px;
     }
 }
+
+
+/* =========================================================
+   TIDDIS TAPIS — Hero-to-top + adaptive brand glass pass
+   Local preview only: the technical-sheet update remains saved
+   locally and nothing is pushed until the user explicitly says Apply.
+   ========================================================= */
+
+/* The homepage hero is the first visual layer, so it must sit behind
+   the fixed header instead of being pushed down by header padding. */
+.main-content:has(> #hero-slider-container) {
+    padding-top: 0 !important;
+}
+
+.hero-slider-container {
+    height: 100svh !important;
+    min-height: 100svh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.hero-slide-image-frame {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Keep the header over the hero, but remove the opaque white strip. */
+.desktop-header,
+.mobile-header {
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--bg-color) 34%, transparent),
+        transparent
+    ) !important;
+    border-bottom-color: transparent !important;
+    backdrop-filter: blur(14px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.12) !important;
+}
+
+/* Adaptive glass plate around the brand: it borrows the hero colours,
+   softens busy imagery, and keeps the dark editorial text readable. */
+.desktop-header .header-brand,
+.mobile-header .mobile-brand {
+    position: relative;
+    isolation: isolate;
+    padding: 8px 13px;
+    border: 1px solid color-mix(in srgb, var(--bg-color) 48%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-color) 72%, transparent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .10),
+                inset 0 1px 0 rgba(255, 255, 255, .42);
+    backdrop-filter: blur(18px) saturate(1.25);
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.desktop-header .header-brand .brand-main,
+.desktop-header .header-brand .brand-sub,
+.mobile-header .mobile-brand .brand-main,
+.mobile-header .mobile-brand .brand-sub {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 12px rgba(255, 255, 255, .66),
+                 0 1px 2px rgba(0, 0, 0, .18);
+}
+
+@media (max-width: 900px) {
+    .mobile-header {
+        padding-inline: 14px !important;
+    }
+
+    .mobile-header .mobile-brand {
+        padding: 7px 10px;
+    }
+
+    .hero-slide-header {
+        top: calc(var(--tiddis-header-height) + 18px) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-header .mobile-brand {
+        padding-inline: 9px;
+    }
+
+    .hero-slide-header {
+        top: calc(var(--tiddis-header-height) + 14px) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .desktop-header,
+    .mobile-header,
+    .desktop-header .header-brand,
+    .mobile-header .mobile-brand {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+}
+
+/* Fallback for older engines that do not support :has(). */
+@supports not selector(.main-content:has(> #hero-slider-container)) {
+    .main-content {
+        padding-top: 0 !important;
+    }
+}

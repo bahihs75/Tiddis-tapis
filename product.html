@@ -440,6 +440,384 @@
                 width: 100%;
             }
         }
+        /* ============================================
+           Premium Technical Sheet — Editorial Luxury
+           Rendered off-screen for A4 PDF export
+           ============================================ */
+        .technical-sheet-stage {
+            position: fixed;
+            left: -10000px;
+            top: 0;
+            width: 794px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .technical-sheet-canvas {
+            box-sizing: border-box;
+            width: 794px;
+            padding: 48px 52px 36px;
+            background: #f7f4ee;
+            color: #28231f;
+            font-family: var(--font-sans), 'Helvetica Neue', sans-serif;
+            line-height: 1.4;
+        }
+
+        .technical-sheet-canvas * {
+            box-sizing: border-box;
+        }
+
+        .sheet-header,
+        .sheet-footer,
+        .sheet-facts,
+        .sheet-hero,
+        .sheet-section-heading,
+        .sheet-document-meta,
+        .sheet-price-block,
+        .sheet-contact-block,
+        .sheet-footer-note {
+            display: flex;
+        }
+
+        .sheet-header {
+            align-items: flex-start;
+            justify-content: space-between;
+            padding-bottom: 22px;
+            border-bottom: 1px solid rgba(40, 35, 31, .18);
+        }
+
+        .sheet-wordmark {
+            display: flex;
+            align-items: baseline;
+            gap: 9px;
+            color: #28231f;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 25px;
+            letter-spacing: 4px;
+            line-height: 1;
+        }
+
+        .sheet-wordmark small {
+            color: #6d2830;
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            letter-spacing: 3px;
+        }
+
+        .sheet-logo-image {
+            display: block;
+            width: auto;
+            max-width: 190px;
+            height: 42px;
+            object-fit: contain;
+            object-position: left center;
+        }
+
+        .sheet-document-meta {
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            color: #716a63;
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-align: right;
+        }
+
+        .sheet-document-meta strong {
+            color: #6d2830;
+            font-weight: 500;
+        }
+
+        .sheet-hero {
+            min-height: 310px;
+            gap: 28px;
+            padding: 30px 0 26px;
+        }
+
+        .sheet-hero-image {
+            position: relative;
+            flex: 0 0 420px;
+            height: 310px;
+            overflow: hidden;
+            background: #e7e0d5;
+        }
+
+        .sheet-hero-image img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .sheet-image-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            color: #716a63;
+            font-family: var(--font-mono), monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+        }
+
+        .sheet-image-index {
+            position: absolute;
+            right: 13px;
+            bottom: 11px;
+            padding: 5px 7px;
+            color: #f7f4ee;
+            background: rgba(40, 35, 31, .68);
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .sheet-hero-copy {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .sheet-kicker,
+        .sheet-price-block span,
+        .sheet-facts span,
+        .sheet-spec-row span,
+        .sheet-footer,
+        .sheet-section-heading span {
+            color: #827970;
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+        }
+
+        .sheet-hero-copy h1 {
+            margin: 16px 0 7px;
+            color: #28231f;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 38px;
+            font-weight: 400;
+            letter-spacing: -.5px;
+            line-height: 1.04;
+        }
+
+        .sheet-hero-category {
+            margin: 0;
+            color: #6d2830;
+            font-family: var(--font-mono), monospace;
+            font-size: 10px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        .sheet-price-block {
+            flex-direction: column;
+            gap: 5px;
+            margin: 28px 0 17px;
+            padding: 13px 0 15px;
+            border-top: 1px solid rgba(40, 35, 31, .18);
+            border-bottom: 1px solid rgba(40, 35, 31, .18);
+        }
+
+        .sheet-price-block strong {
+            color: #6d2830;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 25px;
+            font-weight: 400;
+        }
+
+        .sheet-price-block small {
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .sheet-intro,
+        .sheet-description p {
+            margin: 0;
+            color: #716a63;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .sheet-facts {
+            border-top: 1px solid rgba(40, 35, 31, .18);
+            border-bottom: 1px solid rgba(40, 35, 31, .18);
+        }
+
+        .sheet-facts > div {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 7px;
+            min-height: 58px;
+            padding: 12px 14px 11px 0;
+            border-right: 1px solid rgba(40, 35, 31, .14);
+        }
+
+        .sheet-facts > div + div {
+            padding-left: 14px;
+        }
+
+        .sheet-facts > div:last-child {
+            border-right: 0;
+        }
+
+        .sheet-facts strong {
+            overflow-wrap: anywhere;
+            color: #28231f;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .sheet-details,
+        .sheet-description,
+        .sheet-variants {
+            padding-top: 24px;
+        }
+
+        .sheet-section-heading {
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .sheet-section-heading span {
+            color: #6d2830;
+        }
+
+        .sheet-section-heading h2 {
+            margin: 0;
+            color: #28231f;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 19px;
+            font-weight: 400;
+        }
+
+        .sheet-spec-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 28px;
+            border-top: 1px solid rgba(40, 35, 31, .18);
+        }
+
+        .sheet-spec-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 35px;
+            padding: 9px 0 8px;
+            border-bottom: 1px solid rgba(40, 35, 31, .12);
+        }
+
+        .sheet-spec-row strong {
+            max-width: 65%;
+            overflow-wrap: anywhere;
+            color: #28231f;
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 12px;
+            font-weight: 400;
+            text-align: right;
+        }
+
+        .sheet-description p {
+            padding: 13px 0 0;
+            border-top: 1px solid rgba(40, 35, 31, .18);
+        }
+
+        .sheet-variants table {
+            width: 100%;
+            border-collapse: collapse;
+            border-top: 1px solid rgba(40, 35, 31, .18);
+            font-family: var(--font-serif), Georgia, serif;
+            font-size: 12px;
+        }
+
+        .sheet-variants th,
+        .sheet-variants td {
+            padding: 8px 10px 8px 0;
+            border-bottom: 1px solid rgba(40, 35, 31, .12);
+            text-align: left;
+        }
+
+        .sheet-variants th {
+            color: #827970;
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .sheet-footer {
+            position: relative;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 28px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(40, 35, 31, .18);
+        }
+
+        .sheet-qr-block,
+        .sheet-contact-block,
+        .sheet-footer-note {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sheet-qr-block {
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .sheet-qr-block #qrcode-container {
+            padding: 5px;
+            background: #fff;
+        }
+
+        .sheet-qr-block #qrcode-container img,
+        .sheet-qr-block #qrcode-container canvas {
+            display: block;
+        }
+
+        .sheet-qr-block span,
+        .sheet-contact-block span,
+        .sheet-footer-note span {
+            color: #827970;
+            font-family: var(--font-mono), monospace;
+            font-size: 8px;
+            letter-spacing: .5px;
+        }
+
+        .sheet-contact-block {
+            align-items: flex-end;
+            gap: 4px;
+            color: #28231f;
+            text-align: right;
+        }
+
+        .sheet-contact-block strong {
+            margin-bottom: 2px;
+            color: #6d2830;
+            font-family: var(--font-mono), monospace;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .sheet-footer-note {
+            align-items: flex-end;
+            gap: 4px;
+            text-align: right;
+        }
+
     </style>
 </head>
 <body class="product-page">

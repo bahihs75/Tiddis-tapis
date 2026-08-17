@@ -1178,151 +1178,158 @@ if (DOM.downloadPdfAfterOrder) {
 // 12. توليد PDF (مع تحسين CORS)
 // ============================================
 
-window.generateProductPDF = async function(productId) {
+window.generateProductPDF = async function(productId, variantOverride = null) {
     const product = AppState.products.all.find(p => p.id === productId);
     if (!product) {
         alert('Product not found.');
         return;
     }
-    
-    let pdfImage = product.pdfImage || product.imageUrl || '';
-    if (product.variants && product.variants.length > 0 && !pdfImage) {
-        pdfImage = product.variants[0].image || product.imageUrl || '';
-    }
-    
-    const pdfContent = document.createElement('div');
-    pdfContent.style.cssText = `
-        width: 600px;
-        padding: 40px;
-        background: #faf9f6;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        color: #1a1a1a;
-    `;
-    
-    const settings = AppState.settings.storeSettings;
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[char]));
+    const settings = AppState.settings.storeSettings || {};
+    const contacts = Array.isArray(settings.contacts) ? settings.contacts : [];
+    const phone = contacts.find(c => c.platform === 'phone')?.value || '0559615658';
+    const email = contacts.find(c => c.platform === 'email')?.value || 'support@tiddis.com';
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const activeVariant = variantOverride || variants[0] || null;
+    const imageUrl = activeVariant?.image || product.pdfImage || product.imageUrl || '';
+    const availableSizes = variants.map(v => v.size).filter(Boolean).join(' · ') || product.size || '—';
+    const price = activeVariant?.price || product.basePrice || 0;
+    const attributes = Array.isArray(AppState.attributes) ? AppState.attributes : [];
+    const getAttribute = (keywords) => {
+        const attr = attributes.find(item => keywords.some(keyword => String(item.label || '').toLowerCase().includes(keyword)));
+        const value = attr && product.attributes ? product.attributes[attr.id] : '';
+        return Array.isArray(value) ? value.join(', ') : (value || '—');
+    };
+    const color = activeVariant?.color || getAttribute(['color', 'colour', 'لون']);
+    const quality = getAttribute(['quality', 'material', 'خامة', 'جودة']);
+    const dynamicRows = attributes.map(attr => {
+        const raw = product.attributes ? product.attributes[attr.id] : '';
+        const value = Array.isArray(raw) ? raw.join(', ') : raw;
+        if (!value) return '';
+        return `<div class="sheet-spec-row"><span>${escapeHtml(attr.label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+    }).join('');
+    const variantRows = variants.map((variant, index) => `
+        <tr>
+            <td>${String(index + 1).padStart(2, '0')}</td>
+            <td>${escapeHtml(variant.size || '—')}</td>
+            <td>${escapeHtml(variant.color || '—')}</td>
+            <td>${escapeHtml(variant.price || product.basePrice || 0)} DZD</td>
+        </tr>
+    `).join('');
     const logoUrl = settings.logoUrl || '';
-    const logoHtml = logoUrl ? 
-        `<img src="${logoUrl}" alt="TIDDIS TAPIS" style="max-height:50px; margin-bottom:20px; background:transparent;">` :
-        `<div style="font-family: 'Fraunces', Georgia, serif; font-size:28px; font-weight:600; letter-spacing:4px; color:#1a1a1a;">TIDDIS</div>
-         <div style="font-family: 'Fraunces', Georgia, serif; font-size:14px; font-weight:300; letter-spacing:6px; color:#4E1A1D; margin-top:2px;">TAPIS</div>`;
-    
-    const sizeList = product.variants && product.variants.length > 0 ? 
-        product.variants.map(v => v.size).filter(s => s).join(', ') : 
-        (product.size || '200x280 cm');
-    
+    const logoHtml = logoUrl
+        ? `<img src="${escapeHtml(logoUrl)}" alt="TIDDIS TAPIS" class="sheet-logo-image">`
+        : `<div class="sheet-wordmark"><span>TIDDIS</span><small>TAPIS</small></div>`;
+
+    const pdfContent = document.createElement('div');
+    pdfContent.className = 'technical-sheet-canvas';
     pdfContent.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #4E1A1D; padding-bottom:16px; margin-bottom:24px;">
+        <header class="sheet-header">
             <div>${logoHtml}</div>
-            <div style="text-align:right; font-family:'Space Mono', monospace; font-size:12px; color:#6b6b6b;">
-                <div>COLLECTION: ${product.category || 'KSOR'}</div>
-                <div>BRAND: TIDDIS TAPIS</div>
-                <div>REF: ${product.id || 'N/A'}</div>
+            <div class="sheet-document-meta">
+                <span>PRODUCT DOSSIER</span>
+                <strong>REF. ${escapeHtml(product.id || 'N/A')}</strong>
             </div>
-        </div>
-        <div style="text-align:center; margin-bottom:24px;">
-            <h1 style="font-family:'Fraunces', Georgia, serif; font-size:22px; font-weight:400; letter-spacing:2px; color:#1a1a1a; margin:0;">
-                ${product.name || 'KSOR Classic'}
-            </h1>
-        </div>
-        ${pdfImage ? `
-            <div style="text-align:center; margin-bottom:24px;">
-                <img src="${pdfImage}" alt="${product.name}" 
-                     style="max-width:100%; max-height:400px; object-fit:cover; border:1px solid #e2e0d8;">
+        </header>
+
+        <section class="sheet-hero">
+            <div class="sheet-hero-image">
+                ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.name || 'Tiddis Tapis product')}">` : '<div class="sheet-image-placeholder">TIDDIS TAPIS</div>'}
+                <span class="sheet-image-index">01 / ${String(Math.max(variants.length, 1)).padStart(2, '0')}</span>
             </div>
+            <div class="sheet-hero-copy">
+                <span class="sheet-kicker">TIDDIS TAPIS / COLLECTION</span>
+                <h1>${escapeHtml(product.name || 'Untitled rug')}</h1>
+                <p class="sheet-hero-category">${escapeHtml(product.category || 'Curated collection')}</p>
+                <div class="sheet-price-block">
+                    <span>LISTED PRICE</span>
+                    <strong>${escapeHtml(price)} <small>DZD</small></strong>
+                </div>
+                <p class="sheet-intro">A considered piece from the Tiddis Tapis collection, presented with its selected specifications and available options.</p>
+            </div>
+        </section>
+
+        <section class="sheet-facts" aria-label="Key product facts">
+            <div><span>COLLECTION</span><strong>${escapeHtml(product.category || '—')}</strong></div>
+            <div><span>SIZE</span><strong>${escapeHtml(activeVariant?.size || availableSizes)}</strong></div>
+            <div><span>COLOUR</span><strong>${escapeHtml(color)}</strong></div>
+            <div><span>QUALITY</span><strong>${escapeHtml(quality)}</strong></div>
+        </section>
+
+        <section class="sheet-details">
+            <div class="sheet-section-heading"><span>01</span><h2>Technical specifications</h2></div>
+            <div class="sheet-spec-grid">
+                <div class="sheet-spec-row"><span>Available sizes</span><strong>${escapeHtml(availableSizes)}</strong></div>
+                <div class="sheet-spec-row"><span>Custom size</span><strong>${product.customizableSize ? 'Available on request' : 'Standard sizing'}</strong></div>
+                <div class="sheet-spec-row"><span>Current price</span><strong>${escapeHtml(price)} DZD</strong></div>
+                ${dynamicRows}
+            </div>
+        </section>
+
+        ${product.description ? `
+        <section class="sheet-description">
+            <div class="sheet-section-heading"><span>02</span><h2>Product note</h2></div>
+            <p>${escapeHtml(product.description)}</p>
+        </section>
         ` : ''}
-        <div style="margin-bottom:24px;">
-            <h3 style="font-family:'Space Mono', monospace; font-size:14px; letter-spacing:1px; color:#4E1A1D; margin-bottom:12px; border-bottom:1px solid #e2e0d8; padding-bottom:8px;">
-                SPECIFICATIONS
-            </h3>
-            <table style="width:100%; border-collapse:collapse; font-size:14px;">
-                <tr>
-                    <td style="padding:8px 0; border-bottom:1px solid #e2e0d8; font-family:'Space Mono', monospace; font-size:12px; color:#6b6b6b;">Sizes Available</td>
-                    <td style="padding:8px 0; border-bottom:1px solid #e2e0d8; text-align:right;">${sizeList}</td>
-                </tr>
-                <tr>
-                    <td style="padding:8px 0; border-bottom:1px solid #e2e0d8; font-family:'Space Mono', monospace; font-size:12px; color:#6b6b6b;">Customizable Size</td>
-                    <td style="padding:8px 0; border-bottom:1px solid #e2e0d8; text-align:right;">${product.customizableSize ? '✅ Yes' : '❌ No'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:8px 0; font-family:'Space Mono', monospace; font-size:12px; color:#6b6b6b;">Price</td>
-                    <td style="padding:8px 0; text-align:right; font-weight:700; color:#4E1A1D;">
-                        ${product.basePrice || 0} DZD
-                    </td>
-                </tr>
-            </table>
-        </div>
-        <div style="text-align:center; padding:16px 0; border-top:1px solid #e2e0d8; border-bottom:1px solid #e2e0d8; margin-bottom:20px;">
-            <div id="qrcode-container" style="display:inline-block; background:#fff; padding:8px;"></div>
-            <p style="font-family:'Space Mono', monospace; font-size:11px; color:#6b6b6b; margin-top:8px;">
-                Scan to view this product online
-            </p>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:13px; color:#6b6b6b; font-family:'Space Mono', monospace;">
-            <div>
-                📞 <a href="tel:${settings.contacts?.find(c => c.platform === 'phone')?.value || '0559615658'}" 
-                      style="color:#1a1a1a; text-decoration:none;">
-                    ${settings.contacts?.find(c => c.platform === 'phone')?.value || '0559615658'}
-                </a>
-            </div>
-            <div>
-                ✉️ <a href="mailto:${settings.contacts?.find(c => c.platform === 'email')?.value || 'support@tiddis.com'}" 
-                      style="color:#1a1a1a; text-decoration:none;">
-                    ${settings.contacts?.find(c => c.platform === 'email')?.value || 'support@tiddis.com'}
-                </a>
-            </div>
-        </div>
-        <div style="text-align:center; margin-top:12px; font-size:11px; color:#999; font-family:'Space Mono', monospace; border-top:1px solid #e2e0d8; padding-top:12px;">
-            TIDDIS TAPIS — Inspired by the history of Constantine
-        </div>
+
+        ${variantRows ? `
+        <section class="sheet-variants">
+            <div class="sheet-section-heading"><span>03</span><h2>Available options</h2></div>
+            <table><thead><tr><th>No.</th><th>Size</th><th>Colour</th><th>Price</th></tr></thead><tbody>${variantRows}</tbody></table>
+        </section>
+        ` : ''}
+
+        <footer class="sheet-footer">
+            <div class="sheet-qr-block"><div id="qrcode-container"></div><span>Scan to view this piece online</span></div>
+            <div class="sheet-contact-block"><strong>TIDDIS TAPIS</strong><span>${escapeHtml(phone)}</span><span>${escapeHtml(email)}</span></div>
+            <div class="sheet-footer-note"><span>Inspired by the history of Constantine</span><span>Generated ${new Date().toLocaleDateString('en-GB')}</span></div>
+        </footer>
     `;
-    
+
     const tempDiv = document.createElement('div');
-    tempDiv.style.cssText = 'position:fixed; left:-9999px; top:0; width:600px;';
+    tempDiv.className = 'technical-sheet-stage';
     tempDiv.appendChild(pdfContent);
     document.body.appendChild(tempDiv);
-    
+
     try {
         const qrContainer = tempDiv.querySelector('#qrcode-container');
         if (qrContainer && typeof QRCode !== 'undefined') {
-            const productUrl = `${window.location.origin}/product.html?id=${product.id}`;
             new QRCode(qrContainer, {
-                text: productUrl,
-                width: 100,
-                height: 100,
-                colorDark: '#1a1a1a',
-                colorLight: '#faf9f6',
+                text: `${window.location.origin}/product.html?id=${encodeURIComponent(product.id)}`,
+                width: 92,
+                height: 92,
+                colorDark: '#28231f',
+                colorLight: '#f7f4ee',
                 correctLevel: QRCode.CorrectLevel.H
             });
         }
-    } catch (e) {
-        console.warn('QR Code generation failed:', e);
-    }
-    
-    try {
+
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const canvas = await html2canvas(tempDiv, {
             scale: 2,
             useCORS: true,
             allowTaint: false,
-            backgroundColor: '#faf9f6',
-            width: 600,
+            backgroundColor: '#f7f4ee',
+            width: 794,
             height: tempDiv.scrollHeight,
             logging: false
         });
-        
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
+        const imgData = canvas.toDataURL('image/jpeg', 0.96);
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${product.name || 'product'}-technical-sheet.pdf`);
-        
+        pdf.save(`${(product.name || 'product').replace(/[^a-z0-9-_]+/gi, '-').toLowerCase()}-technical-sheet.pdf`);
     } catch (error) {
         console.error('PDF generation error:', error);
-        alert('Error generating PDF. Please try again.');
+        alert('Error generating the technical sheet. Please try again.');
     } finally {
-        document.body.removeChild(tempDiv);
+        tempDiv.remove();
     }
 };
 
