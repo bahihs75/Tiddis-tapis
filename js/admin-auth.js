@@ -44,12 +44,17 @@ loginForm.addEventListener('submit', async (e) => {
         passwordInput.value = '';
     } catch (err) {
         console.error("Login error:", err);
-        if (err.code === 'auth/operation-not-allowed') {
-            errorEl.textContent = 'Error: Email/Password sign-in is NOT enabled in Firebase Console.';
-        } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-            errorEl.textContent = 'Incorrect email or password.';
+        // عرض تفاصيل الخطأ بدقة لتسهيل التشخيص والتصحيح
+        const code = err.code || 'unknown-error';
+        const msg = err.message || '';
+        if (code === 'auth/operation-not-allowed') {
+            errorEl.textContent = 'Firebase Error: Email/Password sign-in is NOT enabled in Firebase Console -> Authentication -> Sign-in method.';
+        } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+            errorEl.textContent = `Login Failed (${code}): Please ensure user exists in Firebase Console and password is correct.`;
+        } else if (code === 'auth/invalid-api-key') {
+            errorEl.textContent = 'Firebase Error: Invalid API Key in firebase-config.js.';
         } else {
-            errorEl.textContent = `Error: ${err.code || err.message}`;
+            errorEl.textContent = `Error [${code}]: ${msg}`;
         }
     } finally {
         submitBtn.disabled = false;

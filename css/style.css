@@ -2203,3 +2203,19 @@ body {
         gap: 4px 6px;
     }
 }
+
+
+/* --- Instagram-style Hover Effect for Order Buttons --- */
+.btn-primary, .order-btn, .order-submit-btn, .btn-secondary {
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-primary:hover, .order-btn:hover, .order-submit-btn:hover, .btn-secondary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(78, 26, 29, 0.25);
+}
+
+.btn-primary:active, .order-btn:active, .order-submit-btn:active, .btn-secondary:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(78, 26, 29, 0.15);
+}
