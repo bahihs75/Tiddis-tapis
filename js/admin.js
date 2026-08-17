@@ -1968,24 +1968,19 @@ function renderHeroSlidesList(slides) {
     });
 }
 
-// ربط زر رفع صورة الهيرو باستخدام ImgBB API
-const uploadHeroImgBtn = document.getElementById('upload-hero-img-btn');
-const heroImageFile = document.getElementById('hero-image-file');
-
-uploadHeroImgBtn?.addEventListener('click', () => {
-    heroImageFile?.click();
-});
-
-heroImageFile?.addEventListener('change', async function() {
-    const file = this.files[0];
+/**
+ * دالة عامة لرفع الصور إلى ImgBB API
+ */
+async function uploadToImgBB(file, buttonElement, inputElement) {
     if (!file) return;
 
-    const apiKey = storeSettings.imageApiKey || '6d207e02198a847aa98d0a2a901485a5'; // مفتاح افتراضي جاهز للاستخدام أو مفتاح الأدمن
+    const apiKey = storeSettings.imageApiKey || '6d207e02198a847aa98d0a2a901485a5';
     const formData = new FormData();
     formData.append('image', file);
 
-    uploadHeroImgBtn.textContent = 'Uploading...';
-    uploadHeroImgBtn.disabled = true;
+    const originalText = buttonElement.textContent;
+    buttonElement.textContent = 'Uploading...';
+    buttonElement.disabled = true;
 
     try {
         const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
@@ -1994,8 +1989,10 @@ heroImageFile?.addEventListener('change', async function() {
         });
         const data = await response.json();
         if (data.success && data.data && data.data.url) {
-            if (heroSlideImage) heroSlideImage.value = data.data.url;
-            alert('Image uploaded successfully via ImgBB API!');
+            if (inputElement) inputElement.value = data.data.url;
+            // إطلاق حدث تغيير يدوي لتحديث المعاينة إذا لزم الأمر
+            inputElement.dispatchEvent(new Event('input'));
+            alert('Image uploaded successfully!');
         } else {
             alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
         }
@@ -2003,9 +2000,49 @@ heroImageFile?.addEventListener('change', async function() {
         console.error('Upload error:', err);
         alert('Network error during upload.');
     } finally {
-        uploadHeroImgBtn.textContent = '📁 Upload Image';
-        uploadHeroImgBtn.disabled = false;
+        buttonElement.textContent = originalText;
+        buttonElement.disabled = false;
     }
+}
+
+// 1. ربط رفع صورة الهيرو
+const uploadHeroImgBtn = document.getElementById('upload-hero-img-btn');
+const heroImageFile = document.getElementById('hero-image-file');
+uploadHeroImgBtn?.addEventListener('click', () => heroImageFile?.click());
+heroImageFile?.addEventListener('change', function() {
+    uploadToImgBB(this.files[0], uploadHeroImgBtn, document.getElementById('hero-slide-image'));
+});
+
+// 2. ربط رفع صورة المنتج الرئيسية
+const uploadProductMainBtn = document.getElementById('upload-product-main-btn');
+const productMainFile = document.getElementById('product-main-file');
+uploadProductMainBtn?.addEventListener('click', () => productMainFile?.click());
+productMainFile?.addEventListener('change', function() {
+    uploadToImgBB(this.files[0], uploadProductMainBtn, document.getElementById('product-main-image'));
+});
+
+// 3. ربط رفع صور المنتج الإضافية (دعم العناصر الديناميكية)
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('upload-additional-btn')) {
+        const fileInput = e.target.nextElementSibling;
+        fileInput?.click();
+    }
+});
+
+document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('additional-image-file')) {
+        const textInput = e.target.previousElementSibling.previousElementSibling;
+        const button = e.target.previousElementSibling;
+        uploadToImgBB(e.target.files[0], button, textInput);
+    }
+});
+
+// 4. ربط رفع الشعار (Logo)
+const uploadLogoBtn = document.getElementById('upload-logo-btn');
+const logoFile = document.getElementById('logo-file');
+uploadLogoBtn?.addEventListener('click', () => logoFile?.click());
+logoFile?.addEventListener('change', function() {
+    uploadToImgBB(this.files[0], uploadLogoBtn, document.getElementById('logo-url'));
 });
 
 saveHeroSlideBtn?.addEventListener('click', async function() {
