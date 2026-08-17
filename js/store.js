@@ -545,7 +545,8 @@ function handleSidebarClick(e) {
     const type = link.dataset.type || null;
     
     // إذا كنا في صفحة تفاصيل المنتج، توجيه المستخدم للصفحة الرئيسية عند النقر على الفئات أو الأقسام
-    if (window.location.pathname.includes('product.html')) {
+    // استخدام href.includes('product') للتعامل مع الروابط التي تحذف .html تلقائياً
+    if (window.location.href.includes('product')) {
         if (category && type) {
             window.location.href = `index.html?category=${encodeURIComponent(category)}&type=${encodeURIComponent(type)}`;
             return;
@@ -1731,7 +1732,17 @@ async function initStore() {
         listenToStoreSettings();
         listenToProducts();
         
-        if (window.location.pathname.includes('product.html')) {
+        // التحقق من وجود فلاتر في الرابط (للتوجيه من صفحة المنتج)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlCat = urlParams.get('category');
+        const urlType = urlParams.get('type');
+        if (urlCat && urlType) {
+            AppState.filters.category = urlCat;
+            AppState.filters.type = urlType;
+            // سيتم تطبيق الفلترة تلقائياً عند تحميل المنتجات في listenToProducts
+        }
+
+        if (window.location.href.includes('product')) {
             return;
         }
         

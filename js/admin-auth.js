@@ -9,6 +9,7 @@ import {
     signInWithEmailAndPassword,
     signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { initAdmin } from "./admin.js";
 
 const loginScreen = document.getElementById('admin-login-screen');
 const adminApp = document.getElementById('admin-app');
@@ -21,11 +22,19 @@ const currentEmailEl = document.getElementById('admin-current-email');
 const signOutBtn = document.getElementById('admin-sign-out-btn');
 
 // إظهار/إخفاء الشاشات حسب حالة تسجيل الدخول
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         loginScreen.style.display = 'none';
         adminApp.style.display = '';
         if (currentEmailEl) currentEmailEl.textContent = user.email;
+        
+        // تهيئة بيانات لوحة التحكم فقط بعد تسجيل الدخول الناجح
+        try {
+            await initAdmin();
+        } catch (err) {
+            console.error("Failed to initialize admin data:", err);
+            alert("Error loading admin data. Check console or Firebase permissions.");
+        }
     } else {
         loginScreen.style.display = 'flex';
         adminApp.style.display = 'none';
@@ -50,7 +59,14 @@ loginForm.addEventListener('submit', async (e) => {
         if (code === 'auth/operation-not-allowed') {
             errorEl.textContent = 'Firebase Error: Email/Password sign-in is NOT enabled in Firebase Console -> Authentication -> Sign-in method.';
         } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
-            errorEl.textContent = `Login Failed (${code}): Please ensure user exists in Firebase Console and password is correct.`;
+            errorEl.innerHTML = `
+                <div style="margin-bottom:8px;">Login Failed (${code})</div>
+                <div style="font-size:0.7rem; color:#666; line-height:1.4; text-align:left; border-top:1px solid #eee; pt-8;">
+                    • Check if user <b>${emailInput.value}</b> is added in Firebase Console > Auth.<br>
+                    • Ensure <b>Email/Password</b> provider is enabled.<br>
+                    • Check <b>Authorized Domains</b> in Firebase settings if using a new URL.
+                </div>
+            `;
         } else if (code === 'auth/invalid-api-key') {
             errorEl.textContent = 'Firebase Error: Invalid API Key in firebase-config.js.';
         } else {

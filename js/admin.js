@@ -1967,7 +1967,8 @@ async function initAdmin() {
         console.log('✅ TIDDIS TAPIS Admin Panel initialized successfully!');
     } catch (error) {
         console.error('❌ Error initializing admin panel:', error);
+        throw error; // إعادة الرمي ليتم التقاطه في admin-auth.js
     }
 }
 
-document.addEventListener('DOMContentLoaded', initAdmin);
+export { initAdmin };
