@@ -225,9 +225,18 @@ function getFilteredProducts(state) {
         });
     }
 
-    // 2. تصفية الفئات (Multi-select)
+    // 2. تصفية الفئات (Multi-select مع دعم الفئات الفرعية تلقائياً)
     if (advanced.categories.length > 0) {
-        result = result.filter(p => advanced.categories.includes(p.category));
+        const allowedCategories = new Set();
+        advanced.categories.forEach(catName => {
+            allowedCategories.add(catName);
+            const allCats = [...(AppState.categories.products || []), ...(AppState.categories.overview || [])];
+            const foundCat = allCats.find(c => c.name === catName);
+            if (foundCat && foundCat.subcategories && Array.isArray(foundCat.subcategories)) {
+                foundCat.subcategories.forEach(sub => allowedCategories.add(sub));
+            }
+        });
+        result = result.filter(p => allowedCategories.has(p.category) || allowedCategories.has(p.overviewCategory));
     }
 
     // 3. تصفية النطاق السعري
