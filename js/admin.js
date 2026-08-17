@@ -1678,7 +1678,22 @@ async function loadSettings() {
         if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
 
         renderContactIconsList(storeSettings.contacts || []);
-        renderHeroSlidesList(storeSettings.heroSlides || []);
+        
+        // Add default template slide if none exists to help the user start
+        if (!storeSettings.heroSlides || storeSettings.heroSlides.length === 0) {
+            storeSettings.heroSlides = [{
+                image: "https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1200&q=80",
+                title: "MONUMENTAL CONSTANTINE",
+                subtitle: "INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE",
+                btnText: "DISCOVER COLLECTION",
+                linkType: "all",
+                btnUrl: "",
+                svgIcon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`
+            }];
+            // We don't necessarily save it to Firestore yet, just show it in the UI
+            // But if the user wants it to be "editable", it's better to show it.
+        }
+        renderHeroSlidesList(storeSettings.heroSlides);
 
     } catch (error) {
         console.error('Error loading settings:', error);
