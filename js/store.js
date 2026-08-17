@@ -94,6 +94,7 @@ const DOM = {
     customSizeInput: document.getElementById('custom-size'),
     orderStatus: document.getElementById('order-status'),
     aboutText: document.getElementById('about-text'),
+    aboutImage: document.getElementById('about-image'),
     contactIcons: document.getElementById('contact-icons'),
     sidebar: document.getElementById('sidebar'),
     sidebarNav: document.getElementById('sidebar-nav'),
@@ -351,6 +352,7 @@ function listenToStoreSettings() {
         } else {
             AppState.settings.storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
+                aboutImage: 'assets/about-tiddis.jpg',
                 logoUrl: '',
                 sidebarBgColor: '#ffffff',
                 mainBgColor: '#faf9f6',
@@ -1532,7 +1534,14 @@ function renderProductDetail(product) {
     }
     
     if (pdfBtn) {
-        pdfBtn.addEventListener('click', () => generateProductPDF(product.id));
+        pdfBtn.addEventListener('click', () => {
+            const select = document.getElementById('product-detail-variant');
+            let selectedVariant = null;
+            if (select && hasVariants) {
+                selectedVariant = product.variants[parseInt(select.value)] || null;
+            }
+            generateProductPDF(product.id, selectedVariant);
+        });
     }
 }
 
@@ -1573,9 +1582,22 @@ function applyStoreSettings() {
         }
     });
     
-    // نص About Us
+    // About Us text and editorial image
     if (DOM.aboutText && settings.aboutText) {
         DOM.aboutText.textContent = settings.aboutText;
+    }
+    if (DOM.aboutImage) {
+        const fallbackImage = 'assets/about-tiddis.jpg';
+        const requestedImage = typeof settings.aboutImage === 'string' && settings.aboutImage.trim()
+            ? settings.aboutImage.trim()
+            : fallbackImage;
+        DOM.aboutImage.dataset.fallbackApplied = 'false';
+        DOM.aboutImage.onerror = () => {
+            if (DOM.aboutImage.dataset.fallbackApplied === 'true') return;
+            DOM.aboutImage.dataset.fallbackApplied = 'true';
+            DOM.aboutImage.src = fallbackImage;
+        };
+        DOM.aboutImage.src = requestedImage;
     }
     
     // أيقونات التواصل (SVG)

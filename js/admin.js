@@ -133,6 +133,7 @@ const saveImageApiBtn = document.getElementById('save-image-api-btn');
 const cancelImageApiBtn = document.getElementById('cancel-image-api-btn');
 const PRIVATE_IMAGE_SOURCES_KEY = 'tiddis-tapis:private-image-sources:v1';
 const aboutUsTextarea = document.getElementById('about-us-text');
+const aboutImageUrlInput = document.getElementById('about-image-url');
 const saveAboutBtn = document.getElementById('save-about-btn');
 const logoUrlInput = document.getElementById('logo-url');
 const saveLogoBtn = document.getElementById('save-logo-btn');
@@ -322,9 +323,9 @@ function renderCategories() {
             <div class="category-item" data-id="${cat.id}" data-order="${index}">
                 <span><strong>${cat.name}</strong></span>
                 <div class="cat-actions">
-                    <button class="edit-cat-btn" data-id="${cat.id}" data-name="${cat.name}">✏️</button>
-                    <button class="delete-cat-btn" data-id="${cat.id}" ${cat.subcategories && cat.subcategories.length > 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
-                        🗑️ ${cat.subcategories && cat.subcategories.length > 0 ? '(has sub-categories)' : ''}
+                    <button type="button" class="admin-action-btn edit-btn edit-cat-btn" data-id="${cat.id}" data-name="${cat.name}">Edit</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn delete-cat-btn" data-id="${cat.id}" ${cat.subcategories && cat.subcategories.length > 0 ? 'disabled' : ''}>
+                        Delete${cat.subcategories && cat.subcategories.length > 0 ? ' · has sub-categories' : ''}
                     </button>
                 </div>
             </div>
@@ -337,9 +338,9 @@ function renderCategories() {
                     <div class="subcategory-item" style="padding-left:32px;" data-cat-id="${cat.id}" data-sub="${sub}" data-order="${subIndex}">
                         <span>↳ ${sub}</span>
                         <div class="cat-actions">
-                            <button class="edit-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">✏️</button>
-                            <button class="delete-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${hasProducts ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
-                                🗑️ ${hasProducts ? '(has products)' : ''}
+                            <button type="button" class="admin-action-btn edit-btn edit-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">Edit</button>
+                            <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn delete-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${hasProducts ? 'disabled' : ''}>
+                                Delete${hasProducts ? ' · has products' : ''}
                             </button>
                         </div>
                     </div>
@@ -660,9 +661,9 @@ function renderOverviewCategories() {
             <div class="category-item" data-id="${cat.id}" data-order="${index}">
                 <span><strong>${cat.name}</strong></span>
                 <div class="cat-actions">
-                    <button class="edit-overview-cat-btn" data-id="${cat.id}" data-name="${cat.name}">✏️</button>
-                    <button class="delete-overview-cat-btn" data-id="${cat.id}" ${cat.subcategories && cat.subcategories.length > 0 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
-                        🗑️ ${cat.subcategories && cat.subcategories.length > 0 ? '(has sub-categories)' : ''}
+                    <button type="button" class="admin-action-btn edit-btn edit-overview-cat-btn" data-id="${cat.id}" data-name="${cat.name}">Edit</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn delete-overview-cat-btn" data-id="${cat.id}" ${cat.subcategories && cat.subcategories.length > 0 ? 'disabled' : ''}>
+                        Delete${cat.subcategories && cat.subcategories.length > 0 ? ' · has sub-categories' : ''}
                     </button>
                 </div>
             </div>
@@ -675,9 +676,9 @@ function renderOverviewCategories() {
                     <div class="subcategory-item" style="padding-left:32px;" data-cat-id="${cat.id}" data-sub="${sub}" data-order="${subIndex}">
                         <span>↳ ${sub}</span>
                         <div class="cat-actions">
-                            <button class="edit-overview-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">✏️</button>
-                            <button class="delete-overview-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${hasProducts ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
-                                🗑️ ${hasProducts ? '(has products)' : ''}
+                            <button type="button" class="admin-action-btn edit-btn edit-overview-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}">Edit</button>
+                            <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn delete-overview-sub-btn" data-cat-id="${cat.id}" data-sub="${sub}" ${hasProducts ? 'disabled' : ''}>
+                                Delete${hasProducts ? ' · has products' : ''}
                             </button>
                         </div>
                     </div>
@@ -922,15 +923,15 @@ function renderAttributes() {
                 <div class="attribute-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px;">
                     <h4 style="margin:0;">${attr.label}</h4>
                     <div class="attr-actions">
-                        <button class="edit-attr-btn btn-secondary" data-id="${attr.id}" data-label="${attr.label}">✏️</button>
-                        <button class="delete-attr-btn btn-secondary" data-id="${attr.id}" style="background:#fceaea; color:#c0392b;">🗑️</button>
+                        <button type="button" class="admin-action-btn edit-btn edit-attr-btn" data-id="${attr.id}" data-label="${attr.label}">Edit</button>
+                        <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn delete-attr-btn" data-id="${attr.id}">Delete</button>
                     </div>
                 </div>
                 <div class="options-container" id="options-${attr.id}">
                     ${(attr.options || []).map(opt => `
                         <div class="option-tag" style="display:inline-flex; align-items:center; background:#f0f0f0; padding:4px 10px; margin:4px; border-radius:4px; font-size:13px;">
                             ${opt}
-                            <button class="remove-option-btn" data-attr-id="${attr.id}" data-option="${opt}" style="background:none; border:none; margin-left:6px; cursor:pointer; color:#999;">✕</button>
+                            <button type="button" class="admin-action-btn admin-action-btn--quiet remove-option-btn" data-attr-id="${attr.id}" data-option="${opt}">Remove</button>
                         </div>
                     `).join('')}
                 </div>
@@ -1155,7 +1156,7 @@ addVariantBtn?.addEventListener('click', function() {
         <input type="text" class="form-input var-color" placeholder="Color (e.g., Grouna)" style="flex:1; min-width:80px;">
         <input type="number" class="form-input var-price" placeholder="Price (DZD)" style="flex:0.7; min-width:80px;">
         <input type="text" class="form-input var-image" placeholder="Image URL" style="flex:1.5; min-width:120px;">
-        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:0; cursor:pointer;">✕</button>
+        <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-variant">Remove</button>
     `;
     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
     variantsContainer?.appendChild(row);
@@ -1166,7 +1167,7 @@ addImageRowBtn?.addEventListener('click', function() {
     row.className = 'image-upload-row';
     row.innerHTML = `
         <input type="text" class="additional-image-url form-input" placeholder="Image URL">
-        <button type="button" class="btn-remove-image">✕</button>
+        <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image">Remove</button>
     `;
     row.querySelector('.btn-remove-image').addEventListener('click', () => {
         row.remove();
@@ -1306,7 +1307,7 @@ productForm?.addEventListener('submit', async function(e) {
             additionalImagesContainer.innerHTML = `
                 <div class="image-upload-row">
                     <input type="text" class="additional-image-url form-input" placeholder="Image URL">
-                    <button type="button" class="btn-remove-image" style="display:none;">✕</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
                 </div>
             `;
         }
@@ -1372,7 +1373,7 @@ async function editProduct(productId) {
                     row.className = 'image-upload-row';
                     row.innerHTML = `
                         <input type="text" class="additional-image-url form-input" value="${url}">
-                        <button type="button" class="btn-remove-image">✕</button>
+                        <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image">Remove</button>
                     `;
                     row.querySelector('.btn-remove-image').addEventListener('click', () => {
                         row.remove();
@@ -1386,7 +1387,7 @@ async function editProduct(productId) {
                 row.className = 'image-upload-row';
                 row.innerHTML = `
                     <input type="text" class="additional-image-url form-input" placeholder="Image URL">
-                    <button type="button" class="btn-remove-image" style="display:none;">✕</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
                 `;
                 additionalImagesContainer.appendChild(row);
             }
@@ -1411,7 +1412,7 @@ async function editProduct(productId) {
                         <input type="text" class="form-input var-color" value="${v.color || ''}" placeholder="Color" style="flex:1; min-width:80px;">
                         <input type="number" class="form-input var-price" value="${v.price || ''}" placeholder="Price" style="flex:0.7; min-width:80px;">
                         <input type="text" class="form-input var-image" value="${v.image || ''}" placeholder="Image URL" style="flex:1.5; min-width:120px;">
-                        <button type="button" class="btn-remove-variant" style="background:#c0392b; color:#fff; border:none; padding:0 12px; border-radius:0; cursor:pointer;">✕</button>
+                        <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-variant">Remove</button>
                     `;
                     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
                     variantsContainer.appendChild(row);
@@ -1674,7 +1675,7 @@ function renderOrders() {
                     </select>
                 </td>
                 <td>
-                    <button class="delete-order-btn" data-order-id="${order.id}" style="background:none; border:none; cursor:pointer; color:#c0392b;">🗑️</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger delete-order-btn" data-order-id="${order.id}">Delete</button>
                 </td>
             </tr>
         `;
@@ -1766,6 +1767,7 @@ async function loadSettings() {
         } else {
             storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
+                aboutImage: 'assets/about-tiddis.jpg',
                 logoUrl: '',
                 sidebarBgColor: '#ffffff',
                 mainBgColor: '#faf9f6',
@@ -1797,6 +1799,7 @@ async function loadSettings() {
         renderImageApiSourcesList();
         closeImageApiEditor();
         if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
+        if (aboutImageUrlInput) aboutImageUrlInput.value = storeSettings.aboutImage || 'assets/about-tiddis.jpg';
         if (logoUrlInput) logoUrlInput.value = storeSettings.logoUrl || '';
         if (sidebarBgColorInput) sidebarBgColorInput.value = storeSettings.sidebarBgColor || '#ffffff';
         if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
@@ -1928,13 +1931,20 @@ testSheetsBtn?.addEventListener('click', async function() {
 
 saveAboutBtn?.addEventListener('click', async function() {
     const text = aboutUsTextarea?.value.trim();
+    const imageUrl = aboutImageUrlInput?.value.trim() || 'assets/about-tiddis.jpg';
+    const validImagePath = /^(https?:\/\/|\/|\.\/|\.\.\/|assets\/)/i.test(imageUrl);
     if (!text) {
-        showAdminMessage('Please enter some text for the About section.');
+        showAdminMessage('Please enter some text for the About section.', 'error');
+        return;
+    }
+    if (!validImagePath) {
+        showAdminMessage('Use an HTTPS image URL or a local path such as assets/about-tiddis.jpg.', 'error');
         return;
     }
     storeSettings.aboutText = text;
+    storeSettings.aboutImage = imageUrl;
     if (await saveStoreSettings()) {
-        showAdminMessage('About Us text saved successfully!');
+        showAdminMessage('About Us text and image saved successfully!');
     }
 });
 
@@ -1994,7 +2004,7 @@ function renderContactIconsList(contacts) {
                     <span>${contact.platform}:</span>
                     <span style="color:#6b6b6b; font-size:13px;">${contact.value}</span>
                 </div>
-                <button class="remove-contact-btn" data-index="${index}">✕</button>
+                <button type="button" class="admin-action-btn admin-action-btn--danger remove-contact-btn" data-index="${index}">Delete</button>
             </div>
         `;
     });
@@ -2042,8 +2052,8 @@ function renderImageApiSourcesList() {
                 <span>${source.enabled === false ? 'Disabled' : 'Ready'} · ${maskApiKey(source.apiKey)}</span>
             </div>
             <div class="admin-inline-actions">
-                <button type="button" class="btn-secondary api-edit-source-btn" data-index="${index}">Edit</button>
-                <button type="button" class="btn-danger api-remove-source-btn" data-index="${index}">Delete</button>
+                <button type="button" class="admin-action-btn edit-btn api-edit-source-btn" data-index="${index}">Edit</button>
+                <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn api-remove-source-btn" data-index="${index}">Delete</button>
             </div>
         </div>
     `).join('');
@@ -2275,8 +2285,8 @@ function renderHeroSlidesList(slides) {
                     </div>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button class="btn-secondary edit-hero-btn" data-index="${index}" style="padding:4px 10px; font-size:12px;">Edit</button>
-                    <button class="btn-secondary delete-hero-btn" data-index="${index}" style="padding:4px 10px; font-size:12px; color:#c0392b; border-color:#c0392b;">Delete</button>
+                    <button type="button" class="admin-action-btn edit-btn edit-hero-btn" data-index="${index}">Edit</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger delete-btn delete-hero-btn" data-index="${index}">Delete</button>
                 </div>
             </div>
         `;

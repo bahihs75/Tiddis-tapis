@@ -129,7 +129,7 @@
                     <div style="display:flex; gap:10px; align-items:center;">
                         <input type="text" id="hero-slide-image" placeholder="https://..." class="form-input" style="flex:1;">
                         <input type="file" id="hero-image-file" accept="image/*" style="display:none;">
-                        <button type="button" id="upload-hero-img-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">📁 Upload Image</button>
+                        <button type="button" id="upload-hero-img-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload Image</button>
                     </div>
                     <small style="color:#666; font-size:11px; display:block; margin-top:4px;">Upload directly using ImgBB API or paste image URL.</small>
                 </div>
@@ -319,7 +319,7 @@
                             <label for="product-main-image">Main Image URL *</label>
                             <div class="form-row" style="gap: 10px;">
                                 <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required style="flex: 1;">
-                                <button type="button" id="upload-product-main-btn" class="btn-secondary" style="padding: 0 15px;">📁 Upload</button>
+                                <button type="button" id="upload-product-main-btn" class="btn-secondary" style="padding: 0 15px;">Upload</button>
                                 <input type="file" id="product-main-file" accept="image/*" style="display: none;">
                             </div>
                             <div id="main-image-preview" class="image-preview"></div>
@@ -335,12 +335,12 @@
                             <div id="additional-images-container">
                                 <div class="image-upload-row" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
                                     <input type="text" class="additional-image-url" placeholder="Image URL" style="flex: 1;">
-                                    <button type="button" class="upload-additional-btn btn-secondary" style="padding: 5px 15px;">📁 Upload</button>
+                                    <button type="button" class="admin-action-btn upload-additional-btn" style="padding: 5px 15px;">Upload</button>
                                     <input type="file" class="additional-image-file" accept="image/*" style="display: none;">
-                                    <button type="button" class="btn-remove-image" style="display:none;">✕</button>
+                                    <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
                                 </div>
                             </div>
-                            <button type="button" id="add-image-row-btn" class="btn-secondary">+ Add Another Image</button>
+                            <button type="button" id="add-image-row-btn" class="admin-action-btn admin-action-btn--quiet">Add Another Image</button>
                             <div id="additional-images-preview" class="image-preview-grid"></div>
                         </div>
                         <div class="form-group">
@@ -351,7 +351,7 @@
                         <hr>
                         <h4>Product Variants (Sizes / Colors)</h4>
                         <div id="variants-container"></div>
-                        <button type="button" id="add-variant-btn" class="btn-secondary">+ Add Variant</button>
+                        <button type="button" id="add-variant-btn" class="admin-action-btn admin-action-btn--quiet">Add Variant</button>
                         <hr>
                         <button type="submit" class="btn-primary" style="width:100%; margin-top:16px;">Save Product</button>
                     </form>
@@ -467,11 +467,17 @@
                 <button id="save-colors-btn" class="btn-primary">Preview & Save Colors</button>
             </div>
             <div class="admin-card">
-                <h3>About Us Text</h3>
+                <h3>About Us</h3>
                 <div class="form-group">
+                    <label for="about-us-text">About Us Text</label>
                     <textarea id="about-us-text" rows="4" class="form-input" placeholder="Enter about us text...">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</textarea>
-                    <button id="save-about-btn" class="btn-primary" style="margin-top:8px;">Save About Text</button>
                 </div>
+                <div class="form-group">
+                    <label for="about-image-url">About Us Image URL</label>
+                    <input id="about-image-url" type="url" class="form-input" placeholder="assets/about-tiddis.jpg" autocomplete="off">
+                    <p class="admin-help-text">Use a local asset path or a trusted HTTPS image URL. Leave the existing value if you do not want to change the image.</p>
+                </div>
+                <button id="save-about-btn" class="btn-primary">Save About Us</button>
             </div>
             <div class="admin-card">
                 <h3>Dynamic Logo</h3>
@@ -479,7 +485,7 @@
                     <label for="logo-url">Logo URL (SVG or Image link)</label>
                     <div class="form-row" style="gap: 10px;">
                         <input type="text" id="logo-url" placeholder="https://example.com/logo.svg" style="flex: 1;">
-                        <button type="button" id="upload-logo-btn" class="btn-secondary" style="padding: 0 15px;">📁 Upload</button>
+                        <button type="button" id="upload-logo-btn" class="btn-secondary" style="padding: 0 15px;">Upload</button>
                         <input type="file" id="logo-file" accept="image/*" style="display: none;">
                     </div>
                     <button id="save-logo-btn" class="btn-primary" style="margin-top:8px;">Update Logo</button>

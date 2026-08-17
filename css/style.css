@@ -4565,3 +4565,313 @@ body.sidebar-active .sidebar::after {
         min-width: 0;
     }
 }
+
+
+/* =========================================================
+   TIDDIS TAPIS — About Us editorial image + final desktop glass
+   ========================================================= */
+.about-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1.06fr) minmax(280px, .94fr);
+    align-items: center;
+    gap: clamp(28px, 6vw, 88px);
+    text-align: left;
+    padding-top: 56px;
+}
+
+.about-media-shell {
+    position: relative;
+    min-width: 0;
+}
+
+.about-media-frame {
+    position: relative;
+    min-height: 360px;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .64);
+    background: rgba(255, 255, 255, .24);
+    box-shadow: 0 24px 60px rgba(27, 23, 21, .12), inset 0 1px 0 rgba(255, 255, 255, .62);
+    backdrop-filter: blur(14px) saturate(1.08);
+    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.about-media-frame::after {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, .38);
+}
+
+.about-media-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    object-fit: cover;
+    object-position: center;
+}
+
+.about-media-caption,
+.section-eyebrow {
+    display: block;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .16em;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+
+.about-media-caption {
+    margin-top: 12px;
+    text-align: right;
+}
+
+.about-copy {
+    max-width: 500px;
+}
+
+.about-copy h3 {
+    margin: 10px 0 18px;
+    font-size: clamp(26px, 3.2vw, 42px);
+    letter-spacing: .04em;
+}
+
+.about-copy p {
+    margin: 0;
+    max-width: 42em;
+    text-align: left;
+}
+
+@media (min-width: 901px) {
+    /* Keep the desktop wordmark readable without a white plate. */
+    .desktop-header .header-brand {
+        padding: 7px 10px;
+        border: 1px solid rgba(255, 255, 255, .22) !important;
+        background: transparent !important;
+        box-shadow: 0 10px 28px rgba(24, 20, 18, .06), inset 0 1px 0 rgba(255, 255, 255, .24) !important;
+        backdrop-filter: blur(18px) saturate(1.18);
+        -webkit-backdrop-filter: blur(18px) saturate(1.18);
+    }
+}
+
+/* The remaining admin controls use the same compact Edit/Delete language. */
+.admin-content .admin-action-btn,
+.admin-content .attr-actions button,
+.admin-content .add-option-btn,
+.admin-content .remove-option-btn,
+.admin-content .btn-remove-variant,
+.admin-content .delete-order-btn,
+.admin-content .remove-contact-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    min-width: 72px;
+    padding: 7px 13px;
+    border: 1px solid rgba(78, 26, 29, .20);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .48);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: .03em;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.admin-content .admin-action-btn:hover,
+.admin-content .attr-actions button:hover,
+.admin-content .add-option-btn:hover,
+.admin-content .remove-option-btn:hover,
+.admin-content .btn-remove-variant:hover,
+.admin-content .delete-order-btn:hover,
+.admin-content .remove-contact-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, .84);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.admin-content .admin-action-btn--danger,
+.admin-content .delete-order-btn,
+.admin-content .remove-contact-btn,
+.admin-content .btn-remove-variant,
+.admin-content .delete-attr-btn,
+.admin-content .delete-hero-btn {
+    color: #8a3030;
+    border-color: rgba(138, 48, 48, .30);
+    background: rgba(142, 38, 42, .07);
+}
+
+.admin-content .admin-action-btn--quiet,
+.admin-content .remove-option-btn {
+    min-width: 62px;
+    color: var(--text-muted);
+    border-color: rgba(78, 26, 29, .14);
+    background: rgba(255, 255, 255, .30);
+}
+
+.admin-content .admin-action-btn:focus-visible,
+.admin-content .attr-actions button:focus-visible,
+.admin-content .add-option-btn:focus-visible,
+.admin-content .remove-option-btn:focus-visible,
+.admin-content .btn-remove-variant:focus-visible,
+.admin-content .delete-order-btn:focus-visible,
+.admin-content .remove-contact-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+    .about-section {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding-top: 36px;
+    }
+
+    .about-copy {
+        max-width: none;
+        text-align: center;
+    }
+
+    .about-copy p {
+        text-align: center;
+    }
+
+    .about-media-frame,
+    .about-media-frame img {
+        min-height: 0;
+    }
+
+    .about-media-frame {
+        aspect-ratio: 4 / 3;
+    }
+
+    .admin-content .admin-action-btn,
+    .admin-content .attr-actions button,
+    .admin-content .add-option-btn,
+    .admin-content .remove-option-btn,
+    .admin-content .btn-remove-variant,
+    .admin-content .delete-order-btn,
+    .admin-content .remove-contact-btn {
+        min-height: 38px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .about-media-frame,
+    .admin-content .admin-action-btn,
+    .admin-content .attr-actions button,
+    .admin-content .add-option-btn,
+    .admin-content .remove-option-btn,
+    .admin-content .btn-remove-variant,
+    .admin-content .delete-order-btn,
+    .admin-content .remove-contact-btn {
+        transition: none;
+    }
+}
+
+/* Legacy admin controls share the same Liquid Glass foundation. */
+.admin-content .btn-primary,
+.admin-content .btn-secondary,
+.admin-content .btn-danger,
+.admin-content .btn-ghost,
+.admin-content .admin-compact-btn,
+.admin-content .upload-additional-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    min-width: 72px;
+    padding: 8px 14px;
+    border: 1px solid rgba(78, 26, 29, .20);
+    border-radius: 999px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: .03em;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.admin-content .btn-primary {
+    background: color-mix(in srgb, var(--accent) 88%, #28231f 12%);
+    color: #fffaf5;
+    border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.admin-content .btn-secondary,
+.admin-content .btn-ghost,
+.admin-content .admin-compact-btn,
+.admin-content .upload-additional-btn {
+    background: rgba(255, 255, 255, .42);
+}
+
+.admin-content .btn-danger {
+    color: #8a3030;
+    border-color: rgba(138, 48, 48, .30);
+    background: rgba(142, 38, 42, .07);
+}
+
+.admin-content .btn-primary:hover,
+.admin-content .btn-secondary:hover,
+.admin-content .btn-danger:hover,
+.admin-content .btn-ghost:hover,
+.admin-content .admin-compact-btn:hover,
+.admin-content .upload-additional-btn:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent);
+}
+
+.admin-content .btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.admin-content .btn-secondary:hover,
+.admin-content .btn-ghost:hover,
+.admin-content .admin-compact-btn:hover,
+.admin-content .upload-additional-btn:hover {
+    background: rgba(255, 255, 255, .82);
+    color: var(--accent);
+}
+
+.admin-content .btn-primary:focus-visible,
+.admin-content .btn-secondary:focus-visible,
+.admin-content .btn-danger:focus-visible,
+.admin-content .btn-ghost:focus-visible,
+.admin-content .admin-compact-btn:focus-visible,
+.admin-content .upload-additional-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+    .admin-content .btn-primary,
+    .admin-content .btn-secondary,
+    .admin-content .btn-danger,
+    .admin-content .btn-ghost,
+    .admin-content .admin-compact-btn,
+    .admin-content .upload-additional-btn {
+        min-height: 38px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-content .btn-primary,
+    .admin-content .btn-secondary,
+    .admin-content .btn-danger,
+    .admin-content .btn-ghost,
+    .admin-content .admin-compact-btn,
+    .admin-content .upload-additional-btn {
+        transition: none;
+    }
+}
