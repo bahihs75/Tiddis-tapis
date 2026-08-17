@@ -4875,3 +4875,186 @@ body.sidebar-active .sidebar::after {
         transition: none;
     }
 }
+
+
+/* 2026-08-17 layout correction: keep the hero ambient layer image-led and the brand glass nearly transparent. */
+.hero-ambient-bg {
+    opacity: .92 !important;
+    filter: blur(68px) saturate(1.18) !important;
+    transform: scale(1.16) !important;
+}
+
+.hero-ambient-overlay {
+    background: rgba(0, 0, 0, .10) !important;
+    backdrop-filter: blur(16px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.12) !important;
+}
+
+.desktop-header,
+.mobile-header {
+    background: rgba(12, 12, 12, .08) !important;
+    border-bottom-color: transparent !important;
+}
+
+.desktop-header .header-brand,
+.mobile-header .mobile-brand {
+    background: rgba(255, 255, 255, .08) !important;
+    border-color: rgba(255, 255, 255, .34) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .34) !important;
+    backdrop-filter: blur(18px) saturate(1.18) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.18) !important;
+}
+
+.desktop-header .header-brand .brand-main,
+.desktop-header .header-brand .brand-sub,
+.mobile-header .mobile-brand .brand-main,
+.mobile-header .mobile-brand .brand-sub {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, .18), 0 1px 2px rgba(255, 255, 255, .50) !important;
+}
+
+@media (max-width: 480px) {
+    .hero-ambient-overlay {
+        background: rgba(0, 0, 0, .08) !important;
+    }
+}
+
+
+/* 2026-08-17 layout correction: keep the admin workspace inside the viewport. */
+#admin-app,
+#admin-app .admin-layout,
+#admin-app .admin-content,
+#admin-app .admin-main,
+#admin-app .admin-section,
+#admin-app .admin-card {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#admin-app .admin-content {
+    overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+    #admin-app .admin-content {
+        overflow-x: hidden;
+    }
+}
+
+#admin-app .form-row,
+#admin-app .variant-row,
+#admin-app .image-upload-row,
+#admin-app .product-admin-item,
+#admin-app .product-admin-actions,
+#admin-app .category-actions,
+#admin-app .overview-category-actions {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#admin-app .form-row,
+#admin-app .variant-row,
+#admin-app .image-upload-row {
+    flex-wrap: wrap;
+}
+
+#admin-app .form-row > *,
+#admin-app .variant-row > *,
+#admin-app .image-upload-row > *,
+#admin-app .product-admin-item > *,
+#admin-app .product-admin-actions > *,
+#admin-app .category-actions > *,
+#admin-app .overview-category-actions > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#admin-app .form-input,
+#admin-app .form-select,
+#admin-app textarea,
+#admin-app input,
+#admin-app select,
+#admin-app table {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#admin-app .admin-table-wrap,
+#admin-app .table-responsive,
+#admin-app .admin-table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 901px) {
+    #admin-app .admin-content {
+        width: calc(100% - var(--sidebar-width));
+        max-width: calc(100% - var(--sidebar-width));
+        margin-left: var(--sidebar-width);
+    }
+}
+
+@media (max-width: 900px) {
+    #admin-app .admin-content {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        padding-left: 16px;
+        padding-right: 16px;
+        overflow-x: hidden;
+    }
+
+    #admin-app .variant-row,
+    #admin-app .image-upload-row,
+    #admin-app .product-admin-item {
+        align-items: stretch;
+    }
+
+    #admin-app .variant-row > .form-input,
+    #admin-app .image-upload-row > .form-input,
+    #admin-app .image-upload-row > input,
+    #admin-app .variant-row > input {
+        flex: 1 1 160px !important;
+        width: min(100%, 100%);
+    }
+
+    #admin-app .product-admin-actions,
+    #admin-app .category-actions,
+    #admin-app .overview-category-actions {
+        flex-wrap: wrap;
+    }
+}
+
+/* Smooth Hero internal navigation: keep section headings clear of the fixed header. */
+#hero-slider-container,
+#products-grid,
+#about-section,
+#contact-section {
+    scroll-margin-top: 88px;
+}
+
+@media (max-width: 900px) {
+    #hero-slider-container,
+    #products-grid,
+    #about-section,
+    #contact-section {
+        scroll-margin-top: 76px;
+    }
+}
+
+/* Hero CTA navigation is handled in store.js for same-page destinations. */
+.hero-slide-cta-btn {
+    cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #hero-slider-container,
+    #products-grid,
+    #about-section,
+    #contact-section {
+        scroll-behavior: auto;
+    }
+}

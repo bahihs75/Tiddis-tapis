@@ -1705,6 +1705,48 @@ function renderHeroSlider(slides) {
         container.ontouchstart = () => { autoSlidePaused = true; };
         container.ontouchend = () => { autoSlidePaused = false; };
 
+        const heroCta = container.querySelector('.hero-slide-cta-btn');
+        if (heroCta && !isExternalLink) {
+            heroCta.addEventListener('click', event => {
+                const rawHref = heroCta.getAttribute('href') || '';
+                let destination;
+                try {
+                    destination = new URL(rawHref, window.location.href);
+                } catch {
+                    return;
+                }
+
+                const currentUrl = new URL(window.location.href);
+                const isStorePath = path => path === '/' || path === '' || path.endsWith('/index.html') || path.endsWith('/index');
+                const isSameStorePage = currentUrl.origin === destination.origin
+                    && isStorePath(currentUrl.pathname)
+                    && isStorePath(destination.pathname);
+
+                // Keep normal navigation for product pages or any other document.
+                if (!isSameStorePage) return;
+
+                const category = destination.searchParams.get('category');
+                const targetId = destination.hash ? decodeURIComponent(destination.hash.slice(1)) : '';
+                const target = targetId ? document.getElementById(targetId) : DOM.productsGrid;
+
+                if (!target) return;
+                event.preventDefault();
+
+                if (category) {
+                    AppState.filters.category = category;
+                    AppState.filters.type = destination.searchParams.get('type') || 'products';
+                    DOM.filterBtns.forEach(button => button.classList.remove('active'));
+                    filterProducts();
+                }
+
+                const nextQuery = destination.searchParams.toString();
+                const nextHash = destination.hash || (category ? '#products-grid' : '');
+                const nextPath = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${nextHash}`;
+                window.history.replaceState({}, '', nextPath);
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
         if (slides.length > 1) {
             container.querySelector('.hero-prev-btn')?.addEventListener('click', () => {
                 currentIndex = (currentIndex - 1 + slides.length) % slides.length;
