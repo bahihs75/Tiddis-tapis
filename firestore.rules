@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // المنتجات: يقرأها الجميع، ويكتبها المستخدمون المصادق عليهم فقط
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // الفئات: يقرأها الجميع، ويكتبها المستخدمون المصادق عليهم فقط
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // السمات (Attributes): يقرأها الجميع، ويكتبها المستخدمون المصادق عليهم فقط
+    match /attributes/{attributeId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // الإعدادات العامة للمتجر: يقرأها الجميع، ويكتبها المستخدمون المصادق عليهم فقط
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // الطلبات: السماح لأي زائر بإنشاء طلب، وعدم السماح بالقراءة/التعديل/الحذف إلا للمسجلين
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}

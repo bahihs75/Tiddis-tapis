@@ -523,17 +523,8 @@ function buildSidebarMenu() {
     sidebarBuilt = true;
     attachSidebarEvents();
     
-    // فتح القائمة الافتراضية (Products)
-    const productsNav = DOM.sidebarNav.querySelector('[data-section="products"]');
-    if (productsNav) {
-        const parentLi = productsNav.closest('.nav-item');
-        const subMenu = parentLi ? parentLi.querySelector('.sub-menu') : null;
-        if (subMenu) {
-            subMenu.classList.add('open');
-            const icon = productsNav.querySelector('.toggle-icon');
-            if (icon) icon.classList.add('open');
-        }
-    }
+    // ترك جميع القوائم مغلقة افتراضياً بناءً على طلب المستخدم
+
 }
 
 /** ربط أحداث القائمة الجانبية */
