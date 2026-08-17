@@ -4016,3 +4016,552 @@ body.sidebar-active .sidebar::after {
         padding-top: 0 !important;
     }
 }
+
+
+/* =========================================================
+   TIDDIS TAPIS — Mobile hero + admin workspace refinement
+   Local validation layer; preserves the Liquid Glass identity.
+   ========================================================= */
+
+@media (max-width: 900px) {
+    /* Keep the ambient hero behind the fixed header instead of starting below it. */
+    .main-content:not(.admin-content):not(.product-page-main) {
+        padding-top: 0 !important;
+    }
+
+    .mobile-header:not(.admin-mobile-header) {
+        background: rgba(255, 255, 255, .12) !important;
+        border-bottom-color: rgba(255, 255, 255, .24) !important;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .06);
+    }
+
+    .mobile-header:not(.admin-mobile-header) .mobile-brand {
+        padding: 9px 13px;
+        border: 1px solid rgba(255, 255, 255, .46);
+        border-radius: 2px;
+        background: rgba(255, 255, 255, .18) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .5);
+        backdrop-filter: blur(18px) saturate(1.2);
+        -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    }
+
+    .hero-slider-container {
+        width: 100vw;
+        height: 100svh;
+        min-height: 100svh;
+        padding: 7px;
+        background: transparent !important;
+    }
+
+    .hero-slide-card {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .hero-slide-image-frame {
+        width: calc(100% - 6px);
+        height: calc(100% - 6px);
+        min-height: 0;
+        margin: 3px;
+        border: 1px solid rgba(255, 255, 255, .62);
+        border-radius: 2px;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, .16), 0 0 0 1px rgba(255, 255, 255, .14);
+    }
+
+    .hero-slide-image-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .hero-ambient-bg {
+        inset: -18px;
+        opacity: 1;
+        filter: blur(58px) saturate(1.3);
+        transform: scale(1.2);
+    }
+
+    .hero-ambient-overlay {
+        background: rgba(255, 255, 255, .025) !important;
+        backdrop-filter: blur(18px) saturate(1.1);
+        -webkit-backdrop-filter: blur(18px) saturate(1.1);
+    }
+
+    /* Admin controls stay inside the phone viewport. */
+    #admin-app,
+    #admin-app .admin-content,
+    #admin-app .admin-section,
+    #admin-app .admin-card {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #admin-app .admin-content {
+        width: 100%;
+        overflow-x: clip;
+    }
+
+    #admin-app .admin-card,
+    #admin-app .form-group,
+    #admin-app .form-row,
+    #admin-app input,
+    #admin-app select,
+    #admin-app textarea {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    #admin-app .form-row {
+        flex-wrap: wrap;
+    }
+
+    #admin-app .form-row > input,
+    #admin-app .form-row > select,
+    #admin-app .form-row > button {
+        min-width: 0 !important;
+        flex: 1 1 100% !important;
+        width: 100%;
+    }
+
+    #products-list .product-admin-item,
+    #categories-list .category-item,
+    #overview-categories-list .category-item,
+    #contact-icons-list .contact-item,
+    #image-api-sources-list .api-source-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #products-list .product-admin-item > div:first-child,
+    #categories-list .category-item > div:first-child,
+    #overview-categories-list .category-item > div:first-child,
+    #contact-icons-list .contact-item > div:first-child,
+    #image-api-sources-list .api-source-summary {
+        min-width: 0;
+        flex: 1 1 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .product-admin-actions,
+    .category-actions,
+    .overview-category-actions,
+    .contact-actions,
+    .admin-inline-actions,
+    .hero-admin-actions {
+        display: flex !important;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .product-admin-actions button,
+    .category-actions button,
+    .overview-category-actions button,
+    .contact-actions button,
+    .admin-inline-actions button,
+    .hero-admin-actions button {
+        flex: 1 1 auto;
+        min-height: 38px;
+    }
+
+    #additional-images-container .image-upload-row,
+    #variants-container .variant-row {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        width: 100%;
+        gap: 8px !important;
+    }
+
+    #additional-images-container .image-upload-row > *,
+    #variants-container .variant-row > * {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex: none !important;
+        box-sizing: border-box;
+    }
+
+    .admin-card-heading-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .admin-compact-btn {
+        width: 100%;
+    }
+}
+
+/* Shared luxury action language for all admin edit/delete controls. */
+.admin-content .edit-btn,
+.admin-content .delete-btn,
+.admin-content .pdf-btn,
+.admin-content .btn-primary,
+.admin-content .btn-secondary,
+.admin-content .btn-danger,
+.admin-content .btn-ghost,
+.admin-content .hero-admin-actions button,
+.admin-content .admin-inline-actions button {
+    appearance: none;
+    border-radius: 999px;
+    min-height: 38px;
+    padding: 9px 15px;
+    border: 1px solid rgba(78, 26, 29, .18);
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    letter-spacing: .04em;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.admin-content .edit-btn,
+.admin-content .btn-secondary,
+.admin-content .btn-ghost,
+.admin-content .pdf-btn {
+    background: rgba(255, 255, 255, .48);
+    color: var(--accent, #4e1a1d);
+}
+
+.admin-content .delete-btn,
+.admin-content .btn-danger {
+    background: rgba(142, 38, 42, .08);
+    color: #8e262a;
+    border-color: rgba(142, 38, 42, .24);
+}
+
+.admin-content .btn-primary {
+    background: var(--accent, #4e1a1d);
+    color: #fff;
+    border-color: var(--accent, #4e1a1d);
+}
+
+.admin-content .edit-btn:hover,
+.admin-content .delete-btn:hover,
+.admin-content .pdf-btn:hover,
+.admin-content .btn-primary:hover,
+.admin-content .btn-secondary:hover,
+.admin-content .btn-danger:hover,
+.admin-content .btn-ghost:hover {
+    transform: translateY(-1px);
+    border-color: currentColor;
+}
+
+.admin-card-heading-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.admin-help-text,
+.admin-empty-state {
+    margin: 6px 0 0;
+    color: #6b6b6b;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.api-sources-list {
+    display: grid;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.api-source-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(78, 26, 29, .12);
+    background: rgba(255, 255, 255, .38);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.api-source-row.is-disabled {
+    opacity: .62;
+}
+
+.api-source-summary {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.api-source-summary span {
+    color: #6b6b6b;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.api-source-editor {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(78, 26, 29, .12);
+}
+
+.api-source-editor[hidden] {
+    display: none;
+}
+
+.api-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.admin-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-home-btn,
+.admin-home-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary, #171717);
+    text-decoration: none;
+}
+
+.admin-home-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(78, 26, 29, .18);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .26);
+    font-size: 22px;
+    line-height: 1;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.admin-home-link {
+    gap: 8px;
+}
+
+.admin-home-link span {
+    font-size: 20px;
+}
+
+.admin-message-overlay[hidden] {
+    display: none;
+}
+
+.admin-message-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(18, 15, 14, .28);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.admin-message-modal {
+    position: relative;
+    width: min(100%, 420px);
+    padding: 32px 26px 24px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, .66);
+    background: rgba(255, 255, 255, .76);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
+    backdrop-filter: blur(24px) saturate(1.15);
+    -webkit-backdrop-filter: blur(24px) saturate(1.15);
+}
+
+.admin-message-modal .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    border: 0;
+    background: transparent;
+    color: #6b6b6b;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.admin-message-mark {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 14px;
+    border: 1px solid rgba(78, 26, 29, .22);
+    border-radius: 50%;
+    color: var(--accent, #4e1a1d);
+    font-family: var(--font-serif, Georgia, serif);
+    font-size: 25px;
+}
+
+.admin-message-modal h2 {
+    margin: 0 0 8px;
+    font-family: var(--font-serif, Georgia, serif);
+    font-weight: 400;
+    letter-spacing: .04em;
+}
+
+.admin-message-modal p {
+    margin: 0 auto 20px;
+    max-width: 34em;
+    color: #5f5b59;
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.admin-message-modal.is-error .admin-message-mark {
+    color: #8e262a;
+    border-color: rgba(142, 38, 42, .3);
+}
+
+@media (max-width: 600px) {
+    .api-source-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .api-source-row .admin-inline-actions,
+    .api-editor-actions {
+        width: 100%;
+    }
+
+    .api-source-row .admin-inline-actions button,
+    .api-editor-actions button {
+        flex: 1 1 100%;
+    }
+}
+
+
+/* Final mobile hero edge-to-edge correction: remove the inherited 16px
+   main-content side padding while retaining a slim ambient reveal around
+   the image and a translucent Liquid Glass brand plate. */
+@media (max-width: 900px) {
+    .main-content:has(> #hero-slider-container),
+    .main-content:has(> #hero-slider-container) {
+        padding-inline: 0 !important;
+        width: 100%;
+        max-width: none;
+    }
+
+    .main-content:has(> #hero-slider-container) .hero-slider-container {
+        width: 100%;
+        margin-inline: 0 !important;
+        padding: 7px;
+    }
+
+    .mobile-header:not(.admin-mobile-header) .mobile-brand {
+        background: rgba(255, 255, 255, .07) !important;
+        border-color: rgba(255, 255, 255, .26);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .07), inset 0 1px 0 rgba(255, 255, 255, .28);
+        backdrop-filter: blur(20px) saturate(1.25);
+        -webkit-backdrop-filter: blur(20px) saturate(1.25);
+    }
+}
+
+@supports not selector(.main-content:has(> #hero-slider-container)) {
+    @media (max-width: 900px) {
+        .main-content {
+            padding-inline: 0 !important;
+        }
+    }
+}
+
+/* Product mobile: keep the back rail below the fixed mobile header. */
+@media (max-width: 900px) {
+    .product-page-main {
+        padding-top: calc(var(--tiddis-header-height) + 16px) !important;
+    }
+}
+
+/* Admin action controls: one Liquid Glass language across every editable list. */
+.admin-content .product-admin-actions button,
+.admin-content .category-actions button,
+.admin-content .overview-category-actions button,
+.admin-content .contact-actions button,
+.admin-content .admin-inline-actions button,
+.admin-content .hero-admin-actions button {
+    appearance: none;
+    background: rgba(255, 255, 255, .48);
+    color: var(--text-primary);
+    border: 1px solid rgba(78, 26, 29, .20);
+    border-radius: 999px;
+    min-height: 34px;
+    padding: 7px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.admin-content .product-admin-actions button:hover,
+.admin-content .category-actions button:hover,
+.admin-content .overview-category-actions button:hover,
+.admin-content .contact-actions button:hover,
+.admin-content .admin-inline-actions button:hover,
+.admin-content .hero-admin-actions button:hover {
+    background: rgba(255, 255, 255, .82);
+    border-color: rgba(78, 26, 29, .52);
+    color: var(--accent);
+}
+
+.admin-content .product-admin-actions .delete-btn,
+.admin-content .category-actions .delete-btn,
+.admin-content .overview-category-actions .delete-btn,
+.admin-content .contact-actions .delete-btn,
+.admin-content .hero-admin-actions .delete-hero-btn {
+    color: #8a3030;
+    border-color: rgba(138, 48, 48, .30);
+}
+
+.admin-content .product-admin-actions .delete-btn:hover,
+.admin-content .category-actions .delete-btn:hover,
+.admin-content .overview-category-actions .delete-btn:hover,
+.admin-content .contact-actions .delete-btn:hover,
+.admin-content .hero-admin-actions .delete-hero-btn:hover {
+    color: #a52222;
+    border-color: rgba(165, 34, 34, .60);
+}
+
+.admin-content .product-admin-actions button:focus-visible,
+.admin-content .category-actions button:focus-visible,
+.admin-content .overview-category-actions button:focus-visible,
+.admin-content .contact-actions button:focus-visible,
+.admin-content .admin-inline-actions button:focus-visible,
+.admin-content .hero-admin-actions button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+    .admin-content .product-admin-actions,
+    .admin-content .category-actions,
+    .admin-content .overview-category-actions,
+    .admin-content .contact-actions,
+    .admin-content .admin-inline-actions,
+    .admin-content .hero-admin-actions {
+        gap: 7px;
+    }
+
+    .admin-content .product-admin-actions button,
+    .admin-content .category-actions button,
+    .admin-content .overview-category-actions button,
+    .admin-content .contact-actions button,
+    .admin-content .admin-inline-actions button,
+    .admin-content .hero-admin-actions button {
+        flex: 1 1 110px;
+        min-width: 0;
+    }
+}

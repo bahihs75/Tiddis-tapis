@@ -375,17 +375,35 @@
             }
 
             .product-back-rail {
-                position: absolute;
-                top: 10px;
-                left: 16px;
-                z-index: 5;
-                padding: 0;
+                position: relative;
+                inset: auto;
+                z-index: 2;
+                grid-row: 1;
+                width: 100%;
+                min-height: 52px;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 0 2px;
+                margin: 0;
             }
 
             .product-back-icon {
-                width: 42px;
-                height: 42px;
-                font-size: 34px;
+                width: 48px;
+                height: 48px;
+                font-size: 38px;
+                border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+                background: color-mix(in srgb, var(--bg-color) 68%, transparent);
+                box-shadow: 0 10px 26px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255,255,255,.56);
+                backdrop-filter: blur(14px) saturate(1.15);
+                -webkit-backdrop-filter: blur(14px) saturate(1.15);
+            }
+
+            .product-gallery-shell {
+                grid-row: 2;
+            }
+
+            .product-info-glass-box {
+                grid-row: 3;
             }
 
             .product-gallery-shell {

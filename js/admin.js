@@ -42,6 +42,9 @@ let editingSubCategoryOldName = null;
 let editingOverviewCategoryId = null;
 let editingOverviewSubCategoryParentId = null;
 let editingOverviewSubCategoryOldName = null;
+let imageApiSources = [];
+let imageApiEditingIndex = -1;
+let imageApiEditing = false;
 
 // ============================================
 // 2. عناصر DOM الرئيسية
@@ -78,6 +81,8 @@ const addOverviewSubcategoryBtn = document.getElementById('add-overview-subcateg
 
 // عناصر إدارة المنتجات
 const productForm = document.getElementById('product-form');
+const productFormWrapper = document.getElementById('product-form-wrapper');
+const toggleProductFormBtn = document.getElementById('toggle-product-form-btn');
 const productIdInput = document.getElementById('product-id');
 const productNameInput = document.getElementById('product-name');
 const productCategorySelect = document.getElementById('product-category');
@@ -119,6 +124,14 @@ const googleSheetsUrlInput = document.getElementById('google-sheets-url');
 const testSheetsBtn = document.getElementById('test-sheets-btn');
 const imageProviderSelect = document.getElementById('image-provider-select');
 const imageApiKeyInput = document.getElementById('image-api-key');
+const imageApiSourcesList = document.getElementById('image-api-sources-list');
+const imageApiEditor = document.getElementById('image-api-editor');
+const imageApiSourceIndex = document.getElementById('image-api-source-index');
+const addImageApiBtn = document.getElementById('add-image-api-btn');
+const editImageApiBtn = document.getElementById('edit-image-api-btn');
+const saveImageApiBtn = document.getElementById('save-image-api-btn');
+const cancelImageApiBtn = document.getElementById('cancel-image-api-btn');
+const PRIVATE_IMAGE_SOURCES_KEY = 'tiddis-tapis:private-image-sources:v1';
 const aboutUsTextarea = document.getElementById('about-us-text');
 const saveAboutBtn = document.getElementById('save-about-btn');
 const logoUrlInput = document.getElementById('logo-url');
@@ -138,6 +151,47 @@ const addContactBtn = document.getElementById('add-contact-btn');
 // هامبورجر للأدمن
 const adminHamburger = document.getElementById('admin-hamburger');
 const adminSidebar = document.getElementById('admin-sidebar');
+const adminMessageModal = document.getElementById('admin-message-modal');
+const adminMessageTitle = document.getElementById('admin-message-title');
+const adminMessageText = document.getElementById('admin-message-text');
+const adminMessageMark = document.getElementById('admin-message-mark');
+const adminMessageClose = document.getElementById('admin-message-close');
+const adminMessageOk = document.getElementById('admin-message-ok');
+let adminMessageTimer = null;
+
+function closeAdminMessage() {
+    if (!adminMessageModal) return;
+    adminMessageModal.hidden = true;
+    adminMessageModal.setAttribute('aria-hidden', 'true');
+    if (adminMessageTimer) clearTimeout(adminMessageTimer);
+}
+
+function showAdminMessage(message, type = 'success') {
+    if (!adminMessageModal) {
+        console[type === 'error' ? 'error' : 'log'](message);
+        return;
+    }
+    const isError = type === 'error';
+    adminMessageModal.hidden = false;
+    adminMessageModal.setAttribute('aria-hidden', 'false');
+    adminMessageModal.classList.toggle('is-error', isError);
+    if (adminMessageTitle) adminMessageTitle.textContent = isError ? 'Operation needs attention' : 'Operation completed';
+    if (adminMessageText) adminMessageText.textContent = message;
+    if (adminMessageMark) adminMessageMark.textContent = isError ? '!' : '✓';
+    if (adminMessageOk) adminMessageOk.focus({ preventScroll: true });
+    if (adminMessageTimer) clearTimeout(adminMessageTimer);
+    adminMessageTimer = setTimeout(closeAdminMessage, isError ? 7000 : 4200);
+}
+
+adminMessageClose?.addEventListener('click', closeAdminMessage);
+adminMessageOk?.addEventListener('click', closeAdminMessage);
+adminMessageModal?.addEventListener('click', (event) => {
+    if (event.target === adminMessageModal) closeAdminMessage();
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && adminMessageModal && !adminMessageModal.hidden) closeAdminMessage();
+});
 
 function setAdminSidebarOpen(isOpen) {
     if (!adminSidebar) return;
@@ -390,7 +444,7 @@ function populateOverviewCategorySelects() {
 addCategoryBtn?.addEventListener('click', async function() {
     const name = newCategoryName?.value.trim();
     if (!name) {
-        alert('Please enter a category name.');
+        showAdminMessage('Please enter a category name.');
         return;
     }
 
@@ -403,10 +457,10 @@ addCategoryBtn?.addEventListener('click', async function() {
         });
         if (newCategoryName) newCategoryName.value = '';
         await loadCategories();
-        alert(`Category "${name}" added successfully!`);
+        showAdminMessage(`Category "${name}" added successfully!`);
     } catch (error) {
         console.error('Error adding category:', error);
-        alert('Error adding category.');
+        showAdminMessage('Error adding category.');
     }
 });
 
@@ -417,10 +471,10 @@ async function editCategory(categoryId, currentName) {
     try {
         await updateDoc(doc(db, 'categories', categoryId), { name: newName });
         await loadCategories();
-        alert('Category updated successfully!');
+        showAdminMessage('Category updated successfully!');
     } catch (error) {
         console.error('Error editing category:', error);
-        alert('Error editing category.');
+        showAdminMessage('Error editing category.');
     }
 }
 
@@ -428,7 +482,7 @@ async function deleteCategory(categoryId) {
     const cat = allCategories.find(c => c.id === categoryId);
     if (!cat) return;
     if (cat.subcategories && cat.subcategories.length > 0) {
-        alert('Cannot delete a category that has sub-categories. Please delete all sub-categories first.');
+        showAdminMessage('Cannot delete a category that has sub-categories. Please delete all sub-categories first.');
         return;
     }
     if (!confirm(`Are you sure you want to delete category "${cat.name}"?`)) return;
@@ -436,10 +490,10 @@ async function deleteCategory(categoryId) {
     try {
         await deleteDoc(doc(db, 'categories', categoryId));
         await loadCategories();
-        alert('Category deleted successfully.');
+        showAdminMessage('Category deleted successfully.');
     } catch (error) {
         console.error('Error deleting category:', error);
-        alert('Error deleting category.');
+        showAdminMessage('Error deleting category.');
     }
 }
 
@@ -449,7 +503,7 @@ addSubcategoryBtn?.addEventListener('click', async function() {
     const name = newSubcategoryName?.value.trim();
 
     if (!parentId || !name) {
-        alert('Please select a parent category and enter a sub-category name.');
+        showAdminMessage('Please select a parent category and enter a sub-category name.');
         return;
     }
 
@@ -460,18 +514,18 @@ addSubcategoryBtn?.addEventListener('click', async function() {
             const data = catDoc.data();
             const subcategories = data.subcategories || [];
             if (subcategories.includes(name)) {
-                alert('This sub-category already exists.');
+                showAdminMessage('This sub-category already exists.');
                 return;
             }
             subcategories.push(name);
             await updateDoc(catRef, { subcategories: subcategories });
             if (newSubcategoryName) newSubcategoryName.value = '';
             await loadCategories();
-            alert(`Sub-category "${name}" added successfully!`);
+            showAdminMessage(`Sub-category "${name}" added successfully!`);
         }
     } catch (error) {
         console.error('Error adding sub-category:', error);
-        alert('Error adding sub-category.');
+        showAdminMessage('Error adding sub-category.');
     }
 });
 
@@ -487,7 +541,7 @@ async function editSubCategory(categoryId, subName) {
             const subcategories = data.subcategories || [];
             const index = subcategories.indexOf(subName);
             if (index === -1) {
-                alert('Sub-category not found.');
+                showAdminMessage('Sub-category not found.');
                 return;
             }
             subcategories[index] = newName;
@@ -503,11 +557,11 @@ async function editSubCategory(categoryId, subName) {
             
             await loadCategories();
             await loadProducts();
-            alert('Sub-category updated successfully!');
+            showAdminMessage('Sub-category updated successfully!');
         }
     } catch (error) {
         console.error('Error editing sub-category:', error);
-        alert('Error editing sub-category.');
+        showAdminMessage('Error editing sub-category.');
     }
 }
 
@@ -515,7 +569,7 @@ async function deleteSubCategory(categoryId, subName) {
     // ✅ حماية: التحقق من وجود منتجات في هذه الفئة الفرعية
     const hasProducts = allProducts.some(p => p.category === subName);
     if (hasProducts) {
-        alert('Cannot delete a sub-category that has products. Please delete or move all products first.');
+        showAdminMessage('Cannot delete a sub-category that has products. Please delete or move all products first.');
         return;
     }
     if (!confirm(`Are you sure you want to delete sub-category "${subName}"?`)) return;
@@ -529,11 +583,11 @@ async function deleteSubCategory(categoryId, subName) {
             const updated = subcategories.filter(s => s !== subName);
             await updateDoc(catRef, { subcategories: updated });
             await loadCategories();
-            alert(`Sub-category "${subName}" deleted successfully.`);
+            showAdminMessage(`Sub-category "${subName}" deleted successfully.`);
         }
     } catch (error) {
         console.error('Error deleting sub-category:', error);
-        alert('Error deleting sub-category.');
+        showAdminMessage('Error deleting sub-category.');
     }
 }
 
@@ -554,10 +608,10 @@ async function saveCategoriesOrder(type) {
             batch.update(ref, { order: item.order });
         }
         await batch.commit();
-        alert('Category order saved successfully!');
+        showAdminMessage('Category order saved successfully!');
     } catch (error) {
         console.error('Error saving category order:', error);
-        alert('Error saving category order.');
+        showAdminMessage('Error saving category order.');
     }
 }
 
@@ -674,7 +728,7 @@ function renderOverviewCategories() {
 addOverviewCategoryBtn?.addEventListener('click', async function() {
     const name = newOverviewCategoryName?.value.trim();
     if (!name) {
-        alert('Please enter an overview category name.');
+        showAdminMessage('Please enter an overview category name.');
         return;
     }
 
@@ -688,10 +742,10 @@ addOverviewCategoryBtn?.addEventListener('click', async function() {
         if (newOverviewCategoryName) newOverviewCategoryName.value = '';
         await loadOverviewCategories();
         await loadCategories();
-        alert(`Overview category "${name}" added successfully!`);
+        showAdminMessage(`Overview category "${name}" added successfully!`);
     } catch (error) {
         console.error('Error adding overview category:', error);
-        alert('Error adding overview category.');
+        showAdminMessage('Error adding overview category.');
     }
 });
 
@@ -703,10 +757,10 @@ async function editOverviewCategory(categoryId, currentName) {
         await updateDoc(doc(db, 'categories', categoryId), { name: newName });
         await loadOverviewCategories();
         await loadCategories();
-        alert('Overview category updated successfully!');
+        showAdminMessage('Overview category updated successfully!');
     } catch (error) {
         console.error('Error editing overview category:', error);
-        alert('Error editing overview category.');
+        showAdminMessage('Error editing overview category.');
     }
 }
 
@@ -714,7 +768,7 @@ async function deleteOverviewCategory(categoryId) {
     const cat = allCategoriesOverview.find(c => c.id === categoryId);
     if (!cat) return;
     if (cat.subcategories && cat.subcategories.length > 0) {
-        alert('Cannot delete a category that has sub-categories. Please delete all sub-categories first.');
+        showAdminMessage('Cannot delete a category that has sub-categories. Please delete all sub-categories first.');
         return;
     }
     if (!confirm(`Are you sure you want to delete overview category "${cat.name}"?`)) return;
@@ -723,10 +777,10 @@ async function deleteOverviewCategory(categoryId) {
         await deleteDoc(doc(db, 'categories', categoryId));
         await loadOverviewCategories();
         await loadCategories();
-        alert('Overview category deleted successfully.');
+        showAdminMessage('Overview category deleted successfully.');
     } catch (error) {
         console.error('Error deleting overview category:', error);
-        alert('Error deleting overview category.');
+        showAdminMessage('Error deleting overview category.');
     }
 }
 
@@ -736,7 +790,7 @@ addOverviewSubcategoryBtn?.addEventListener('click', async function() {
     const name = newOverviewSubcategoryName?.value.trim();
 
     if (!parentId || !name) {
-        alert('Please select a parent category and enter a sub-category name.');
+        showAdminMessage('Please select a parent category and enter a sub-category name.');
         return;
     }
 
@@ -747,7 +801,7 @@ addOverviewSubcategoryBtn?.addEventListener('click', async function() {
             const data = catDoc.data();
             const subcategories = data.subcategories || [];
             if (subcategories.includes(name)) {
-                alert('This sub-category already exists.');
+                showAdminMessage('This sub-category already exists.');
                 return;
             }
             subcategories.push(name);
@@ -755,11 +809,11 @@ addOverviewSubcategoryBtn?.addEventListener('click', async function() {
             if (newOverviewSubcategoryName) newOverviewSubcategoryName.value = '';
             await loadOverviewCategories();
             await loadCategories();
-            alert(`Overview sub-category "${name}" added successfully!`);
+            showAdminMessage(`Overview sub-category "${name}" added successfully!`);
         }
     } catch (error) {
         console.error('Error adding overview sub-category:', error);
-        alert('Error adding overview sub-category.');
+        showAdminMessage('Error adding overview sub-category.');
     }
 });
 
@@ -775,7 +829,7 @@ async function editOverviewSubCategory(categoryId, subName) {
             const subcategories = data.subcategories || [];
             const index = subcategories.indexOf(subName);
             if (index === -1) {
-                alert('Sub-category not found.');
+                showAdminMessage('Sub-category not found.');
                 return;
             }
             subcategories[index] = newName;
@@ -792,11 +846,11 @@ async function editOverviewSubCategory(categoryId, subName) {
             await loadOverviewCategories();
             await loadCategories();
             await loadProducts();
-            alert('Overview sub-category updated successfully!');
+            showAdminMessage('Overview sub-category updated successfully!');
         }
     } catch (error) {
         console.error('Error editing overview sub-category:', error);
-        alert('Error editing overview sub-category.');
+        showAdminMessage('Error editing overview sub-category.');
     }
 }
 
@@ -804,7 +858,7 @@ async function deleteOverviewSubCategory(categoryId, subName) {
     // ✅ حماية: التحقق من وجود منتجات في هذه الفئة الفرعية
     const hasProducts = allProducts.some(p => p.overviewCategory === subName);
     if (hasProducts) {
-        alert('Cannot delete an overview sub-category that has products. Please delete or move all products first.');
+        showAdminMessage('Cannot delete an overview sub-category that has products. Please delete or move all products first.');
         return;
     }
     if (!confirm(`Are you sure you want to delete overview sub-category "${subName}"?`)) return;
@@ -819,11 +873,11 @@ async function deleteOverviewSubCategory(categoryId, subName) {
             await updateDoc(catRef, { subcategories: updated });
             await loadOverviewCategories();
             await loadCategories();
-            alert(`Overview sub-category "${subName}" deleted successfully.`);
+            showAdminMessage(`Overview sub-category "${subName}" deleted successfully.`);
         }
     } catch (error) {
         console.error('Error deleting overview sub-category:', error);
-        alert('Error deleting overview sub-category.');
+        showAdminMessage('Error deleting overview sub-category.');
     }
 }
 
@@ -912,7 +966,7 @@ function renderAttributes() {
 addAttributeBtn?.addEventListener('click', async function() {
     const label = newAttributeLabel?.value.trim();
     if (!label) {
-        alert('Please enter an attribute label.');
+        showAdminMessage('Please enter an attribute label.');
         return;
     }
 
@@ -926,7 +980,7 @@ addAttributeBtn?.addEventListener('click', async function() {
         await loadAttributes();
     } catch (error) {
         console.error('Error adding attribute:', error);
-        alert('Error adding attribute.');
+        showAdminMessage('Error adding attribute.');
     }
 });
 
@@ -939,7 +993,7 @@ async function editAttribute(attrId, currentLabel) {
         await loadAttributes();
     } catch (error) {
         console.error('Error editing attribute:', error);
-        alert('Error editing attribute.');
+        showAdminMessage('Error editing attribute.');
     }
 }
 
@@ -951,7 +1005,7 @@ async function deleteAttribute(attrId) {
         await loadAttributes();
     } catch (error) {
         console.error('Error deleting attribute:', error);
-        alert('Error deleting attribute.');
+        showAdminMessage('Error deleting attribute.');
     }
 }
 
@@ -962,7 +1016,7 @@ async function addOptionToAttribute(attrId, option) {
     
     const options = attr.options || [];
     if (options.includes(option)) {
-        alert('Option already exists.');
+        showAdminMessage('Option already exists.');
         return;
     }
 
@@ -972,7 +1026,7 @@ async function addOptionToAttribute(attrId, option) {
         await loadAttributes();
     } catch (error) {
         console.error('Error adding option:', error);
-        alert('Error adding option.');
+        showAdminMessage('Error adding option.');
     }
 }
 
@@ -988,7 +1042,7 @@ async function removeOptionFromAttribute(attrId, option) {
         await loadAttributes();
     } catch (error) {
         console.error('Error removing option:', error);
-        alert('Error removing option.');
+        showAdminMessage('Error removing option.');
     }
 }
 
@@ -1065,9 +1119,9 @@ function renderProductsList() {
                     <span style="color:#4E1A1D; font-weight:600; margin-left:12px;">${price} DZD</span>
                 </div>
                 <div class="product-admin-actions">
-                    <button class="edit-btn" data-id="${product.id}">✏️ Edit</button>
-                    <button class="delete-btn" data-id="${product.id}">🗑️ Delete</button>
-                    <button class="pdf-btn" data-id="${product.id}">📄 PDF</button>
+                    <button type="button" class="edit-btn" data-id="${product.id}">Edit</button>
+                    <button type="button" class="delete-btn" data-id="${product.id}">Delete</button>
+                    <button type="button" class="pdf-btn" data-id="${product.id}">PDF</button>
                 </div>
             </div>
         `;
@@ -1086,7 +1140,7 @@ function renderProductsList() {
             if (window.generateProductPDF) {
                 window.generateProductPDF(this.dataset.id);
             } else {
-                alert('PDF generation function not loaded. Please refresh the page.');
+                showAdminMessage('PDF generation function not loaded. Please refresh the page.');
             }
         });
     });
@@ -1195,7 +1249,7 @@ productForm?.addEventListener('submit', async function(e) {
     });
 
     if (!name || !category || !basePrice || !imageUrl) {
-        alert('Please fill in all required fields (Name, Category, Price, Main Image).');
+        showAdminMessage('Please fill in all required fields (Name, Category, Price, Main Image).');
         return;
     }
 
@@ -1238,11 +1292,11 @@ productForm?.addEventListener('submit', async function(e) {
 
         if (editingProductId) {
             await updateDoc(doc(db, 'products', editingProductId), productData);
-            alert('Product updated successfully!');
+            showAdminMessage('Product updated successfully!');
         } else {
             productData.createdAt = new Date().toISOString();
             await addDoc(collection(db, 'products'), productData);
-            alert('Product added successfully!');
+            showAdminMessage('Product added successfully!');
         }
 
         editingProductId = null;
@@ -1270,7 +1324,7 @@ productForm?.addEventListener('submit', async function(e) {
 
     } catch (error) {
         console.error('Error saving product:', error);
-        alert('Error saving product. Please check console for details.');
+        showAdminMessage('Error saving product. Please check console for details.');
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -1284,7 +1338,7 @@ async function editProduct(productId) {
         const docRef = doc(db, 'products', productId);
         const docSnap = await getDoc(docRef);
         if (!docSnap.exists()) {
-            alert('Product not found.');
+            showAdminMessage('Product not found.');
             return;
         }
 
@@ -1374,11 +1428,16 @@ async function editProduct(productId) {
         });
         if (sections.products) sections.products.classList.add('active');
 
-        productForm?.scrollIntoView({ behavior: 'smooth' });
+        if (productFormWrapper) productFormWrapper.classList.add('open');
+        if (toggleProductFormBtn) {
+            toggleProductFormBtn.classList.add('is-editing');
+            toggleProductFormBtn.innerHTML = '<span class="plus-icon">−</span> Close Product Form';
+        }
+        productForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     } catch (error) {
         console.error('Error loading product for edit:', error);
-        alert('Error loading product.');
+        showAdminMessage('Error loading product.');
     }
 }
 
@@ -1388,10 +1447,10 @@ async function deleteProduct(productId) {
     try {
         await deleteDoc(doc(db, 'products', productId));
         await loadProducts();
-        alert('Product deleted successfully.');
+        showAdminMessage('Product deleted successfully.');
     } catch (error) {
         console.error('Error deleting product:', error);
-        alert('Error deleting product.');
+        showAdminMessage('Error deleting product.');
     }
 }
 
@@ -1500,14 +1559,14 @@ async function saveDeliveryRates() {
         await setDoc(docRef, deliveryRates);
     } catch (error) {
         console.error('Error saving delivery rates:', error);
-        alert('Error saving delivery rates.');
+        showAdminMessage('Error saving delivery rates.');
     }
 }
 
 applyBulkPriceBtn?.addEventListener('click', function() {
     const price = parseFloat(bulkDeliveryPrice?.value);
     if (isNaN(price) || price < 0) {
-        alert('Please enter a valid price.');
+        showAdminMessage('Please enter a valid price.');
         return;
     }
     if (!confirm(`Apply ${price} DZD to all wilayas?`)) return;
@@ -1520,7 +1579,7 @@ applyBulkPriceBtn?.addEventListener('click', function() {
     });
     saveDeliveryRates();
     renderDeliveryTable();
-    alert(`Price of ${price} DZD applied to all wilayas.`);
+    showAdminMessage(`Price of ${price} DZD applied to all wilayas.`);
 });
 
 setAllFreeBtn?.addEventListener('click', function() {
@@ -1533,7 +1592,7 @@ setAllFreeBtn?.addEventListener('click', function() {
     });
     saveDeliveryRates();
     renderDeliveryTable();
-    alert('All wilayas set to Free Delivery.');
+    showAdminMessage('All wilayas set to Free Delivery.');
 });
 
 resetAllDeliveryBtn?.addEventListener('click', function() {
@@ -1546,7 +1605,7 @@ resetAllDeliveryBtn?.addEventListener('click', function() {
     });
     saveDeliveryRates();
     renderDeliveryTable();
-    alert('All delivery prices reset to 500 DZD.');
+    showAdminMessage('All delivery prices reset to 500 DZD.');
 });
 
 // ============================================
@@ -1630,10 +1689,10 @@ function renderOrders() {
             const newStatus = this.value;
             try {
                 await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
-                alert('Order status updated successfully!');
+                showAdminMessage('Order status updated successfully!');
             } catch (error) {
                 console.error('Error updating order status:', error);
-                alert('Error updating order status.');
+                showAdminMessage('Error updating order status.');
             }
         });
     });
@@ -1645,10 +1704,10 @@ function renderOrders() {
             try {
                 await deleteDoc(doc(db, 'orders', orderId));
                 await loadOrders();
-                alert('Order deleted successfully.');
+                showAdminMessage('Order deleted successfully.');
             } catch (error) {
                 console.error('Error deleting order:', error);
-                alert('Error deleting order.');
+                showAdminMessage('Error deleting order.');
             }
         });
     });
@@ -1663,6 +1722,40 @@ function updateOrderStats() {
 // ============================================
 // 10. إعدادات المتجر
 // ============================================
+
+function normalizeImageSources(sources) {
+    if (!Array.isArray(sources)) return [];
+    return sources
+        .filter(source => source && typeof source === 'object')
+        .map(source => ({
+            provider: ['imgbb', 'cloudinary', 'pixeldrain', 'direct'].includes(source.provider) ? source.provider : 'imgbb',
+            apiKey: typeof source.apiKey === 'string' ? source.apiKey : '',
+            label: typeof source.label === 'string' ? source.label : providerLabel(source.provider),
+            enabled: source.enabled !== false
+        }))
+        .filter(source => source.provider === 'direct' || source.apiKey);
+}
+
+function readPrivateImageSources() {
+    try {
+        const raw = localStorage.getItem(PRIVATE_IMAGE_SOURCES_KEY);
+        return raw ? normalizeImageSources(JSON.parse(raw)) : [];
+    } catch (error) {
+        console.warn('Unable to read private image sources from this browser.', error);
+        return [];
+    }
+}
+
+function savePrivateImageSources() {
+    try {
+        localStorage.setItem(PRIVATE_IMAGE_SOURCES_KEY, JSON.stringify(normalizeImageSources(imageApiSources)));
+        return true;
+    } catch (error) {
+        console.error('Unable to save private image sources locally:', error);
+        showAdminMessage('Could not save the private image sources on this device.', 'error');
+        return false;
+    }
+}
 
 async function loadSettings() {
     try {
@@ -1679,14 +1772,30 @@ async function loadSettings() {
                 contacts: [],
                 googleSheetsUrl: '',
                 imageProvider: 'imgbb',
-                imageApiKey: ''
+                imageApiKey: '',
+                imageSources: []
             };
             await setDoc(settingsRef, storeSettings);
         }
 
         if (googleSheetsUrlInput) googleSheetsUrlInput.value = storeSettings.googleSheetsUrl || '';
-        if (imageProviderSelect) imageProviderSelect.value = storeSettings.imageProvider || 'imgbb';
-        if (imageApiKeyInput) imageApiKeyInput.value = storeSettings.imageApiKey || '';
+        const legacyImageSources = normalizeImageSources(
+            storeSettings.imageSources?.length
+                ? storeSettings.imageSources
+                : (storeSettings.imageProvider || storeSettings.imageApiKey)
+                    ? [{
+                        provider: storeSettings.imageProvider || 'imgbb',
+                        apiKey: storeSettings.imageApiKey || '',
+                        label: storeSettings.imageProvider || 'Image source',
+                        enabled: true
+                    }]
+                    : []
+        );
+        const privateSources = readPrivateImageSources();
+        imageApiSources = privateSources.length ? privateSources : legacyImageSources;
+        if (!privateSources.length && legacyImageSources.length) savePrivateImageSources();
+        renderImageApiSourcesList();
+        closeImageApiEditor();
         if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
         if (logoUrlInput) logoUrlInput.value = storeSettings.logoUrl || '';
         if (sidebarBgColorInput) sidebarBgColorInput.value = storeSettings.sidebarBgColor || '#ffffff';
@@ -1712,18 +1821,22 @@ async function loadSettings() {
 
     } catch (error) {
         console.error('Error loading settings:', error);
-        alert('Error loading settings.');
+        showAdminMessage('Error loading settings.');
     }
 }
 
 async function saveStoreSettings() {
     try {
         const settingsRef = doc(db, 'settings', 'storeSettings');
-        await setDoc(settingsRef, storeSettings);
+        const publicSettings = { ...storeSettings };
+        delete publicSettings.imageSources;
+        delete publicSettings.imageApiKey;
+        delete publicSettings.imageProvider;
+        await setDoc(settingsRef, publicSettings);
         return true;
     } catch (error) {
         console.error('Error saving settings:', error);
-        alert('Error saving settings.');
+        showAdminMessage('Error saving settings.');
         return false;
     }
 }
@@ -1763,7 +1876,7 @@ saveColorsBtn?.addEventListener('click', function() {
                 const sidebarEl = document.querySelector('.sidebar');
                 if (sidebarEl) sidebarEl.style.backgroundColor = sidebarColor;
                 document.body.style.backgroundColor = mainColor;
-                alert('Colors updated successfully!');
+                showAdminMessage('Colors updated successfully!');
             }
         };
         colorConfirmNo.onclick = function() {
@@ -1780,7 +1893,7 @@ saveColorsBtn?.addEventListener('click', function() {
 testSheetsBtn?.addEventListener('click', async function() {
     const url = googleSheetsUrlInput?.value.trim();
     if (!url) {
-        alert('Please paste a Google Sheets Web App URL first.');
+        showAdminMessage('Please paste a Google Sheets Web App URL first.');
         return;
     }
 
@@ -1803,10 +1916,10 @@ testSheetsBtn?.addEventListener('click', async function() {
             body: JSON.stringify(testData)
         });
 
-        alert('✅ Connection successful! (Check your Google Sheet for a test entry.)');
+        showAdminMessage('✅ Connection successful! (Check your Google Sheet for a test entry.)');
     } catch (error) {
         console.error('Test error:', error);
-        alert('❌ Connection failed. Please check your URL and try again.');
+        showAdminMessage('❌ Connection failed. Please check your URL and try again.');
     } finally {
         this.disabled = false;
         this.textContent = 'Test Connection';
@@ -1816,12 +1929,12 @@ testSheetsBtn?.addEventListener('click', async function() {
 saveAboutBtn?.addEventListener('click', async function() {
     const text = aboutUsTextarea?.value.trim();
     if (!text) {
-        alert('Please enter some text for the About section.');
+        showAdminMessage('Please enter some text for the About section.');
         return;
     }
     storeSettings.aboutText = text;
     if (await saveStoreSettings()) {
-        alert('About Us text saved successfully!');
+        showAdminMessage('About Us text saved successfully!');
     }
 });
 
@@ -1829,7 +1942,7 @@ saveLogoBtn?.addEventListener('click', async function() {
     const url = logoUrlInput?.value.trim();
     storeSettings.logoUrl = url;
     if (await saveStoreSettings()) {
-        alert('Logo URL saved successfully!');
+        showAdminMessage('Logo URL saved successfully!');
     }
 });
 
@@ -1838,7 +1951,7 @@ addContactBtn?.addEventListener('click', async function() {
     const value = newContactValue?.value.trim();
 
     if (!platform || !value) {
-        alert('Please select a platform and enter a value.');
+        showAdminMessage('Please select a platform and enter a value.');
         return;
     }
 
@@ -1848,7 +1961,7 @@ addContactBtn?.addEventListener('click', async function() {
     if (await saveStoreSettings()) {
         if (newContactValue) newContactValue.value = '';
         renderContactIconsList(storeSettings.contacts);
-        alert('Contact added successfully!');
+        showAdminMessage('Contact added successfully!');
     }
 });
 
@@ -1895,29 +2008,123 @@ function renderContactIconsList(contacts) {
             storeSettings.contacts.splice(index, 1);
             if (await saveStoreSettings()) {
                 renderContactIconsList(storeSettings.contacts);
-                alert('Contact removed.');
+                showAdminMessage('Contact removed.');
             }
         });
     });
 }
 
-imageProviderSelect?.addEventListener('change', function() {
-    const provider = this.value;
-    const apiKeyGroup = document.getElementById('api-key-group');
-    if (provider === 'direct') {
-        if (apiKeyGroup) apiKeyGroup.style.display = 'none';
-        if (imageApiKeyInput) imageApiKeyInput.placeholder = 'Direct link mode - no API key needed';
-    } else {
-        if (apiKeyGroup) apiKeyGroup.style.display = 'block';
-        if (imageApiKeyInput) imageApiKeyInput.placeholder = `Enter your ${provider} API key`;
-    }
-    storeSettings.imageProvider = provider;
-    saveStoreSettings();
-});
+function maskApiKey(value = '') {
+    if (!value) return 'Not configured';
+    if (value.length <= 8) return '••••••••';
+    return `${value.slice(0, 4)}••••${value.slice(-4)}`;
+}
 
-imageApiKeyInput?.addEventListener('change', function() {
-    storeSettings.imageApiKey = this.value.trim();
-    saveStoreSettings();
+function providerLabel(provider) {
+    return {
+        imgbb: 'ImgBB API',
+        cloudinary: 'Cloudinary API',
+        pixeldrain: 'Pixeldrain API',
+        direct: 'Direct Link (Manual)'
+    }[provider] || provider;
+}
+
+function renderImageApiSourcesList() {
+    if (!imageApiSourcesList) return;
+    if (!imageApiSources.length) {
+        imageApiSourcesList.innerHTML = '<p class="admin-empty-state">No image source saved yet. Add one to enable uploads.</p>';
+        return;
+    }
+    imageApiSourcesList.innerHTML = imageApiSources.map((source, index) => `
+        <div class="api-source-row ${source.enabled === false ? 'is-disabled' : ''}">
+            <div class="api-source-summary">
+                <strong>${providerLabel(source.provider)}</strong>
+                <span>${source.enabled === false ? 'Disabled' : 'Ready'} · ${maskApiKey(source.apiKey)}</span>
+            </div>
+            <div class="admin-inline-actions">
+                <button type="button" class="btn-secondary api-edit-source-btn" data-index="${index}">Edit</button>
+                <button type="button" class="btn-danger api-remove-source-btn" data-index="${index}">Delete</button>
+            </div>
+        </div>
+    `).join('');
+    imageApiSourcesList.querySelectorAll('.api-edit-source-btn').forEach(button => {
+        button.addEventListener('click', () => openImageApiEditor(Number(button.dataset.index)));
+    });
+    imageApiSourcesList.querySelectorAll('.api-remove-source-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const index = Number(button.dataset.index);
+            if (!confirm('Delete this image source?')) return;
+            imageApiSources.splice(index, 1);
+            if (!savePrivateImageSources()) return;
+            if (await saveStoreSettings()) renderImageApiSourcesList();
+        });
+    });
+}
+
+function setImageApiEditorMode(isEditing) {
+    imageApiEditing = Boolean(isEditing);
+    if (imageApiKeyInput) {
+        imageApiKeyInput.readOnly = !imageApiEditing;
+        imageApiKeyInput.type = imageApiEditing ? 'text' : 'password';
+    }
+    if (imageProviderSelect) imageProviderSelect.disabled = !imageApiEditing;
+    if (editImageApiBtn) editImageApiBtn.hidden = imageApiEditing || imageApiEditingIndex < 0;
+    if (saveImageApiBtn) saveImageApiBtn.hidden = !imageApiEditing;
+    if (cancelImageApiBtn) cancelImageApiBtn.hidden = !imageApiEditing;
+}
+
+function openImageApiEditor(index = -1) {
+    imageApiEditingIndex = index;
+    if (!imageApiEditor) return;
+    imageApiEditor.hidden = false;
+    const source = imageApiSources[index] || { provider: 'imgbb', apiKey: '' };
+    if (imageApiSourceIndex) imageApiSourceIndex.value = String(index);
+    if (imageProviderSelect) imageProviderSelect.value = source.provider || 'imgbb';
+    if (imageApiKeyInput) imageApiKeyInput.value = source.apiKey || '';
+    setImageApiEditorMode(index < 0);
+    updateImageApiKeyVisibility();
+    if (index >= 0) imageApiKeyInput?.focus({ preventScroll: true });
+}
+
+function closeImageApiEditor() {
+    imageApiEditingIndex = -1;
+    imageApiEditing = false;
+    if (imageApiEditor) imageApiEditor.hidden = true;
+    if (imageApiKeyInput) {
+        imageApiKeyInput.value = '';
+        imageApiKeyInput.readOnly = true;
+        imageApiKeyInput.type = 'password';
+    }
+    if (imageProviderSelect) imageProviderSelect.disabled = false;
+}
+
+function updateImageApiKeyVisibility() {
+    const isDirect = imageProviderSelect?.value === 'direct';
+    const apiKeyGroup = document.getElementById('api-key-group');
+    if (apiKeyGroup) apiKeyGroup.hidden = isDirect;
+    if (imageApiKeyInput && !isDirect) imageApiKeyInput.placeholder = `Enter your ${imageProviderSelect?.value || 'provider'} API key`;
+}
+
+addImageApiBtn?.addEventListener('click', () => openImageApiEditor(-1));
+editImageApiBtn?.addEventListener('click', () => setImageApiEditorMode(true));
+imageProviderSelect?.addEventListener('change', updateImageApiKeyVisibility);
+cancelImageApiBtn?.addEventListener('click', closeImageApiEditor);
+saveImageApiBtn?.addEventListener('click', async () => {
+    const provider = imageProviderSelect?.value || 'imgbb';
+    const apiKey = imageApiKeyInput?.value.trim() || '';
+    if (provider !== 'direct' && !apiKey) {
+        showAdminMessage('Please enter an API key before saving.', 'error');
+        return;
+    }
+    const source = { provider, apiKey, label: providerLabel(provider), enabled: true };
+    if (imageApiEditingIndex >= 0) imageApiSources[imageApiEditingIndex] = source;
+    else imageApiSources.push(source);
+    if (!savePrivateImageSources()) return;
+    if (await saveStoreSettings()) {
+        renderImageApiSourcesList();
+        closeImageApiEditor();
+        showAdminMessage('Image source saved securely.');
+    }
 });
 
 // ============================================
@@ -2109,7 +2316,7 @@ function renderHeroSlidesList(slides) {
             storeSettings.heroSlides.splice(index, 1);
             if (await saveStoreSettings()) {
                 renderHeroSlidesList(storeSettings.heroSlides);
-                alert('Slide deleted successfully.');
+                showAdminMessage('Slide deleted successfully.');
             }
         });
     });
@@ -2121,7 +2328,12 @@ function renderHeroSlidesList(slides) {
 async function uploadToImgBB(file, buttonElement, inputElement) {
     if (!file) return;
 
-    const apiKey = storeSettings.imageApiKey || '6d207e02198a847aa98d0a2a901485a5';
+    const imgbbSource = imageApiSources.find(source => source.provider === 'imgbb' && source.enabled !== false);
+    const apiKey = imgbbSource?.apiKey || '';
+    if (!apiKey) {
+        showAdminMessage('Add and save an ImgBB API source in Settings before uploading images.', 'error');
+        return;
+    }
     const formData = new FormData();
     formData.append('image', file);
 
@@ -2139,13 +2351,13 @@ async function uploadToImgBB(file, buttonElement, inputElement) {
             if (inputElement) inputElement.value = data.data.url;
             // إطلاق حدث تغيير يدوي لتحديث المعاينة إذا لزم الأمر
             inputElement.dispatchEvent(new Event('input'));
-            alert('Image uploaded successfully!');
+            showAdminMessage('Image uploaded successfully!');
         } else {
-            alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
+            showAdminMessage('Upload failed: ' + (data.error?.message || 'Unknown error'));
         }
     } catch (err) {
         console.error('Upload error:', err);
-        alert('Network error during upload.');
+        showAdminMessage('Network error during upload.');
     } finally {
         buttonElement.textContent = originalText;
         buttonElement.disabled = false;
@@ -2195,7 +2407,7 @@ logoFile?.addEventListener('change', function() {
 saveHeroSlideBtn?.addEventListener('click', async function() {
     const image = heroSlideImage?.value.trim();
     if (!image) {
-        alert('Please provide a Slide Image URL.');
+        showAdminMessage('Please provide a Slide Image URL.');
         return;
     }
 
@@ -2223,7 +2435,7 @@ saveHeroSlideBtn?.addEventListener('click', async function() {
     if (await saveStoreSettings()) {
         renderHeroSlidesList(storeSettings.heroSlides);
         resetHeroForm();
-        alert('Hero slide saved successfully.');
+        showAdminMessage('Hero slide saved successfully.');
     }
 });
 
