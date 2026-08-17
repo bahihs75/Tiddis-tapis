@@ -48,6 +48,7 @@ let editingOverviewSubCategoryOldName = null;
 // ============================================
 const sections = {
     dashboard: document.getElementById('section-dashboard'),
+    hero: document.getElementById('section-hero'),
     categories: document.getElementById('section-categories'),
     overview: document.getElementById('section-overview'),
     products: document.getElementById('section-products'),
