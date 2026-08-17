@@ -17,7 +17,13 @@
     --accent-hover: #3a1214;
     --border-color: #e2e0d8;
     --shadow-light: 0 2px 12px rgba(0,0,0,0.04);
-    --radius: 0; /* جميع الزوايا حادة */
+    --radius: 0; /* جميع الزوايا حادة افتراضياً */
+
+    /* متغيرات Liquid Glass */
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-blur: 12px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
 
     --font-serif: 'Fraunces', Georgia, serif;
     --font-mono: 'Space Mono', 'Courier New', monospace;
@@ -29,10 +35,21 @@
 /* ============================================ */
 /* إزالة جميع الزوايا المستديرة من جميع العناصر */
 /* ============================================ */
-*,
+/* إزالة الزوايا المستديرة افتراضياً، مع استثناء عناصر الـ Glass */
+*:not(.glass-element):not(.glass-element *):not(.main-viewer):not(.main-viewer *):not(.thumb-item):not(.thumb-item *):not(.product-info-glass-box):not(.product-info-glass-box *):not(.filters-panel):not(.filters-panel *):not(.modal-box):not(.modal-box *),
 *::before,
 *::after {
     border-radius: 0 !important;
+}
+
+/* فئة مساعدة لعناصر الزجاج */
+.glass-element {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 12px !important;
 }
 
 * {
@@ -473,44 +490,122 @@ body {
 }
 
 /* ============================================ */
-/* شريط البحث والفلاتر (ديسكتوب) */
+/* ============================================ */
+/* شريط البحث والفلاتر المتقدمة */
 /* ============================================ */
 .search-filter-section {
+    margin-bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    padding: 16px;
+}
+
+.search-bar-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
     flex-wrap: wrap;
-    gap: 16px 24px;
-    margin-bottom: 32px;
+    width: 100%;
 }
 
-.filter-tabs {
+.controls-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 12px;
 }
 
-.filter-btn {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    padding: 6px 16px;
+.btn-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #fff;
     border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-    border-color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
     color: var(--text-primary);
 }
 
-.filter-btn.active {
-    background: var(--accent);
-    color: #ffffff;
+.btn-filter-toggle:hover {
+    background: var(--bg-color);
     border-color: var(--accent);
+}
+
+.filters-panel {
+    display: none;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    margin-top: 4px;
+}
+
+.filters-panel.active {
+    display: block;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+}
+
+.filter-group h4 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.filter-options input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+.filters-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px;
+}
+
+.btn-text:hover {
+    color: var(--accent);
 }
 
 .search-bar {

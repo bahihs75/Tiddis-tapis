@@ -50,6 +50,7 @@
             <a href="#" class="nav-link active" data-section="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-section="categories">Categories</a>
             <a href="#" class="nav-link" data-section="overview">Overview Categories</a>
+            <a href="#" class="nav-link" data-section="attributes">Attributes</a>
             <a href="#" class="nav-link" data-section="products">Products</a>
             <a href="#" class="nav-link" data-section="delivery">Delivery</a>
             <a href="#" class="nav-link" data-section="orders">Orders</a>
@@ -138,6 +139,26 @@
         </section>
 
         <!-- ========================================== -->
+        <!-- Attributes Section -->
+        <!-- ========================================== -->
+        <section id="section-attributes" class="admin-section">
+            <h2>Attributes Management</h2>
+            <div class="admin-card">
+                <h3>Add New Attribute</h3>
+                <div class="form-row">
+                    <input type="text" id="new-attribute-label" placeholder="Attribute Name (e.g., Quality)" class="form-input">
+                    <button id="add-attribute-btn" class="btn-primary">Add Attribute</button>
+                </div>
+            </div>
+            <div class="admin-card">
+                <h3>Existing Attributes</h3>
+                <div id="attributes-list">
+                    <p>Loading attributes...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
         <!-- 3. Overview Categories Section -->
         <!-- ========================================== -->
         <section id="section-overview" class="admin-section">
@@ -212,6 +233,9 @@
                         <div class="form-group">
                             <label for="product-base-price">Base Price (DZD) *</label>
                             <input type="number" id="product-base-price" placeholder="12500" required>
+                        </div>
+                        <div id="dynamic-attributes-container">
+                            <!-- Dynamic attributes (Quality, Color, etc.) will be loaded here -->
                         </div>
                         <div class="form-group">
                             <label for="product-main-image">Main Image URL *</label>

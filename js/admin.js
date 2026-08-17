@@ -32,6 +32,7 @@ let allCategories = [];
 let allCategoriesOverview = [];
 let allProducts = [];
 let allOrders = [];
+let allAttributes = [];
 let deliveryRates = {};
 let storeSettings = {};
 let editingProductId = null;
@@ -52,6 +53,7 @@ const sections = {
     products: document.getElementById('section-products'),
     delivery: document.getElementById('section-delivery'),
     orders: document.getElementById('section-orders'),
+    attributes: document.getElementById('section-attributes'),
     settings: document.getElementById('section-settings')
 };
 
@@ -95,6 +97,11 @@ const statCategories = document.getElementById('stat-categories');
 const statCategoriesOverview = document.getElementById('stat-categories-overview');
 const statOrders = document.getElementById('stat-orders');
 const recentOrdersList = document.getElementById('recent-orders-list');
+
+// عناصر إدارة السمات (Attributes)
+const attributesList = document.getElementById('attributes-list');
+const newAttributeLabel = document.getElementById('new-attribute-label');
+const addAttributeBtn = document.getElementById('add-attribute-btn');
 
 // عناصر إدارة التوصيل
 const deliveryTableBody = document.getElementById('delivery-table-body');
@@ -805,6 +812,199 @@ async function deleteOverviewSubCategory(categoryId, subName) {
 }
 
 // ============================================
+// 6.5 إدارة السمات (Attributes)
+// ============================================
+
+async function loadAttributes() {
+    try {
+        const querySnapshot = await getDocs(query(collection(db, 'attributes'), orderBy('order', 'asc')));
+        allAttributes = [];
+        querySnapshot.forEach((doc) => {
+            allAttributes.push({ id: doc.id, ...doc.data() });
+        });
+        renderAttributes();
+        renderProductAttributeFields(); // تحديث نموذج المنتج
+    } catch (error) {
+        console.error('Error loading attributes:', error);
+        if (attributesList) {
+            attributesList.innerHTML = '<p style="color:#c0392b;">Error loading attributes.</p>';
+        }
+    }
+}
+
+function renderAttributes() {
+    if (!attributesList) return;
+    
+    if (!allAttributes || allAttributes.length === 0) {
+        attributesList.innerHTML = `
+            <div class="empty-state-message">
+                <span class="empty-icon">🏷️</span>
+                No attributes found. Add your first attribute (e.g. Quality, Size).
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    allAttributes.forEach(attr => {
+        html += `
+            <div class="admin-card attribute-card" data-id="${attr.id}">
+                <div class="attribute-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px;">
+                    <h4 style="margin:0;">${attr.label}</h4>
+                    <div class="attr-actions">
+                        <button class="edit-attr-btn btn-secondary" data-id="${attr.id}" data-label="${attr.label}">✏️</button>
+                        <button class="delete-attr-btn btn-secondary" data-id="${attr.id}" style="background:#fceaea; color:#c0392b;">🗑️</button>
+                    </div>
+                </div>
+                <div class="options-container" id="options-${attr.id}">
+                    ${(attr.options || []).map(opt => `
+                        <div class="option-tag" style="display:inline-flex; align-items:center; background:#f0f0f0; padding:4px 10px; margin:4px; border-radius:4px; font-size:13px;">
+                            ${opt}
+                            <button class="remove-option-btn" data-attr-id="${attr.id}" data-option="${opt}" style="background:none; border:none; margin-left:6px; cursor:pointer; color:#999;">✕</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="add-option-row" style="margin-top:12px; display:flex; gap:8px;">
+                    <input type="text" class="form-input new-option-input" placeholder="New option" style="flex:1;">
+                    <button class="add-option-btn btn-primary" data-attr-id="${attr.id}">Add</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    attributesList.innerHTML = html;
+
+    // ربط الأحداث
+    attributesList.querySelectorAll('.edit-attr-btn').forEach(btn => {
+        btn.addEventListener('click', () => editAttribute(btn.dataset.id, btn.dataset.label));
+    });
+    attributesList.querySelectorAll('.delete-attr-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteAttribute(btn.dataset.id));
+    });
+    attributesList.querySelectorAll('.add-option-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const attrId = this.dataset.attrId;
+            const input = this.parentElement.querySelector('.new-option-input');
+            addOptionToAttribute(attrId, input.value.trim());
+        });
+    });
+    attributesList.querySelectorAll('.remove-option-btn').forEach(btn => {
+        btn.addEventListener('click', () => removeOptionFromAttribute(btn.dataset.attrId, btn.dataset.option));
+    });
+}
+
+addAttributeBtn?.addEventListener('click', async function() {
+    const label = newAttributeLabel?.value.trim();
+    if (!label) {
+        alert('Please enter an attribute label.');
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, 'attributes'), {
+            label: label,
+            options: [],
+            order: allAttributes.length
+        });
+        if (newAttributeLabel) newAttributeLabel.value = '';
+        await loadAttributes();
+    } catch (error) {
+        console.error('Error adding attribute:', error);
+        alert('Error adding attribute.');
+    }
+});
+
+async function editAttribute(attrId, currentLabel) {
+    const newLabel = prompt(`Edit attribute label (current: "${currentLabel}"):`, currentLabel);
+    if (!newLabel || newLabel === currentLabel) return;
+
+    try {
+        await updateDoc(doc(db, 'attributes', attrId), { label: newLabel });
+        await loadAttributes();
+    } catch (error) {
+        console.error('Error editing attribute:', error);
+        alert('Error editing attribute.');
+    }
+}
+
+async function deleteAttribute(attrId) {
+    if (!confirm('Are you sure you want to delete this attribute? This will remove it from all products.')) return;
+
+    try {
+        await deleteDoc(doc(db, 'attributes', attrId));
+        await loadAttributes();
+    } catch (error) {
+        console.error('Error deleting attribute:', error);
+        alert('Error deleting attribute.');
+    }
+}
+
+async function addOptionToAttribute(attrId, option) {
+    if (!option) return;
+    const attr = allAttributes.find(a => a.id === attrId);
+    if (!attr) return;
+    
+    const options = attr.options || [];
+    if (options.includes(option)) {
+        alert('Option already exists.');
+        return;
+    }
+
+    try {
+        options.push(option);
+        await updateDoc(doc(db, 'attributes', attrId), { options: options });
+        await loadAttributes();
+    } catch (error) {
+        console.error('Error adding option:', error);
+        alert('Error adding option.');
+    }
+}
+
+async function removeOptionFromAttribute(attrId, option) {
+    if (!confirm(`Remove option "${option}"?`)) return;
+    const attr = allAttributes.find(a => a.id === attrId);
+    if (!attr) return;
+    
+    const options = (attr.options || []).filter(o => o !== option);
+
+    try {
+        await updateDoc(doc(db, 'attributes', attrId), { options: options });
+        await loadAttributes();
+    } catch (error) {
+        console.error('Error removing option:', error);
+        alert('Error removing option.');
+    }
+}
+
+function renderProductAttributeFields() {
+    const container = document.getElementById('dynamic-attributes-container');
+    if (!container) return;
+
+    if (!allAttributes || allAttributes.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    allAttributes.forEach(attr => {
+        html += `
+            <div class="form-group attribute-field-group" data-attr-id="${attr.id}">
+                <label>${attr.label}</label>
+                <div class="attribute-options-grid" style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:#f9f9f9; border:1px solid #eee;">
+                    ${(attr.options || []).map(opt => `
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+                            <input type="checkbox" class="attr-opt-checkbox" data-attr-id="${attr.id}" value="${opt}">
+                            ${opt}
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// ============================================
 // 7. إدارة المنتجات (Products)
 // ============================================
 
@@ -968,6 +1168,16 @@ productForm?.addEventListener('submit', async function(e) {
     const imageUrl = productMainImageInput?.value.trim();
     const customizableSize = productCustomizableCheckbox?.checked || false;
 
+    // جمع السمات
+    const attributes = {};
+    const attrCheckboxes = document.querySelectorAll('.attr-opt-checkbox:checked');
+    attrCheckboxes.forEach(cb => {
+        const attrId = cb.dataset.attrId;
+        const val = cb.value;
+        if (!attributes[attrId]) attributes[attrId] = [];
+        attributes[attrId].push(val);
+    });
+
     if (!name || !category || !basePrice || !imageUrl) {
         alert('Please fill in all required fields (Name, Category, Price, Main Image).');
         return;
@@ -999,7 +1209,8 @@ productForm?.addEventListener('submit', async function(e) {
         pdfImage,
         customizableSize,
         variants,
-        updatedAt: new Date().toISOString()
+        attributes,
+        updatedAt: serverTimestamp()
     };
 
     try {
@@ -1070,6 +1281,14 @@ async function editProduct(productId) {
         if (productBasePriceInput) productBasePriceInput.value = product.basePrice || '';
         if (productMainImageInput) productMainImageInput.value = product.imageUrl || '';
         if (productCustomizableCheckbox) productCustomizableCheckbox.checked = product.customizableSize || false;
+
+        // تعبئة السمات
+        const attributes = product.attributes || {};
+        document.querySelectorAll('.attr-opt-checkbox').forEach(cb => {
+            const attrId = cb.dataset.attrId;
+            const val = cb.value;
+            cb.checked = attributes[attrId] && attributes[attrId].includes(val);
+        });
 
         if (product.imageUrl && mainImagePreview) {
             mainImagePreview.innerHTML = `<img src="${product.imageUrl}" alt="Preview">`;
@@ -1725,6 +1944,7 @@ async function initAdmin() {
     try {
         await loadCategories();
         await loadOverviewCategories();
+        await loadAttributes();
         await loadProducts();
         await loadDeliveryRates();
         await loadOrders();

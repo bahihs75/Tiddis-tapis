@@ -39,10 +39,16 @@ const AppState = {
         categoryIndex: new Map(),
         overviewIndex: new Map()
     },
+    attributes: [],
     filters: {
         category: 'all',
         type: 'products',  // 'products' | 'overview'
-        search: ''
+        search: '',
+        advanced: {
+            categories: [],
+            prices: [],
+            attributes: {}
+        }
     },
     ui: {
         gridColumns: 2,
@@ -100,7 +106,13 @@ const DOM = {
     closeSuccessBtn: document.getElementById('close-success-modal'),
     downloadPdfAfterOrder: document.getElementById('download-pdf-after-order'),
     gridDensityLoose: document.getElementById('grid-density-loose'),
-    gridDensityDense: document.getElementById('grid-density-dense')
+    gridDensityDense: document.getElementById('grid-density-dense'),
+    toggleFiltersBtn: document.getElementById('toggle-filters-btn'),
+    filtersPanel: document.getElementById('advanced-filters-panel'),
+    applyFiltersBtn: document.getElementById('apply-filters-btn'),
+    clearFiltersBtn: document.getElementById('clear-filters-btn'),
+    dynamicFilterGroups: document.getElementById('dynamic-filter-groups'),
+    optionsCategories: document.getElementById('options-categories')
 };
 
 // عناصر صفحة التفاصيل
@@ -191,44 +203,54 @@ function buildCategoryIndexes(products) {
 
 /** الحصول على المنتجات المفلترة (O(1) + O(k)) */
 function getFilteredProducts(state) {
-    const { all, categoryIndex, overviewIndex } = state.products;
-    const { category, type, search } = state.filters;
+    const { all } = state.products;
+    const { search, advanced } = state.filters;
     
-    // Guard Clause: إذا كانت القائمة فارغة
+    // Guard Clause
     if (!all || all.length === 0) return [];
     
-    // اختيار المصدر حسب نوع الفلتر
-    let result;
-    if (category === 'all') {
-        result = all;
-    } else if (type === 'overview') {
-        result = overviewIndex.get(category) || [];
-    } else {
-        // products type - البحث في الفئة الرئيسية والفئات الفرعية
-        result = categoryIndex.get(category) || [];
-        // إضافة منتجات الفئات الفرعية
-        const parentCategory = AppState.categories.products.find(c => c.name === category);
-        if (parentCategory && parentCategory.subcategories) {
-            parentCategory.subcategories.forEach(sub => {
-                const subProducts = categoryIndex.get(sub) || [];
-                result = [...result, ...subProducts];
-            });
-        }
-    }
+    let result = all;
     
-    // تطبيق البحث (إن وجد)
+    // 1. تصفية البحث النصي
     if (search && search.trim() !== '') {
         const term = search.toLowerCase().trim();
         result = result.filter(p => {
             const searchable = [
                 p.name || '',
-                p.size || '',
                 p.category || '',
-                p.overviewCategory || '',
+                ...(p.tags || []),
                 ...(p.variants ? p.variants.map(v => `${v.size || ''} ${v.color || ''}`) : [])
             ].join(' ').toLowerCase();
             return searchable.includes(term);
         });
+    }
+
+    // 2. تصفية الفئات (Multi-select)
+    if (advanced.categories.length > 0) {
+        result = result.filter(p => advanced.categories.includes(p.category));
+    }
+
+    // 3. تصفية النطاق السعري
+    if (advanced.prices.length > 0) {
+        result = result.filter(p => {
+            const price = parseFloat(p.basePrice) || 0;
+            return advanced.prices.some(range => price >= range.min && price <= range.max);
+        });
+    }
+
+    // 4. تصفية السمات الديناميكية (Intersection)
+    for (const [attrId, selectedOptions] of Object.entries(advanced.attributes)) {
+        if (selectedOptions.length > 0) {
+            result = result.filter(p => {
+                const productAttrValue = p.attributes ? p.attributes[attrId] : null;
+                if (!productAttrValue) return false;
+                
+                if (Array.isArray(productAttrValue)) {
+                    return productAttrValue.some(val => selectedOptions.includes(val));
+                }
+                return selectedOptions.includes(productAttrValue);
+            });
+        }
     }
     
     return result;
@@ -350,38 +372,50 @@ async function loadCategories() {
             }
         });
         
-        // إذا كانت الفئات فارغة، أنشئ الافتراضية
-        if (productsCats.length === 0 && overviewCats.length === 0) {
-            const defaults = [
-                { name: 'KSOR', subcategories: [], type: 'products' },
-                { name: 'CHAHINE', subcategories: [], type: 'products' },
-                { name: 'GALATA', subcategories: [], type: 'products' },
-                { name: 'ORIA', subcategories: [], type: 'products' },
-                { name: 'PLAZA', subcategories: [], type: 'products' },
-                { name: 'MANISA', subcategories: ['SO'], type: 'products' }
-            ];
-            for (const cat of defaults) {
-                await addDoc(collection(db, 'categories'), cat);
-            }
-            // إعادة تحميل
-            const newSnapshot = await getDocs(collection(db, 'categories'));
-            newSnapshot.forEach((doc) => {
-                const cat = { id: doc.id, ...doc.data() };
-                if (cat.type === 'overview') {
-                    overviewCats.push(cat);
-                } else {
-                    productsCats.push(cat);
-                }
-            });
-        }
-        
         AppState.categories.products = productsCats;
         AppState.categories.overview = overviewCats;
         buildSidebarMenu();
+        renderFilterUI();
         return { products: productsCats, overview: overviewCats };
     } catch (error) {
         console.error('Error loading categories:', error);
         return { products: [], overview: [] };
+    }
+}
+
+async function loadAttributes() {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'attributes'));
+        AppState.attributes = [];
+        querySnapshot.forEach((doc) => {
+            AppState.attributes.push({ id: doc.id, ...doc.data() });
+        });
+        renderFilterUI();
+    } catch (error) {
+        console.error('Error loading attributes:', error);
+    }
+}
+
+function renderFilterUI() {
+    // 1. رندر الفئات
+    if (DOM.optionsCategories) {
+        DOM.optionsCategories.innerHTML = AppState.categories.products.map(cat => `
+            <label><input type="checkbox" class="category-filter" value="${cat.name}"> ${cat.name}</label>
+        `).join('');
+    }
+
+    // 2. رندر السمات الديناميكية
+    if (DOM.dynamicFilterGroups) {
+        DOM.dynamicFilterGroups.innerHTML = AppState.attributes.map(attr => `
+            <div class="filter-group">
+                <h4>${attr.label}</h4>
+                <div class="filter-options">
+                    ${(attr.options || []).map(opt => `
+                        <label><input type="checkbox" class="attribute-filter" data-attr-id="${attr.id}" value="${opt}"> ${opt}</label>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
     }
 }
 
@@ -1026,6 +1060,72 @@ if (DOM.successModal) {
     });
 }
 
+// مستمعات أحداث الفلاتر المتقدمة
+if (DOM.toggleFiltersBtn) {
+    DOM.toggleFiltersBtn.addEventListener('click', () => {
+        DOM.filtersPanel?.classList.toggle('active');
+    });
+}
+
+if (DOM.applyFiltersBtn) {
+    DOM.applyFiltersBtn.addEventListener('click', () => {
+        updateAdvancedFilters();
+        filterProducts();
+        DOM.filtersPanel?.classList.remove('active');
+    });
+}
+
+if (DOM.clearFiltersBtn) {
+    DOM.clearFiltersBtn.addEventListener('click', () => {
+        clearAdvancedFilters();
+        filterProducts();
+        DOM.filtersPanel?.classList.remove('active');
+    });
+}
+
+function updateAdvancedFilters() {
+    // 1. جمع الفئات
+    const selectedCategories = [];
+    document.querySelectorAll('.category-filter:checked').forEach(cb => {
+        selectedCategories.push(cb.value);
+    });
+    AppState.filters.advanced.categories = selectedCategories;
+
+    // 2. جمع الأسعار
+    const selectedPrices = [];
+    document.querySelectorAll('.price-filter:checked').forEach(cb => {
+        selectedPrices.push({
+            min: parseFloat(cb.dataset.min),
+            max: parseFloat(cb.dataset.max)
+        });
+    });
+    AppState.filters.advanced.prices = selectedPrices;
+
+    // 3. جمع السمات الديناميكية
+    const selectedAttributes = {};
+    document.querySelectorAll('.attribute-filter:checked').forEach(cb => {
+        const attrId = cb.dataset.attrId;
+        if (!selectedAttributes[attrId]) selectedAttributes[attrId] = [];
+        selectedAttributes[attrId].push(cb.value);
+    });
+    AppState.filters.advanced.attributes = selectedAttributes;
+}
+
+function clearAdvancedFilters() {
+    // إلغاء تحديد جميع الـ checkboxes
+    document.querySelectorAll('.filters-panel input[type="checkbox"]').forEach(cb => cb.checked = false);
+    
+    // إعادة تعيين الحالة
+    AppState.filters.advanced = {
+        categories: [],
+        prices: [],
+        attributes: {}
+    };
+    
+    // إعادة تعيين الفلاتر البسيطة أيضاً لضمان الاتساق
+    AppState.filters.category = 'all';
+}
+
 if (DOM.downloadPdfAfterOrder) {
     DOM.downloadPdfAfterOrder.addEventListener('click', function() {
         const product = AppState.order.currentProduct;
@@ -1246,116 +1346,125 @@ function renderProductDetail(product) {
     const hasVariants = product.variants && product.variants.length > 0;
     const firstVariant = hasVariants ? product.variants[0] : null;
     const defaultPrice = (firstVariant && firstVariant.price) ? firstVariant.price : (product.basePrice || 0);
-    const defaultSize = firstVariant?.size || product.size || '200x280 cm';
-    const defaultColor = firstVariant?.color || '';
     
     // جمع الصور
     let allImages = [];
     if (product.imageUrl) allImages.push(product.imageUrl);
-    if (product.additionalImages) {
-        allImages = allImages.concat(product.additionalImages);
-    }
+    if (product.additionalImages) allImages = allImages.concat(product.additionalImages);
     if (product.variants) {
         product.variants.forEach(v => {
-            if (v.image && !allImages.includes(v.image)) {
-                allImages.push(v.image);
-            }
+            if (v.image && !allImages.includes(v.image)) allImages.push(v.image);
         });
     }
     const uniqueImages = [...new Set(allImages)];
     
-    let imagesHtml = '';
-    if (uniqueImages.length === 0) {
-        imagesHtml = '<p style="color:#6b6b6b;">No images available.</p>';
-    } else {
-        imagesHtml = uniqueImages.map(url => `
-            <div class="detail-image-wrapper">
-                <img src="${url}" alt="${product.name || 'Product'}" loading="eager">
+    // توليد HTML المعرض
+    const thumbnailsHtml = uniqueImages.map((url, idx) => `
+        <div class="thumb-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+            <img src="${url}" alt="Thumbnail ${idx + 1}">
+        </div>
+    `).join('');
+
+    // توليد سمات المنتج (من السمات الديناميكية)
+    const attributesHtml = AppState.attributes.map(attr => {
+        const val = product.attributes ? product.attributes[attr.id] : null;
+        if (!val) return '';
+        return `
+            <div class="info-item">
+                <label>${attr.label}</label>
+                <span>${Array.isArray(val) ? val.join(', ') : val}</span>
             </div>
-        `).join('');
-    }
-    
-    let variantOptionsHtml = '';
-    if (hasVariants) {
-        variantOptionsHtml = `
-            <select id="product-detail-variant" class="variant-select" style="font-size:14px; padding:6px 12px;">
-                ${product.variants.map((v, idx) => `
-                    <option value="${idx}" data-price="${v.price || product.basePrice}" 
-                            data-image="${v.image || product.imageUrl || ''}"
-                            data-size="${v.size || ''}"
-                            data-color="${v.color || ''}"
-                            ${idx === 0 ? 'selected' : ''}>
-                        ${v.size ? v.size : ''} ${v.color ? '- ' + v.color : ''}
-                    </option>
-                `).join('')}
-            </select>
         `;
-    }
-    
-    const settings = AppState.settings.storeSettings;
-    
+    }).join('');
+
     container.innerHTML = `
-        <div class="product-page-header">
-            <div class="product-page-logo-wrapper">
-                <img id="product-page-logo" src="${settings.logoUrl || ''}" alt="TIDDIS Logo" 
-                     style="${settings.logoUrl ? 'max-height:30px; margin-right:10px; background:transparent;' : 'display:none;'}">
-                <div>
-                    <span class="brand-main" style="font-size:20px;">TIDDIS</span>
-                    <span class="brand-sub" style="font-size:11px;">TAPIS</span>
-                </div>
+        <div class="product-detail-layout">
+            <div class="main-viewer" id="main-viewer">
+                <img src="${uniqueImages[0] || ''}" id="main-product-img" alt="${product.name}">
+            </div>
+            <div class="thumbnails-sidebar" id="thumbnails-sidebar">
+                ${thumbnailsHtml}
             </div>
         </div>
-        <h1 class="product-detail-title">${product.name || 'KSOR Classic'}</h1>
-        <div class="product-detail-images">${imagesHtml}</div>
-        <div class="product-detail-info">
-            <div class="product-detail-row">
-                <div class="product-detail-specs">
-                    <span id="product-detail-size">${defaultSize}</span>
-                    <span id="product-detail-color" style="margin-left:12px; color:#6b6b6b;">${defaultColor}</span>
+
+        <div class="product-info-glass-box glass-element">
+            <h1 style="font-family:var(--font-serif); margin-bottom:8px;">${product.name}</h1>
+            <span class="price-tag-large" id="product-detail-price">${defaultPrice} DZD</span>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Collection</label>
+                    <span>${product.category || 'KSOR'}</span>
                 </div>
-                <span class="product-detail-price" id="product-detail-price">${defaultPrice} DZD</span>
+                ${attributesHtml}
+                ${hasVariants ? `
+                <div class="info-item">
+                    <label>Options</label>
+                    <select id="product-detail-variant" class="variant-select">
+                        ${product.variants.map((v, idx) => `
+                            <option value="${idx}" data-price="${v.price || product.basePrice}" 
+                                    data-image="${v.image || product.imageUrl || ''}">
+                                ${v.size || ''} ${v.color ? '- ' + v.color : ''}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                ` : ''}
             </div>
-            <div class="product-detail-variant-row">${variantOptionsHtml}</div>
-            <div class="product-detail-actions">
-                <button id="product-detail-order-btn" class="order-btn" style="font-size:16px; padding:12px 28px;">ORDER</button>
-                <button id="product-detail-pdf-btn" class="pdf-btn">📄 Download Technical Sheet</button>
+
+            <div class="action-buttons">
+                <button id="detail-order-btn" class="btn-primary" style="flex:2;">ORDER NOW</button>
+                <button id="detail-pdf-btn" class="btn-secondary" style="flex:1;">TECHNICAL SHEET</button>
             </div>
+            
+            ${product.description ? `
+            <div style="margin-top:32px; border-top:1px solid rgba(0,0,0,0.1); padding-top:24px;">
+                <label style="font-family:var(--font-mono); font-size:11px; text-transform:uppercase; color:var(--muted);">Description</label>
+                <p style="margin-top:8px; line-height:1.6;">${product.description}</p>
+            </div>
+            ` : ''}
         </div>
-        ${product.description ? `<div class="product-detail-description">${product.description}</div>` : ''}
     `;
-    
-    // ربط الأحداث
+
+    // منطق التبديل بين الصور
+    const mainImg = document.getElementById('main-product-img');
+    const thumbs = document.querySelectorAll('.thumb-item');
+    thumbs.forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            thumbs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            const newSrc = this.querySelector('img').src;
+            if (mainImg) mainImg.src = newSrc;
+        });
+    });
+
+    // ربط الأحداث الأخرى
     const variantSelect = document.getElementById('product-detail-variant');
-    const orderBtn = document.getElementById('product-detail-order-btn');
-    const pdfBtn = document.getElementById('product-detail-pdf-btn');
-    const priceEl = document.getElementById('product-detail-price');
-    const sizeEl = document.getElementById('product-detail-size');
-    const colorEl = document.getElementById('product-detail-color');
-    const imagesContainer = container.querySelector('.product-detail-images');
+    const priceDisplay = document.getElementById('product-detail-price');
     
     if (variantSelect) {
         variantSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const newPrice = parseInt(selectedOption.dataset.price) || 0;
-            const newImage = selectedOption.dataset.image;
-            const newSize = selectedOption.dataset.size || '';
-            const newColor = selectedOption.dataset.color || '';
-            
-            if (priceEl) priceEl.textContent = newPrice + ' DZD';
-            if (sizeEl) sizeEl.textContent = newSize || defaultSize;
-            if (colorEl) colorEl.textContent = newColor || '';
-            
-            if (newImage && imagesContainer) {
-                const firstImg = imagesContainer.querySelector('img');
-                if (firstImg) {
-                    firstImg.src = newImage;
-                }
+            const selected = this.options[this.selectedIndex];
+            const price = selected.dataset.price;
+            const img = selected.dataset.image;
+            if (priceDisplay) priceDisplay.textContent = `${price} DZD`;
+            if (img && mainImg) {
+                mainImg.src = img;
+                thumbs.forEach(t => {
+                    if (t.querySelector('img').src === img) {
+                        thumbs.forEach(t2 => t2.classList.remove('active'));
+                        t.classList.add('active');
+                    }
+                });
             }
         });
     }
+
+    const orderBtn = document.getElementById('detail-order-btn');
+    const pdfBtn = document.getElementById('detail-pdf-btn');
     
     if (orderBtn) {
-        orderBtn.addEventListener('click', function() {
+        orderBtn.addEventListener('click', () => {
             const select = document.getElementById('product-detail-variant');
             let selectedVariant = null;
             let selectedIndex = 0;
@@ -1368,9 +1477,7 @@ function renderProductDetail(product) {
     }
     
     if (pdfBtn) {
-        pdfBtn.addEventListener('click', function() {
-            generateProductPDF(product.id);
-        });
+        pdfBtn.addEventListener('click', () => generateProductPDF(product.id));
     }
 }
 
@@ -1612,6 +1719,7 @@ if (backToTopBtn) {
 async function initStore() {
     try {
         await loadCategories();
+        await loadAttributes();
         await loadDeliveryRates();
         listenToStoreSettings();
         listenToProducts();
