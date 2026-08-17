@@ -51,7 +51,7 @@ const AppState = {
         }
     },
     ui: {
-        gridColumns: 2,
+        gridColumns: 3,
         sidebarOpen: false,
         modalOpen: null,
         pageSize: 4,
@@ -1588,18 +1588,46 @@ function renderHeroSlider(slides) {
     }
 
     let currentIndex = 0;
+    let autoSlideTimer = null;
+    let autoSlidePaused = false;
+    const AUTO_SLIDE_MS = 6500;
+
+    function stopAutoSlide() {
+        if (autoSlideTimer) {
+            window.clearInterval(autoSlideTimer);
+            autoSlideTimer = null;
+        }
+    }
+
+    function startAutoSlide() {
+        stopAutoSlide();
+        const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        if (slides.length <= 1 || prefersReducedMotion) return;
+
+        autoSlideTimer = window.setInterval(() => {
+            if (autoSlidePaused) return;
+            currentIndex = (currentIndex + 1) % slides.length;
+            renderSlide(currentIndex);
+        }, AUTO_SLIDE_MS);
+    }
 
     function renderSlide(index) {
         const slide = slides[index];
         if (!slide) return;
 
         let btnHref = "#products-grid";
-        if (slide.linkType === 'category' && slide.btnUrl) {
-            btnHref = `index.html?category=${encodeURIComponent(slide.btnUrl)}`;
+        let isExternalLink = false;
+
+        if (slide.linkType === 'section' && slide.btnUrl) {
+            btnHref = slide.btnUrl;
+        } else if (slide.linkType === 'category' && slide.btnUrl) {
+            // Legacy slides: add the missing type parameter for product categories.
+            btnHref = `index.html?category=${encodeURIComponent(slide.btnUrl)}&type=products`;
         } else if (slide.linkType === 'all') {
             btnHref = "#products-grid";
         } else if (slide.linkType === 'external' && slide.btnUrl) {
             btnHref = slide.btnUrl;
+            isExternalLink = true;
         }
 
         container.innerHTML = `
@@ -1614,7 +1642,7 @@ function renderHeroSlider(slides) {
 
                 <div class="hero-slide-image-frame">
                     <img src="${slide.image}" alt="${slide.title || 'Hero Slide'}" onerror="this.src='https://via.placeholder.com/800x500?text=Tiddis+Tapis'">
-                    ${slide.btnText ? `<a href="${btnHref}" class="hero-slide-cta-btn">${slide.btnText}</a>` : ''}
+                    ${slide.btnText ? `<a href="${btnHref}" class="hero-slide-cta-btn" ${isExternalLink ? 'target="_blank" rel="noopener noreferrer"' : ''}>${slide.btnText}</a>` : ''}
                 </div>
 
                 ${slide.svgIcon ? `<div class="hero-slide-bottom-icon">${slide.svgIcon}</div>` : ''}
@@ -1630,6 +1658,14 @@ function renderHeroSlider(slides) {
                 </div>
             ` : ''}
         `;
+
+        // Pause while the visitor reads, interacts, or focuses the slide.
+        container.onmouseenter = () => { autoSlidePaused = true; };
+        container.onmouseleave = () => { autoSlidePaused = false; };
+        container.onfocusin = () => { autoSlidePaused = true; };
+        container.onfocusout = () => { autoSlidePaused = false; };
+        container.ontouchstart = () => { autoSlidePaused = true; };
+        container.ontouchend = () => { autoSlidePaused = false; };
 
         if (slides.length > 1) {
             container.querySelector('.hero-prev-btn')?.addEventListener('click', () => {
@@ -1650,6 +1686,7 @@ function renderHeroSlider(slides) {
     }
 
     renderSlide(currentIndex);
+    startAutoSlide();
 }
 
 function renderContactIcons(contacts) {
@@ -1758,13 +1795,14 @@ function setGridDensity(dense) {
     if (!DOM.productsGrid) return;
     
     const isMobile = window.innerWidth <= 900;
-    const denseClass = isMobile ? 'grid-2-mobile' : 'grid-4';
+    const denseClass = isMobile ? 'grid-2-mobile' : 'grid-6';
 
+    // Keep the two states mutually exclusive when switching viewport or density.
+    DOM.productsGrid.classList.remove('grid-6', 'grid-2-mobile');
     if (dense) {
         DOM.productsGrid.classList.add(denseClass);
-    } else {
-        DOM.productsGrid.classList.remove(denseClass);
     }
+    AppState.ui.gridColumns = dense ? (isMobile ? 2 : 6) : 3;
     DOM.gridDensityDense?.classList.toggle('active', dense);
     DOM.gridDensityLoose?.classList.toggle('active', !dense);
 }
@@ -1815,8 +1853,7 @@ if (floatingHamburgerBtn) {
 }
 
 document.getElementById('mobile-menu-close')?.addEventListener('click', function() {
-    DOM.sidebar?.classList.remove('open');
-    DOM.hamburgerBtn?.classList.remove('active');
+    toggleSidebar(false);
 });
 
 // ============================================
@@ -1832,18 +1869,9 @@ if (DOM.loadMoreBtn) {
 // ============================================
 
 window.addEventListener('resize', function() {
-    if (DOM.gridDensityDense) {
-        const isMobile = window.innerWidth <= 900;
-        if (isMobile) {
-            if (DOM.productsGrid && DOM.productsGrid.classList.contains('grid-4')) {
-                DOM.productsGrid.classList.remove('grid-4');
-            }
-        } else {
-            if (DOM.productsGrid && DOM.productsGrid.classList.contains('grid-2-mobile')) {
-                DOM.productsGrid.classList.remove('grid-2-mobile');
-            }
-        }
-    }
+    if (!DOM.productsGrid) return;
+    const dense = DOM.gridDensityDense?.classList.contains('active') || false;
+    setGridDensity(dense);
 });
 
 // ============================================
