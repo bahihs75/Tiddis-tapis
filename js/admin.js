@@ -1677,6 +1677,7 @@ async function loadSettings() {
         if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
 
         renderContactIconsList(storeSettings.contacts || []);
+        renderHeroSlidesList(storeSettings.heroSlides || []);
 
     } catch (error) {
         console.error('Error loading settings:', error);
@@ -1887,6 +1888,175 @@ imageApiKeyInput?.addEventListener('change', function() {
     storeSettings.imageApiKey = this.value.trim();
     saveStoreSettings();
 });
+
+// ============================================
+// Hero Slides Management Logic
+// ============================================
+const heroSlideImage = document.getElementById('hero-slide-image');
+const heroSlideTitle = document.getElementById('hero-slide-title');
+const heroSlideSubtitle = document.getElementById('hero-slide-subtitle');
+const heroSlideBtnText = document.getElementById('hero-slide-btn-text');
+const heroSlideLinkType = document.getElementById('hero-slide-link-type');
+const heroSlideBtnUrl = document.getElementById('hero-slide-btn-url');
+const heroSlideSvgIcon = document.getElementById('hero-slide-svg-icon');
+const saveHeroSlideBtn = document.getElementById('save-hero-slide-btn');
+const cancelHeroEditBtn = document.getElementById('cancel-hero-edit-btn');
+const editingHeroIndexInput = document.getElementById('editing-hero-index');
+const heroSlidesList = document.getElementById('hero-slides-list');
+const heroFormTitle = document.getElementById('hero-form-title');
+
+function renderHeroSlidesList(slides) {
+    if (!heroSlidesList) return;
+    if (!slides || slides.length === 0) {
+        heroSlidesList.innerHTML = '<p style="color:#6b6b6b; font-size:14px;">No hero slides added yet.</p>';
+        return;
+    }
+
+    let html = '';
+    slides.forEach((slide, index) => {
+        html += `
+            <div class="admin-item-row" style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:#fff; border:1px solid var(--border-color, #e0e0e0); border-radius:8px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <img src="${slide.image}" alt="Slide" style="width:60px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/60x40?text=No+Img'">
+                    <div>
+                        <h4 style="margin:0; font-size:14px; font-weight:600;">${slide.title || 'Untitled Slide'}</h4>
+                        <p style="margin:2px 0 0; font-size:12px; color:#6b6b6b;">Sub: ${slide.subtitle || '—'} | Btn: ${slide.btnText || '—'} (${slide.linkType || 'category'})</p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-secondary edit-hero-btn" data-index="${index}" style="padding:4px 10px; font-size:12px;">Edit</button>
+                    <button class="btn-secondary delete-hero-btn" data-index="${index}" style="padding:4px 10px; font-size:12px; color:#c0392b; border-color:#c0392b;">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+    heroSlidesList.innerHTML = html;
+
+    // Attach event listeners
+    heroSlidesList.querySelectorAll('.edit-hero-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            const slide = storeSettings.heroSlides[index];
+            if (!slide) return;
+
+            editingHeroIndexInput.value = index;
+            if (heroFormTitle) heroFormTitle.textContent = `Edit Hero Slide #${index + 1}`;
+            if (heroSlideImage) heroSlideImage.value = slide.image || '';
+            if (heroSlideTitle) heroSlideTitle.value = slide.title || '';
+            if (heroSlideSubtitle) heroSlideSubtitle.value = slide.subtitle || '';
+            if (heroSlideBtnText) heroSlideBtnText.value = slide.btnText || '';
+            if (heroSlideLinkType) heroSlideLinkType.value = slide.linkType || 'category';
+            if (heroSlideBtnUrl) heroSlideBtnUrl.value = slide.btnUrl || '';
+            if (heroSlideSvgIcon) heroSlideSvgIcon.value = slide.svgIcon || '';
+            if (cancelHeroEditBtn) cancelHeroEditBtn.style.display = 'inline-block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    heroSlidesList.querySelectorAll('.delete-hero-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const index = parseInt(this.dataset.index);
+            if (!confirm('Are you sure you want to delete this hero slide?')) return;
+            if (!storeSettings.heroSlides) storeSettings.heroSlides = [];
+            storeSettings.heroSlides.splice(index, 1);
+            if (await saveStoreSettings()) {
+                renderHeroSlidesList(storeSettings.heroSlides);
+                alert('Slide deleted successfully.');
+            }
+        });
+    });
+}
+
+// ربط زر رفع صورة الهيرو باستخدام ImgBB API
+const uploadHeroImgBtn = document.getElementById('upload-hero-img-btn');
+const heroImageFile = document.getElementById('hero-image-file');
+
+uploadHeroImgBtn?.addEventListener('click', () => {
+    heroImageFile?.click();
+});
+
+heroImageFile?.addEventListener('change', async function() {
+    const file = this.files[0];
+    if (!file) return;
+
+    const apiKey = storeSettings.imageApiKey || '6d207e02198a847aa98d0a2a901485a5'; // مفتاح افتراضي جاهز للاستخدام أو مفتاح الأدمن
+    const formData = new FormData();
+    formData.append('image', file);
+
+    uploadHeroImgBtn.textContent = 'Uploading...';
+    uploadHeroImgBtn.disabled = true;
+
+    try {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success && data.data && data.data.url) {
+            if (heroSlideImage) heroSlideImage.value = data.data.url;
+            alert('Image uploaded successfully via ImgBB API!');
+        } else {
+            alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        alert('Network error during upload.');
+    } finally {
+        uploadHeroImgBtn.textContent = '📁 Upload Image';
+        uploadHeroImgBtn.disabled = false;
+    }
+});
+
+saveHeroSlideBtn?.addEventListener('click', async function() {
+    const image = heroSlideImage?.value.trim();
+    if (!image) {
+        alert('Please provide a Slide Image URL.');
+        return;
+    }
+
+    const slideData = {
+        image: image,
+        title: heroSlideTitle?.value.trim() || '',
+        subtitle: heroSlideSubtitle?.value.trim() || '',
+        btnText: heroSlideBtnText?.value.trim() || '',
+        linkType: heroSlideLinkType?.value || 'category',
+        btnUrl: heroSlideBtnUrl?.value.trim() || '',
+        svgIcon: heroSlideSvgIcon?.value.trim() || ''
+    };
+
+    if (!storeSettings.heroSlides) storeSettings.heroSlides = [];
+    const editingIndex = parseInt(editingHeroIndexInput?.value ?? '-1');
+
+    if (editingIndex >= 0) {
+        storeSettings.heroSlides[editingIndex] = slideData;
+    } else {
+        storeSettings.heroSlides.push(slideData);
+    }
+
+    if (await saveStoreSettings()) {
+        renderHeroSlidesList(storeSettings.heroSlides);
+        resetHeroForm();
+        alert('Hero slide saved successfully.');
+    }
+});
+
+cancelHeroEditBtn?.addEventListener('click', function() {
+    resetHeroForm();
+});
+
+function resetHeroForm() {
+    if (editingHeroIndexInput) editingHeroIndexInput.value = '-1';
+    if (heroFormTitle) heroFormTitle.textContent = 'Add New Hero Slide';
+    if (heroSlideImage) heroSlideImage.value = '';
+    if (heroSlideTitle) heroSlideTitle.value = '';
+    if (heroSlideSubtitle) heroSlideSubtitle.value = '';
+    if (heroSlideBtnText) heroSlideBtnText.value = '';
+    if (heroSlideLinkType) heroSlideLinkType.value = 'category';
+    if (heroSlideBtnUrl) heroSlideBtnUrl.value = '';
+    if (heroSlideSvgIcon) heroSlideSvgIcon.value = '';
+    if (cancelHeroEditBtn) cancelHeroEditBtn.style.display = 'none';
+}
 
 // ============================================
 // 11. لوحة المعلومات (Dashboard)

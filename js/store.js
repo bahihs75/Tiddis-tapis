@@ -1566,6 +1566,90 @@ function applyStoreSettings() {
     if (DOM.contactIcons && settings.contacts) {
         renderContactIcons(settings.contacts);
     }
+
+    // عرض شريحة الهيرو المتطورة (Liquid Glass Hero Slider)
+    renderHeroSlider(settings.heroSlides);
+}
+
+function renderHeroSlider(slides) {
+    const container = document.getElementById('hero-slider-container');
+    if (!container) return;
+
+    if (!slides || slides.length === 0) {
+        slides = [{
+            image: "https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1200&q=80",
+            title: "MONUMENTAL CONSTANTINE",
+            subtitle: "INSPIRED BY HISTORY — WOVEN FOR YOUR SPACE",
+            btnText: "DISCOVER COLLECTION",
+            linkType: "all",
+            btnUrl: "",
+            svgIcon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`
+        }];
+    }
+
+    let currentIndex = 0;
+
+    function renderSlide(index) {
+        const slide = slides[index];
+        if (!slide) return;
+
+        let btnHref = "#products-grid";
+        if (slide.linkType === 'category' && slide.btnUrl) {
+            btnHref = `index.html?category=${encodeURIComponent(slide.btnUrl)}`;
+        } else if (slide.linkType === 'all') {
+            btnHref = "#products-grid";
+        } else if (slide.linkType === 'external' && slide.btnUrl) {
+            btnHref = slide.btnUrl;
+        }
+
+        container.innerHTML = `
+            <div class="hero-ambient-bg" style="background-image: url('${slide.image}');"></div>
+            <div class="hero-ambient-overlay"></div>
+            
+            <div class="hero-slide-card">
+                <div class="hero-slide-header">
+                    ${slide.subtitle ? `<span class="hero-slide-subtitle-tag">${slide.subtitle}</span>` : ''}
+                    ${slide.title ? `<h1 class="hero-slide-main-title">${slide.title}</h1>` : ''}
+                </div>
+
+                <div class="hero-slide-image-frame">
+                    <img src="${slide.image}" alt="${slide.title || 'Hero Slide'}" onerror="this.src='https://via.placeholder.com/800x500?text=Tiddis+Tapis'">
+                    ${slide.btnText ? `<a href="${btnHref}" class="hero-slide-cta-btn">${slide.btnText}</a>` : ''}
+                </div>
+
+                ${slide.svgIcon ? `<div class="hero-slide-bottom-icon">${slide.svgIcon}</div>` : ''}
+            </div>
+
+            ${slides.length > 1 ? `
+                <div class="hero-slider-nav">
+                    <button class="hero-nav-arrow hero-prev-btn" aria-label="Previous">❮</button>
+                    <button class="hero-nav-arrow hero-next-btn" aria-label="Next">❯</button>
+                </div>
+                <div class="hero-slider-dots">
+                    ${slides.map((_, i) => `<span class="hero-dot ${i === index ? 'active' : ''}" data-index="${i}"></span>`).join('')}
+                </div>
+            ` : ''}
+        `;
+
+        if (slides.length > 1) {
+            container.querySelector('.hero-prev-btn')?.addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+                renderSlide(currentIndex);
+            });
+            container.querySelector('.hero-next-btn')?.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % slides.length;
+                renderSlide(currentIndex);
+            });
+            container.querySelectorAll('.hero-dot').forEach(dot => {
+                dot.addEventListener('click', function() {
+                    currentIndex = parseInt(this.dataset.index);
+                    renderSlide(currentIndex);
+                });
+            });
+        }
+    }
+
+    renderSlide(currentIndex);
 }
 
 function renderContactIcons(contacts) {
