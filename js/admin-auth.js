@@ -43,7 +43,14 @@ loginForm.addEventListener('submit', async (e) => {
         await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
         passwordInput.value = '';
     } catch (err) {
-        errorEl.textContent = 'Incorrect email or password.';
+        console.error("Login error:", err);
+        if (err.code === 'auth/operation-not-allowed') {
+            errorEl.textContent = 'Error: Email/Password sign-in is NOT enabled in Firebase Console.';
+        } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+            errorEl.textContent = 'Incorrect email or password.';
+        } else {
+            errorEl.textContent = `Error: ${err.code || err.message}`;
+        }
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'SIGN IN';
