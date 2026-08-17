@@ -1781,12 +1781,37 @@ DOM.gridDensityDense?.addEventListener('click', () => setGridDensity(true));
 // 19. الهامبورجر
 // ============================================
 
-if (DOM.hamburgerBtn) {
-    DOM.hamburgerBtn.addEventListener('click', function() {
-        if (DOM.sidebar) DOM.sidebar.classList.toggle('open');
-        this.classList.toggle('active');
-        if (DOM.mobileSearchBar) DOM.mobileSearchBar.classList.remove('open');
+function toggleSidebar(force) {
+    const isOpen = typeof force === 'boolean' ? force : !DOM.sidebar.classList.contains('open');
+    
+    if (DOM.sidebar) {
+        DOM.sidebar.classList.toggle('open', isOpen);
+        document.body.classList.toggle('sidebar-active', isOpen);
+    }
+    
+    // Update all hamburger buttons to active state (X)
+    const allHamburgers = [DOM.hamburgerBtn, document.getElementById('desktop-hamburger-btn'), document.getElementById('floating-hamburger-btn')];
+    allHamburgers.forEach(btn => {
+        if (btn) btn.classList.toggle('active', isOpen);
     });
+
+    if (isOpen && DOM.mobileSearchBar) {
+        DOM.mobileSearchBar.classList.remove('open');
+    }
+}
+
+if (DOM.hamburgerBtn) {
+    DOM.hamburgerBtn.addEventListener('click', () => toggleSidebar());
+}
+
+const desktopHamburgerBtn = document.getElementById('desktop-hamburger-btn');
+if (desktopHamburgerBtn) {
+    desktopHamburgerBtn.addEventListener('click', () => toggleSidebar());
+}
+
+const floatingHamburgerBtn = document.getElementById('floating-hamburger-btn');
+if (floatingHamburgerBtn) {
+    floatingHamburgerBtn.addEventListener('click', () => toggleSidebar());
 }
 
 document.getElementById('mobile-menu-close')?.addEventListener('click', function() {

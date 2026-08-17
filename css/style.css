@@ -88,9 +88,14 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    z-index: 100;
-    transition: transform 0.3s ease, background-color 0.3s ease;
+    z-index: 1000;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
     overflow-y: auto;
+    transform: translateX(-100%);
+}
+
+.sidebar.open {
+    transform: translateX(0);
 }
 
 .mobile-menu-close {
@@ -327,7 +332,34 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 8px;
+    z-index: 1100;
+}
+
+.desktop-hamburger {
+    display: flex;
+    margin-right: 10px;
+}
+
+/* Floating hamburger when sidebar is closed */
+.floating-hamburger {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 900;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.sidebar.open ~ .floating-hamburger {
+    display: none;
 }
 
 .hamburger span {
@@ -407,13 +439,17 @@ body {
 /* المحتوى الرئيسي */
 /* ============================================ */
 .main-content {
-    margin-left: var(--sidebar-width);
+    margin-left: 0;
     flex: 1;
-    padding: 32px 48px 60px;
-    max-width: calc(100% - var(--sidebar-width));
+    padding: 0;
+    width: 100%;
     min-height: 100vh;
     background-color: var(--bg-color);
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, margin-left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-active .main-content {
+    margin-left: var(--sidebar-width);
 }
 
 /* ============================================ */
@@ -2000,9 +2036,13 @@ body {
     }
 
     .main-content {
-        margin-left: 0;
+        margin-left: 0 !important;
         max-width: 100%;
         padding: 76px 16px 40px;
+    }
+
+    .floating-hamburger {
+        display: none !important;
     }
 
     /* إخفاء فلاتر الديسكتوب في الهاتف */
@@ -2261,34 +2301,36 @@ body {
 .hero-slider-container {
     position: relative;
     width: 100%;
-    min-height: 80vh;
+    min-height: 100vh;
+    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    padding: 40px 20px;
-    margin-bottom: 40px;
-    background: var(--bg-primary, #faf9f6);
+    padding: 20px;
+    margin-bottom: 0;
+    background: #000;
 }
 
 /* Ambient Blurred Background (Smart background generated per slide) */
 .hero-ambient-bg {
     position: absolute;
-    inset: -20px;
+    inset: -30px;
     background-size: cover;
     background-position: center;
-    filter: blur(80px);
-    opacity: 0.35;
+    filter: blur(90px);
+    opacity: 0.6;
     z-index: 0;
-    transform: scale(1.1);
+    transform: scale(1.15);
     transition: background-image 0.8s ease;
 }
 
 .hero-ambient-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(250, 249, 246, 0.45);
-    backdrop-filter: blur(40px);
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
     z-index: 1;
 }
 

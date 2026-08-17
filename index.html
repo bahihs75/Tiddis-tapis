@@ -8,10 +8,18 @@
 </head>
 <body>
 
+    <!-- Floating Hamburger for Desktop (Visible when sidebar is closed) -->
+    <button class="hamburger floating-hamburger" id="floating-hamburger-btn" aria-label="Open menu">
+        <span></span><span></span><span></span>
+    </button>
+
     <!-- القائمة الجانبية (Desktop) -->
     <div class="sidebar" id="sidebar">
         <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close menu">✕</button>
-        <div class="logo-container">
+        <div class="logo-container" style="display:flex; align-items:center; gap:12px;">
+            <button class="hamburger desktop-hamburger" id="desktop-hamburger-btn" aria-label="Toggle navigation" style="display:flex;">
+                <span></span><span></span><span></span>
+            </button>
             <div class="logo-wrapper">
                 <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px; background:transparent;">
                 <div>
