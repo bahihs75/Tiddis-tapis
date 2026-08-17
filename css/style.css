@@ -30,6 +30,7 @@
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
     --sidebar-width: 240px;
+    --desktop-header-height: 72px;
 }
 
 /* ============================================ */
@@ -69,12 +70,52 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.6;
-    display: flex;
     min-height: 100vh;
 }
 
 /* ============================================ */
-/* القائمة الجانبية (Desktop) */
+/* الهيدر الثابت — العلامة تبقى ظاهرة دائماً */
+/* ============================================ */
+.desktop-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--desktop-header-height);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 28px;
+    background: color-mix(in srgb, var(--sidebar-bg) 86%, transparent);
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    z-index: 1100;
+}
+
+.desktop-header .header-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text-primary);
+}
+
+.desktop-header .brand-main {
+    font-size: 24px;
+}
+
+.desktop-header .brand-sub {
+    font-size: 12px;
+    margin-top: 0;
+}
+
+.header-hamburger {
+    flex-shrink: 0;
+}
+
+/* ============================================ */
+/* القائمة الجانبية (Off-canvas) */
 /* ============================================ */
 .sidebar {
     position: fixed;
@@ -440,16 +481,15 @@ body {
 /* ============================================ */
 .main-content {
     margin-left: 0;
-    flex: 1;
-    padding: 0;
     width: 100%;
     min-height: 100vh;
+    padding: var(--desktop-header-height) 0 60px;
     background-color: var(--bg-color);
-    transition: background-color 0.3s ease, margin-left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background-color 0.3s ease;
 }
 
 .sidebar-active .main-content {
-    margin-left: var(--sidebar-width);
+    margin-left: 0;
 }
 
 /* ============================================ */
@@ -732,14 +772,20 @@ body {
 /* ============================================ */
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 40px 32px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(16px, 2.4vw, 32px);
+    padding: 0 32px;
     margin-top: 8px;
     transition: grid-template-columns 0.3s ease;
 }
 
-.products-grid.grid-4 {
-    grid-template-columns: repeat(4, 1fr);
+.products-grid.grid-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.products-grid > * {
+    min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -804,12 +850,14 @@ body {
 /* بطاقة المنتج (Product Card) */
 /* ============================================ */
 .product-card {
+    min-width: 0;
+    height: fit-content;
     background: #ffffff;
     border: 1px solid var(--border-color);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: box-shadow 0.25s ease;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
     cursor: pointer;
 }
 
@@ -862,10 +910,14 @@ body {
 .product-image-wrap {
     position: relative;
     width: 100%;
-    padding-bottom: 125%;
+    aspect-ratio: 1 / 1.08;
     background: #f4f2ed;
     overflow: hidden;
     touch-action: pan-y;
+}
+
+.products-grid.grid-6 .product-image-wrap {
+    aspect-ratio: 1 / 1;
 }
 
 .product-image-wrap img {
@@ -937,10 +989,10 @@ body {
 }
 
 .product-body {
-    padding: 16px 18px 18px;
+    padding: clamp(10px, 1.2vw, 16px);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .product-info-row {
@@ -2509,4 +2561,597 @@ body {
     background: var(--accent, #6d1b2a);
     width: 24px;
     border-radius: 4px;
+}
+
+
+/* ============================================
+   TIDDIS TAPIS — Final responsive layout pass
+   Keeps the luxury identity while matching the
+   full-screen reference composition.
+   ============================================ */
+
+/* The desktop brand header is the persistent navigation anchor. */
+.desktop-header {
+    isolation: isolate;
+}
+
+.desktop-header .hamburger {
+    width: 34px;
+    height: 34px;
+    padding: 7px;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.desktop-header .hamburger:hover,
+.desktop-header .hamburger.active {
+    border-color: var(--border-color);
+    background: rgba(255,255,255,.42);
+}
+
+.desktop-header .hamburger span {
+    width: 18px;
+}
+
+/* Hide the legacy floating opener; the persistent header owns this action. */
+.floating-hamburger {
+    display: none !important;
+}
+
+/* The menu is a true off-canvas drawer and never consumes layout width. */
+.sidebar {
+    z-index: 1200;
+    box-shadow: 18px 0 42px rgba(27, 23, 21, .12);
+}
+
+.sidebar::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(25, 21, 20, .22);
+    opacity: 0;
+    transition: opacity .35s ease;
+    z-index: -1;
+}
+
+body.sidebar-active .sidebar::after {
+    opacity: 1;
+}
+
+/* Full viewport hero: only a narrow reveal of the smart ambient color remains. */
+.hero-slider-container {
+    width: 100%;
+    min-height: calc(100svh - var(--desktop-header-height));
+    height: calc(100svh - var(--desktop-header-height));
+    padding: 18px 22px;
+    margin: 0;
+    background: transparent;
+    isolation: isolate;
+}
+
+.hero-ambient-bg {
+    inset: -44px;
+    opacity: .82;
+    filter: blur(72px) saturate(1.08);
+    transform: scale(1.12);
+}
+
+.hero-ambient-overlay {
+    background: rgba(255,255,255,.04);
+    backdrop-filter: blur(24px) saturate(1.08);
+    -webkit-backdrop-filter: blur(24px) saturate(1.08);
+}
+
+.hero-slide-card {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    padding: 14px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    justify-content: center;
+}
+
+.hero-slide-header {
+    position: absolute;
+    top: 26px;
+    left: 34px;
+    right: 34px;
+    z-index: 4;
+    margin: 0;
+    max-width: 650px;
+    text-align: left;
+    pointer-events: none;
+}
+
+.hero-slide-subtitle-tag,
+.hero-slide-main-title {
+    text-shadow: 0 2px 20px rgba(0,0,0,.26);
+}
+
+.hero-slide-subtitle-tag {
+    color: #fff;
+}
+
+.hero-slide-main-title {
+    color: #fff;
+}
+
+.hero-slide-image-frame {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    border-radius: 4px;
+    box-shadow: 0 22px 60px rgba(0,0,0,.16);
+    background: rgba(255,255,255,.08);
+}
+
+.hero-slide-image-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.hero-slide-bottom-icon {
+    position: absolute;
+    left: 34px;
+    bottom: 28px;
+    z-index: 4;
+    margin: 0;
+    color: #fff;
+}
+
+.hero-slide-cta-btn {
+    bottom: 28px;
+    padding: 11px 26px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.9);
+    border-color: rgba(255,255,255,.95);
+    color: #151313;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+}
+
+.hero-slider-nav {
+    width: calc(100% - 44px);
+    max-width: none;
+}
+
+.hero-nav-arrow {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,.65);
+}
+
+.hero-slider-dots {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 5;
+}
+
+/* Product area has breathing room on every viewport. */
+.search-filter-section {
+    padding-inline: clamp(18px, 3.2vw, 52px);
+}
+
+.product-card {
+    max-height: none;
+}
+
+.product-main-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.products-grid.grid-6 .product-body {
+    padding: 9px;
+    gap: 5px;
+}
+
+.products-grid.grid-6 .product-info-row {
+    gap: 5px;
+}
+
+.products-grid.grid-6 .product-name,
+.products-grid.grid-6 .product-size,
+.products-grid.grid-6 .product-price {
+    font-size: 11px;
+}
+
+.products-grid.grid-6 .order-btn {
+    font-size: 10px;
+    padding-inline: 3px;
+}
+
+@media (max-width: 900px) {
+    :root {
+        --desktop-header-height: 64px;
+    }
+
+    .desktop-header {
+        display: none;
+    }
+
+    .mobile-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1100;
+        height: var(--desktop-header-height);
+        background: color-mix(in srgb, var(--sidebar-bg) 90%, transparent);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+
+    .main-content {
+        padding-top: var(--desktop-header-height);
+    }
+
+    .hero-slider-container {
+        min-height: calc(100svh - var(--desktop-header-height));
+        height: calc(100svh - var(--desktop-header-height));
+        padding: 10px;
+    }
+
+    .hero-ambient-bg {
+        inset: -30px;
+        filter: blur(58px) saturate(1.12);
+        opacity: .9;
+    }
+
+    .hero-slide-card {
+        padding: 8px;
+    }
+
+    .hero-slide-header {
+        top: 18px;
+        left: 18px;
+        right: 18px;
+    }
+
+    .hero-slide-subtitle-tag {
+        font-size: 9px;
+        letter-spacing: 2px;
+    }
+
+    .hero-slide-main-title {
+        font-size: clamp(18px, 6vw, 28px);
+        letter-spacing: 2px;
+    }
+
+    .hero-slide-image-frame {
+        border-radius: 3px;
+    }
+
+    .hero-slide-cta-btn {
+        bottom: 20px;
+        padding: 10px 21px;
+        font-size: 11px;
+        letter-spacing: 1.5px;
+    }
+
+    .hero-slide-bottom-icon {
+        left: 18px;
+        bottom: 22px;
+    }
+
+    .hero-slider-nav {
+        width: calc(100% - 24px);
+    }
+
+    .hero-nav-arrow {
+        width: 34px;
+        height: 34px;
+    }
+
+    .products-grid,
+    .products-grid.grid-6 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding-inline: 14px;
+    }
+
+    .products-grid .product-image-wrap,
+    .products-grid.grid-6 .product-image-wrap {
+        aspect-ratio: 1 / 1.04;
+    }
+
+    .products-grid .product-body,
+    .products-grid.grid-6 .product-body {
+        padding: 9px;
+        gap: 5px;
+    }
+
+    .products-grid .product-name,
+    .products-grid .product-size,
+    .products-grid .product-price,
+    .products-grid.grid-6 .product-name,
+    .products-grid.grid-6 .product-size,
+    .products-grid.grid-6 .product-price {
+        font-size: 11px;
+    }
+
+    .products-grid .order-btn,
+    .products-grid.grid-6 .order-btn {
+        font-size: 10px;
+        padding: 3px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-ambient-bg,
+    .hero-slide-card,
+    .products-grid,
+    .sidebar,
+    .desktop-header {
+        transition: none !important;
+    }
+}
+
+
+/* ============================================
+   TIDDIS TAPIS — Responsive correction pass
+   Final overrides for the full-screen reference layout.
+   ============================================ */
+
+/* The brand is a permanent navigation anchor on desktop and mobile. */
+.desktop-header,
+.mobile-header {
+    visibility: visible;
+    opacity: 1;
+}
+
+.desktop-header .header-brand,
+.mobile-header .mobile-brand {
+    display: inline-flex;
+    visibility: visible;
+    opacity: 1;
+    flex-shrink: 0;
+}
+
+.desktop-header .header-brand {
+    color: var(--text-primary);
+    min-height: 34px;
+    align-items: baseline;
+}
+
+.desktop-header .header-brand .brand-main,
+.desktop-header .header-brand .brand-sub,
+.mobile-header .mobile-brand .brand-main,
+.mobile-header .mobile-brand .brand-sub {
+    display: inline-block;
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Three columns is the calm desktop default; six is the dense grid state. */
+.products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(12px, 1.8vw, 24px);
+    padding-inline: clamp(16px, 2.8vw, 44px);
+    align-items: start;
+}
+
+.products-grid.grid-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(8px, 1.1vw, 16px);
+}
+
+.product-card,
+.skeleton-card {
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+}
+
+.product-image-wrap,
+.products-grid.grid-6 .product-image-wrap {
+    aspect-ratio: 1 / 1;
+}
+
+.product-body {
+    min-width: 0;
+    padding: clamp(8px, 1vw, 13px);
+    gap: 6px;
+}
+
+.product-name,
+.product-size,
+.product-price {
+    min-width: 0;
+}
+
+.product-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.25;
+}
+
+.products-grid.grid-6 .product-body {
+    padding: 7px;
+    gap: 4px;
+}
+
+.products-grid.grid-6 .product-name,
+.products-grid.grid-6 .product-size,
+.products-grid.grid-6 .product-price {
+    font-size: clamp(9px, .8vw, 12px);
+}
+
+.products-grid.grid-6 .order-btn {
+    font-size: 9px;
+    min-height: 28px;
+    padding: 3px 5px;
+}
+
+/* The image occupies almost all of the viewport; only a slim ambient reveal remains. */
+.hero-slider-container {
+    width: 100%;
+    height: calc(100svh - var(--desktop-header-height));
+    min-height: calc(100svh - var(--desktop-header-height));
+    padding: clamp(8px, 1.35vw, 20px);
+    margin: 0;
+    background: transparent !important;
+    isolation: isolate;
+}
+
+.hero-slide-card {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    background: transparent !important;
+    border: 0;
+    box-shadow: none;
+    justify-content: center;
+}
+
+.hero-slide-image-frame {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: 0 18px 48px rgba(0,0,0,.14);
+}
+
+.hero-slide-image-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.hero-ambient-bg {
+    opacity: .95;
+    filter: blur(64px) saturate(1.18);
+    transform: scale(1.14);
+}
+
+.hero-ambient-overlay {
+    background: rgba(255,255,255,.035);
+    backdrop-filter: blur(18px) saturate(1.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+@media (max-width: 900px) {
+    .mobile-header {
+        display: flex;
+        height: var(--desktop-header-height);
+        padding-inline: 18px;
+    }
+
+    .mobile-header .mobile-brand .brand-main {
+        font-size: clamp(16px, 5vw, 21px);
+        letter-spacing: 2.5px;
+    }
+
+    .mobile-header .mobile-brand .brand-sub {
+        font-size: clamp(9px, 2.8vw, 11px);
+        letter-spacing: 3px;
+    }
+
+    .main-content {
+        padding-top: var(--desktop-header-height);
+    }
+
+    .hero-slider-container {
+        height: calc(100svh - var(--desktop-header-height));
+        min-height: calc(100svh - var(--desktop-header-height));
+        padding: 8px;
+    }
+
+    .hero-slide-image-frame {
+        border-radius: 2px;
+    }
+
+    .hero-slide-header {
+        top: 16px;
+        left: 16px;
+        right: 16px;
+    }
+
+    .hero-slide-main-title {
+        font-size: clamp(17px, 6vw, 27px);
+        letter-spacing: 1.5px;
+    }
+
+    .hero-slide-subtitle-tag {
+        font-size: 9px;
+        letter-spacing: 1.6px;
+    }
+
+    .hero-slide-cta-btn {
+        bottom: 16px;
+        padding: 9px 19px;
+        font-size: 10px;
+    }
+
+    .products-grid,
+    .products-grid.grid-6 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding-inline: 16px;
+    }
+
+    .product-image-wrap,
+    .products-grid.grid-6 .product-image-wrap {
+        aspect-ratio: 1 / 1.04;
+    }
+
+    .product-body,
+    .products-grid.grid-6 .product-body {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    .product-name,
+    .product-size,
+    .product-price,
+    .products-grid.grid-6 .product-name,
+    .products-grid.grid-6 .product-size,
+    .products-grid.grid-6 .product-price {
+        font-size: 11px;
+    }
+
+    .products-grid .order-btn,
+    .products-grid.grid-6 .order-btn {
+        min-height: 27px;
+        font-size: 10px;
+        padding: 3px 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-slider-container {
+        padding: 6px;
+    }
+
+    .products-grid,
+    .products-grid.grid-6 {
+        padding-inline: 12px;
+        gap: 9px;
+    }
+
+    .product-body,
+    .products-grid.grid-6 .product-body {
+        padding: 7px;
+    }
 }

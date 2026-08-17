@@ -8,7 +8,18 @@
 </head>
 <body>
 
-    <!-- Floating Hamburger for Desktop (Visible when sidebar is closed) -->
+    <!-- الهيدر الثابت: العلامة تبقى ظاهرة، والزر يفتح القائمة الجانبية -->
+    <header class="desktop-header" id="desktop-header">
+        <button class="hamburger header-hamburger" id="header-hamburger-btn" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <a class="header-brand" href="index.html" aria-label="Tiddis Tapis home">
+            <span class="brand-main">TIDDIS</span>
+            <span class="brand-sub">TAPIS</span>
+        </a>
+    </header>
+
+    <!-- Floating Hamburger for legacy compatibility -->
     <button class="hamburger floating-hamburger" id="floating-hamburger-btn" aria-label="Open menu">
         <span></span><span></span><span></span>
     </button>

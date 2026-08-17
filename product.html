@@ -136,6 +136,22 @@
 </head>
 <body>
 
+    <!-- الهيدر الثابت: العلامة تبقى ظاهرة، والزر يفتح القائمة الجانبية -->
+    <header class="desktop-header" id="desktop-header">
+        <button class="hamburger header-hamburger" id="header-hamburger-btn" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <a class="header-brand" href="index.html" aria-label="Tiddis Tapis home">
+            <span class="brand-main">TIDDIS</span>
+            <span class="brand-sub">TAPIS</span>
+        </a>
+    </header>
+
+    <!-- Floating opener kept only for backward-compatible JS, hidden by CSS -->
+    <button class="hamburger floating-hamburger" id="floating-hamburger-btn" aria-label="Open menu">
+        <span></span><span></span><span></span>
+    </button>
+
     <!-- القائمة الجانبية -->
     <div class="sidebar" id="sidebar">
         <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close menu">✕</button>

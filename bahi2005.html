@@ -146,15 +146,21 @@
                     <div class="form-group">
                         <label for="hero-slide-link-type">Button Link Type</label>
                         <select id="hero-slide-link-type" class="form-input">
-                            <option value="category">Category (Internal)</option>
-                            <option value="all">All Products</option>
+                            <option value="section">Website Section (Internal)</option>
                             <option value="external">External Link</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="hero-slide-btn-url">Button Target / URL (Category Name or http...)</label>
-                    <input type="text" id="hero-slide-btn-url" placeholder="e.g. MANISA or https://example.com" class="form-input">
+                    <label for="hero-slide-btn-url">Button Target / Website Section</label>
+                    <select id="hero-slide-btn-url" class="form-input">
+                        <option value="">Loading website sections...</option>
+                    </select>
+                    <small style="color:#666; font-size:11px; display:block; margin-top:4px;">This list includes Overview, product categories and sub-categories, overview categories and sub-categories, About Us, Contact, and All Products. It refreshes automatically when you add or edit sections.</small>
+                </div>
+                <div class="form-group" id="hero-external-url-group" style="display:none;">
+                    <label for="hero-slide-external-url">External URL</label>
+                    <input type="url" id="hero-slide-external-url" placeholder="https://example.com" class="form-input">
                 </div>
                 <div class="form-group">
                     <label for="hero-slide-svg-icon">SVG Icon Code (Small icon at bottom of slide)</label>

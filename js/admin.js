@@ -230,6 +230,7 @@ async function loadCategories() {
         renderCategories();
         populateCategorySelects();
         updateCategoryStats();
+        refreshHeroDestinationOptions?.();
     } catch (error) {
         console.error('Error loading categories:', error);
         if (categoriesList) {
@@ -564,6 +565,7 @@ async function loadOverviewCategories() {
         renderOverviewCategories();
         populateOverviewCategorySelects();
         updateCategoryStats();
+        refreshHeroDestinationOptions?.();
     } catch (error) {
         console.error('Error loading overview categories:', error);
         if (overviewCategoriesList) {
@@ -1920,6 +1922,119 @@ const cancelHeroEditBtn = document.getElementById('cancel-hero-edit-btn');
 const editingHeroIndexInput = document.getElementById('editing-hero-index');
 const heroSlidesList = document.getElementById('hero-slides-list');
 const heroFormTitle = document.getElementById('hero-form-title');
+const heroExternalUrl = document.getElementById('hero-slide-external-url');
+const heroExternalUrlGroup = document.getElementById('hero-external-url-group');
+
+/**
+ * Builds the Hero destination list from the same category source used by the
+ * admin category managers. Values are real storefront URLs, not display names,
+ * so renamed categories are refreshed before the next save.
+ */
+function getHeroDestinationOptions() {
+    const options = [
+        { value: 'index.html#hero-slider-container', label: 'Overview' },
+        { value: 'index.html#products-grid', label: 'All Products' },
+        { value: 'index.html#about-section', label: 'About Us' },
+        { value: 'index.html#contact-section', label: 'Contact' }
+    ];
+    const seen = new Set();
+
+    // Keep the first occurrence of the shared All Products destination.
+    const uniqueOptions = [];
+    options.forEach(option => {
+        if (!seen.has(option.value)) {
+            seen.add(option.value);
+            uniqueOptions.push(option);
+        }
+    });
+
+    const categories = Array.isArray(allCategories) ? allCategories : [];
+    const grouped = [
+        { type: 'overview', label: 'Overview', items: categories.filter(cat => cat.type === 'overview') },
+        { type: 'products', label: 'Products', items: categories.filter(cat => cat.type !== 'overview') }
+    ];
+
+    grouped.forEach(group => {
+        group.items
+            .slice()
+            .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name)))
+            .forEach(category => {
+                const categoryUrl = `index.html?category=${encodeURIComponent(category.name)}&type=${encodeURIComponent(group.type)}`;
+                if (!seen.has(categoryUrl)) {
+                    seen.add(categoryUrl);
+                    uniqueOptions.push({ value: categoryUrl, label: `${group.label} · ${category.name}` });
+                }
+
+                (category.subcategories || []).forEach(subcategory => {
+                    const subcategoryUrl = `index.html?category=${encodeURIComponent(subcategory)}&type=${encodeURIComponent(group.type)}`;
+                    if (!seen.has(subcategoryUrl)) {
+                        seen.add(subcategoryUrl);
+                        uniqueOptions.push({ value: subcategoryUrl, label: `${group.label} · ${category.name} → ${subcategory}` });
+                    }
+                });
+            });
+    });
+
+    return uniqueOptions;
+}
+
+function refreshHeroDestinationOptions(selectedValue = heroSlideBtnUrl?.value || '') {
+    if (!heroSlideBtnUrl) return;
+    const options = getHeroDestinationOptions();
+    heroSlideBtnUrl.innerHTML = options.map(option =>
+        `<option value="${option.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${option.label}</option>`
+    ).join('');
+
+    const hasSelectedValue = options.some(option => option.value === selectedValue);
+    if (hasSelectedValue) {
+        heroSlideBtnUrl.value = selectedValue;
+    } else if (selectedValue && /^index\.html(?:\?|#)/.test(selectedValue)) {
+        // Preserve a legacy/custom internal URL until the administrator edits it.
+        const legacyOption = document.createElement('option');
+        legacyOption.value = selectedValue;
+        legacyOption.textContent = `Current saved destination · ${selectedValue}`;
+        heroSlideBtnUrl.appendChild(legacyOption);
+        heroSlideBtnUrl.value = selectedValue;
+    } else {
+        heroSlideBtnUrl.value = options[0]?.value || '';
+    }
+}
+
+function updateHeroDestinationMode() {
+    const isExternal = heroSlideLinkType?.value === 'external';
+    if (heroExternalUrlGroup) heroExternalUrlGroup.style.display = isExternal ? 'block' : 'none';
+    if (heroSlideBtnUrl) {
+        heroSlideBtnUrl.disabled = isExternal;
+        heroSlideBtnUrl.setAttribute('aria-hidden', String(isExternal));
+    }
+    if (heroExternalUrl) heroExternalUrl.disabled = !isExternal;
+}
+
+function getSavedHeroDestination(slide) {
+    if (!slide) return { linkType: 'section', internalUrl: 'index.html#hero-slider-container', externalUrl: '' };
+    if (slide.linkType === 'external') {
+        return { linkType: 'external', internalUrl: '', externalUrl: slide.btnUrl || '' };
+    }
+    if (slide.linkType === 'all') {
+        return { linkType: 'section', internalUrl: 'index.html#products-grid', externalUrl: '' };
+    }
+    if (slide.linkType === 'category' && slide.btnUrl && !/^index\.html(?:\?|#)/.test(slide.btnUrl)) {
+        const matchingCategory = (Array.isArray(allCategories) ? allCategories : []).find(cat =>
+            cat.name === slide.btnUrl || (cat.subcategories || []).includes(slide.btnUrl)
+        );
+        const type = matchingCategory?.type === 'overview' ? 'overview' : 'products';
+        return {
+            linkType: 'section',
+            internalUrl: `index.html?category=${encodeURIComponent(slide.btnUrl)}&type=${type}`,
+            externalUrl: ''
+        };
+    }
+    return { linkType: 'section', internalUrl: slide.btnUrl || 'index.html#products-grid', externalUrl: '' };
+}
+
+heroSlideLinkType?.addEventListener('change', updateHeroDestinationMode);
+refreshHeroDestinationOptions();
+updateHeroDestinationMode();
 
 function renderHeroSlidesList(slides) {
     if (!heroSlidesList) return;
@@ -1961,8 +2076,11 @@ function renderHeroSlidesList(slides) {
             if (heroSlideTitle) heroSlideTitle.value = slide.title || '';
             if (heroSlideSubtitle) heroSlideSubtitle.value = slide.subtitle || '';
             if (heroSlideBtnText) heroSlideBtnText.value = slide.btnText || '';
-            if (heroSlideLinkType) heroSlideLinkType.value = slide.linkType || 'category';
-            if (heroSlideBtnUrl) heroSlideBtnUrl.value = slide.btnUrl || '';
+            const destination = getSavedHeroDestination(slide);
+            if (heroSlideLinkType) heroSlideLinkType.value = destination.linkType;
+            refreshHeroDestinationOptions(destination.internalUrl);
+            if (heroExternalUrl) heroExternalUrl.value = destination.externalUrl;
+            updateHeroDestinationMode();
             if (heroSlideSvgIcon) heroSlideSvgIcon.value = slide.svgIcon || '';
             if (cancelHeroEditBtn) cancelHeroEditBtn.style.display = 'inline-block';
 
@@ -2073,8 +2191,10 @@ saveHeroSlideBtn?.addEventListener('click', async function() {
         title: heroSlideTitle?.value.trim() || '',
         subtitle: heroSlideSubtitle?.value.trim() || '',
         btnText: heroSlideBtnText?.value.trim() || '',
-        linkType: heroSlideLinkType?.value || 'category',
-        btnUrl: heroSlideBtnUrl?.value.trim() || '',
+        linkType: heroSlideLinkType?.value || 'section',
+        btnUrl: heroSlideLinkType?.value === 'external'
+            ? (heroExternalUrl?.value.trim() || '')
+            : (heroSlideBtnUrl?.value || ''),
         svgIcon: heroSlideSvgIcon?.value.trim() || ''
     };
 
@@ -2105,9 +2225,11 @@ function resetHeroForm() {
     if (heroSlideTitle) heroSlideTitle.value = '';
     if (heroSlideSubtitle) heroSlideSubtitle.value = '';
     if (heroSlideBtnText) heroSlideBtnText.value = '';
-    if (heroSlideLinkType) heroSlideLinkType.value = 'category';
-    if (heroSlideBtnUrl) heroSlideBtnUrl.value = '';
+    if (heroSlideLinkType) heroSlideLinkType.value = 'section';
+    refreshHeroDestinationOptions();
+    if (heroExternalUrl) heroExternalUrl.value = '';
     if (heroSlideSvgIcon) heroSlideSvgIcon.value = '';
+    updateHeroDestinationMode();
     if (cancelHeroEditBtn) cancelHeroEditBtn.style.display = 'none';
 }
 
