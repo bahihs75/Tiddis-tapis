@@ -139,6 +139,15 @@ const addContactBtn = document.getElementById('add-contact-btn');
 const adminHamburger = document.getElementById('admin-hamburger');
 const adminSidebar = document.getElementById('admin-sidebar');
 
+function setAdminSidebarOpen(isOpen) {
+    if (!adminSidebar) return;
+    const open = Boolean(isOpen);
+    adminSidebar.classList.toggle('open', open);
+    adminHamburger?.classList.toggle('active', open);
+    adminHamburger?.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('admin-sidebar-open', open);
+}
+
 // ============================================
 // 3. قائمة الولايات الـ 58
 // ============================================
@@ -195,8 +204,7 @@ adminNavLinks.forEach(link => {
         }
 
         if (window.innerWidth <= 900) {
-            adminSidebar.classList.remove('open');
-            adminHamburger?.classList.remove('active');
+            setAdminSidebarOpen(false);
         }
 
         if (section === 'dashboard') loadDashboardData();
@@ -209,11 +217,16 @@ adminNavLinks.forEach(link => {
     });
 });
 
-if (adminHamburger) {
-    adminHamburger.addEventListener('click', function() {
-        adminSidebar.classList.toggle('open');
-        this.classList.toggle('active');
+if (adminHamburger && adminSidebar) {
+    adminHamburger.addEventListener('click', () => {
+        setAdminSidebarOpen(!adminSidebar.classList.contains('open'));
     });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 900) setAdminSidebarOpen(false);
+    });
+
+    setAdminSidebarOpen(false);
 }
 
 // ============================================

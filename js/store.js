@@ -1418,50 +1418,59 @@ function renderProductDetail(product) {
 
     container.innerHTML = `
         <div class="product-detail-layout">
-            <div class="main-viewer" id="main-viewer">
-                <img src="${uniqueImages[0] || ''}" id="main-product-img" alt="${product.name}">
-            </div>
-            <div class="thumbnails-sidebar" id="thumbnails-sidebar">
-                ${thumbnailsHtml}
-            </div>
-        </div>
+            <a class="product-back-rail" href="index.html#products-grid" aria-label="Back to products">
+                <span class="product-back-icon" aria-hidden="true">←</span>
+                <span class="product-back-label">Back to products</span>
+            </a>
 
-        <div class="product-info-glass-box glass-element">
-            <h1 style="font-family:var(--font-serif); margin-bottom:8px;">${product.name}</h1>
-            <span class="price-tag-large" id="product-detail-price">${defaultPrice} DZD</span>
-            
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>Collection</label>
-                    <span>${product.category || 'KSOR'}</span>
+            <div class="product-gallery-shell">
+                <div class="main-viewer" id="main-viewer">
+                    <img src="${uniqueImages[0] || ''}" id="main-product-img" alt="${product.name}">
                 </div>
-                ${attributesHtml}
-                ${hasVariants ? `
-                <div class="info-item">
-                    <label>Options</label>
-                    <select id="product-detail-variant" class="variant-select">
-                        ${product.variants.map((v, idx) => `
-                            <option value="${idx}" data-price="${v.price || product.basePrice}" 
-                                    data-image="${v.image || product.imageUrl || ''}">
-                                ${v.size || ''} ${v.color ? '- ' + v.color : ''}
-                            </option>
-                        `).join('')}
-                    </select>
+                <div class="thumbnails-sidebar" id="thumbnails-sidebar" aria-label="Product images">
+                    ${thumbnailsHtml}
+                </div>
+            </div>
+
+            <section class="product-info-glass-box glass-element" aria-labelledby="product-detail-name">
+                <div class="product-info-heading">
+                    <h1 id="product-detail-name">${product.name}</h1>
+                    <span class="price-tag-large" id="product-detail-price">${defaultPrice} DZD</span>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Collection</label>
+                        <span>${product.category || 'KSOR'}</span>
+                    </div>
+                    ${attributesHtml}
+                    ${hasVariants ? `
+                    <div class="info-item">
+                        <label for="product-detail-variant">Options</label>
+                        <select id="product-detail-variant" class="variant-select">
+                            ${product.variants.map((v, idx) => `
+                                <option value="${idx}" data-price="${v.price || product.basePrice}" 
+                                        data-image="${v.image || product.imageUrl || ''}">
+                                    ${v.size || ''} ${v.color ? '- ' + v.color : ''}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    ` : ''}
+                </div>
+
+                ${product.description ? `
+                <div class="product-detail-description">
+                    <label>Description</label>
+                    <p>${product.description}</p>
                 </div>
                 ` : ''}
-            </div>
 
-            <div class="action-buttons">
-                <button id="detail-order-btn" class="btn-primary" style="flex:2;">ORDER NOW</button>
-                <button id="detail-pdf-btn" class="btn-secondary" style="flex:1;">TECHNICAL SHEET</button>
-            </div>
-            
-            ${product.description ? `
-            <div style="margin-top:32px; border-top:1px solid rgba(0,0,0,0.1); padding-top:24px;">
-                <label style="font-family:var(--font-mono); font-size:11px; text-transform:uppercase; color:var(--muted);">Description</label>
-                <p style="margin-top:8px; line-height:1.6;">${product.description}</p>
-            </div>
-            ` : ''}
+                <div class="action-buttons">
+                    <button id="detail-order-btn" class="btn-primary" style="flex:2;">ORDER NOW</button>
+                    <button id="detail-pdf-btn" class="btn-secondary" style="flex:1;">TECHNICAL SHEET</button>
+                </div>
+            </section>
         </div>
     `;
 
@@ -1802,9 +1811,22 @@ function setGridDensity(dense) {
     if (dense) {
         DOM.productsGrid.classList.add(denseClass);
     }
-    AppState.ui.gridColumns = dense ? (isMobile ? 2 : 6) : 3;
+    AppState.ui.gridColumns = dense ? (isMobile ? 2 : 6) : (isMobile ? 1 : 3);
     DOM.gridDensityDense?.classList.toggle('active', dense);
     DOM.gridDensityLoose?.classList.toggle('active', !dense);
+
+    const looseColumns = isMobile ? 1 : 3;
+    const denseColumns = isMobile ? 2 : 6;
+    if (DOM.gridDensityLoose) {
+        DOM.gridDensityLoose.setAttribute('aria-label', `${looseColumns} columns`);
+        DOM.gridDensityLoose.setAttribute('title', `${looseColumns} columns`);
+        DOM.gridDensityLoose.setAttribute('aria-pressed', String(!dense));
+    }
+    if (DOM.gridDensityDense) {
+        DOM.gridDensityDense.setAttribute('aria-label', `${denseColumns} columns`);
+        DOM.gridDensityDense.setAttribute('title', `${denseColumns} columns`);
+        DOM.gridDensityDense.setAttribute('aria-pressed', String(dense));
+    }
 }
 
 // الحالة الافتراضية: غير مكثفة — مع الحماية
@@ -1819,38 +1841,38 @@ DOM.gridDensityDense?.addEventListener('click', () => setGridDensity(true));
 // 19. الهامبورجر
 // ============================================
 
-function toggleSidebar(force) {
-    const isOpen = typeof force === 'boolean' ? force : !DOM.sidebar.classList.contains('open');
-    
-    if (DOM.sidebar) {
-        DOM.sidebar.classList.toggle('open', isOpen);
-        document.body.classList.toggle('sidebar-active', isOpen);
-    }
-    
-    // Update all hamburger buttons to active state (X)
-    const allHamburgers = [DOM.hamburgerBtn, document.getElementById('desktop-hamburger-btn'), document.getElementById('floating-hamburger-btn')];
-    allHamburgers.forEach(btn => {
-        if (btn) btn.classList.toggle('active', isOpen);
+function getHamburgerButtons() {
+    return Array.from(document.querySelectorAll(
+        '#header-hamburger-btn, #hamburger-btn, #desktop-hamburger-btn, #floating-hamburger-btn'
+    ));
+}
+
+function syncHamburgerState(isOpen) {
+    getHamburgerButtons().forEach(btn => {
+        btn.classList.toggle('active', isOpen);
+        btn.setAttribute('aria-expanded', String(isOpen));
+        btn.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
     });
+}
 
-    if (isOpen && DOM.mobileSearchBar) {
-        DOM.mobileSearchBar.classList.remove('open');
+function toggleSidebar(force) {
+    const currentlyOpen = DOM.sidebar?.classList.contains('open') ?? false;
+    const isOpen = typeof force === 'boolean' ? force : !currentlyOpen;
+
+    DOM.sidebar?.classList.toggle('open', isOpen);
+    document.body.classList.toggle('sidebar-active', isOpen);
+    syncHamburgerState(isOpen);
+
+    if (isOpen) {
+        DOM.mobileSearchBar?.classList.remove('open');
     }
 }
 
-if (DOM.hamburgerBtn) {
-    DOM.hamburgerBtn.addEventListener('click', () => toggleSidebar());
-}
-
-const desktopHamburgerBtn = document.getElementById('desktop-hamburger-btn');
-if (desktopHamburgerBtn) {
-    desktopHamburgerBtn.addEventListener('click', () => toggleSidebar());
-}
-
-const floatingHamburgerBtn = document.getElementById('floating-hamburger-btn');
-if (floatingHamburgerBtn) {
-    floatingHamburgerBtn.addEventListener('click', () => toggleSidebar());
-}
+// One connector for every supported header variant: no duplicate listeners,
+// and the open/X state remains synchronized across desktop and mobile.
+getHamburgerButtons().forEach(btn => {
+    btn.addEventListener('click', () => toggleSidebar());
+});
 
 document.getElementById('mobile-menu-close')?.addEventListener('click', function() {
     toggleSidebar(false);

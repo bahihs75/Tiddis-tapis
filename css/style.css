@@ -3155,3 +3155,725 @@ body.sidebar-active .sidebar::after {
         padding: 7px;
     }
 }
+
+
+/* =========================================================
+   TIDDIS TAPIS — Afak-inspired hero correction
+   One final cascade layer intentionally overrides legacy passes.
+   ========================================================= */
+:root {
+    --tiddis-header-height: 76px;
+    --tiddis-hero-gap: clamp(8px, 1.1vw, 18px);
+}
+
+/* Persistent desktop identity: hamburger first, brand immediately after it. */
+.desktop-header {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--tiddis-header-height);
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 0 clamp(18px, 3vw, 42px);
+    background: color-mix(in srgb, var(--bg-color) 88%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+    backdrop-filter: blur(20px) saturate(1.05);
+    -webkit-backdrop-filter: blur(20px) saturate(1.05);
+    z-index: 1500;
+}
+
+.desktop-header .header-hamburger {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    margin: 0;
+    padding: 9px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+}
+
+.desktop-header .header-hamburger:hover,
+.desktop-header .header-hamburger.active {
+    background: color-mix(in srgb, var(--sidebar-bg) 70%, transparent);
+    border-color: var(--border-color);
+}
+
+.desktop-header .header-hamburger span {
+    width: 20px;
+    height: 2px;
+    background: currentColor;
+}
+
+.desktop-header .header-brand {
+    display: inline-flex !important;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    color: var(--text-primary) !important;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.desktop-header .header-brand .brand-main {
+    display: inline-block !important;
+    font-family: var(--font-serif, Georgia, serif);
+    font-size: clamp(20px, 2vw, 29px);
+    font-weight: 600;
+    letter-spacing: .16em;
+}
+
+.desktop-header .header-brand .brand-sub {
+    display: inline-block !important;
+    font-family: var(--font-mono, monospace);
+    font-size: clamp(10px, .9vw, 13px);
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+/* The header owns the menu trigger; do not show a second trigger inside the drawer. */
+.sidebar .desktop-hamburger,
+.floating-hamburger {
+    display: none !important;
+}
+
+.sidebar .logo-container {
+    justify-content: flex-start;
+    padding-top: 8px;
+}
+
+.main-content {
+    padding-top: var(--tiddis-header-height);
+}
+
+/* Desktop/mobile header separation. */
+.mobile-header {
+    display: none !important;
+}
+
+/* Afak-inspired hero: full viewport below the sticky header, with only a slim
+   ambient-color reveal around the image. The image itself remains untinted. */
+.hero-slider-container {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    width: 100%;
+    height: calc(100svh - var(--tiddis-header-height));
+    min-height: 520px;
+    margin: 0;
+    padding: var(--tiddis-hero-gap);
+    overflow: hidden;
+    isolation: isolate;
+    background: transparent !important;
+}
+
+.hero-ambient-bg {
+    position: absolute;
+    inset: -48px;
+    z-index: 0;
+    opacity: .92;
+    background-size: cover;
+    background-position: center;
+    filter: blur(70px) saturate(1.2);
+    transform: scale(1.12);
+}
+
+.hero-ambient-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(16, 18, 20, .07) !important;
+    backdrop-filter: blur(26px) saturate(1.12);
+    -webkit-backdrop-filter: blur(26px) saturate(1.12);
+}
+
+.hero-slide-card {
+    position: relative;
+    z-index: 2;
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    background: transparent !important;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.hero-slide-header {
+    position: absolute;
+    top: clamp(18px, 3vw, 38px);
+    left: clamp(18px, 3vw, 42px);
+    right: clamp(18px, 3vw, 42px);
+    z-index: 4;
+    margin: 0;
+    max-width: 680px;
+    text-align: left;
+    pointer-events: none;
+}
+
+.hero-slide-subtitle-tag,
+.hero-slide-main-title {
+    color: #fff !important;
+    text-shadow: 0 2px 22px rgba(0,0,0,.32);
+}
+
+.hero-slide-image-frame {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.48);
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: 0 18px 48px rgba(0,0,0,.16);
+}
+
+.hero-slide-image-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: none !important;
+}
+
+.hero-slide-cta-btn {
+    bottom: clamp(20px, 4vw, 48px);
+    padding: 11px 28px;
+    border: 1px solid rgba(255,255,255,.82);
+    border-radius: 2px;
+    background: rgba(255,255,255,.9);
+    color: #151313;
+    box-shadow: 0 8px 24px rgba(0,0,0,.16);
+}
+
+.hero-slide-bottom-icon {
+    left: clamp(18px, 3vw, 42px);
+    bottom: clamp(20px, 4vw, 48px);
+    z-index: 4;
+    color: #fff;
+}
+
+.hero-slider-nav {
+    width: calc(100% - (var(--tiddis-hero-gap) * 2));
+    max-width: none;
+    z-index: 8;
+}
+
+.hero-nav-arrow {
+    width: 38px;
+    height: 38px;
+    border-radius: 0;
+    background: rgba(255,255,255,.78);
+    color: #171717;
+    box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+
+.hero-slider-dots {
+    bottom: 12px;
+    z-index: 8;
+}
+
+/* Controls use visibly different 3-column and 6-column glyph states. */
+.grid-density-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.grid-density-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* Product area never touches the viewport edge. */
+.search-filter-section {
+    padding-inline: clamp(16px, 3vw, 48px);
+}
+
+.products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(12px, 1.8vw, 24px);
+    padding-inline: clamp(8px, 1.4vw, 24px);
+    align-items: start;
+}
+
+.products-grid.grid-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(8px, 1vw, 15px);
+}
+
+.product-card,
+.skeleton-card {
+    min-width: 0;
+    height: auto;
+    max-height: none;
+}
+
+.product-image-wrap,
+.products-grid.grid-6 .product-image-wrap {
+    aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 900px) {
+    :root {
+        --tiddis-header-height: 64px;
+    }
+
+    .desktop-header {
+        display: none !important;
+    }
+
+    .mobile-header {
+        position: fixed;
+        inset: 0 0 auto 0;
+        z-index: 1500;
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: var(--tiddis-header-height);
+        padding: 0 18px;
+        background: color-mix(in srgb, var(--bg-color) 90%, transparent);
+        border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+        backdrop-filter: blur(18px) saturate(1.05);
+        -webkit-backdrop-filter: blur(18px) saturate(1.05);
+    }
+
+    .mobile-header .mobile-brand {
+        display: inline-flex !important;
+        align-items: baseline;
+        min-width: 0;
+        color: var(--text-primary);
+        white-space: nowrap;
+    }
+
+    .mobile-header .mobile-brand .logo-wrapper {
+        display: inline-flex !important;
+        align-items: baseline !important;
+    }
+
+    .mobile-header .mobile-brand .brand-main {
+        font-family: var(--font-serif, Georgia, serif);
+        font-size: clamp(17px, 5vw, 22px);
+        font-weight: 600;
+        letter-spacing: .14em;
+    }
+
+    .mobile-header .mobile-brand .brand-sub {
+        margin-left: 8px;
+        font-family: var(--font-mono, monospace);
+        font-size: clamp(9px, 2.8vw, 11px);
+        letter-spacing: .22em;
+        color: var(--accent);
+    }
+
+    .mobile-header-actions {
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        flex: 0 0 auto;
+    }
+
+    .mobile-header .hamburger,
+    .mobile-header .search-toggle-btn {
+        width: 38px;
+        height: 38px;
+        padding: 8px;
+        background: transparent;
+        color: var(--text-primary);
+    }
+
+    .main-content {
+        padding-top: var(--tiddis-header-height);
+    }
+
+    .hero-slider-container {
+        height: calc(100svh - var(--tiddis-header-height));
+        min-height: 0;
+        padding: 6px;
+    }
+
+    .hero-ambient-bg {
+        inset: -32px;
+        filter: blur(60px) saturate(1.22);
+        opacity: .96;
+    }
+
+    .hero-slide-header {
+        top: 16px;
+        left: 16px;
+        right: 16px;
+    }
+
+    .hero-slide-main-title {
+        font-size: clamp(17px, 6vw, 27px);
+        letter-spacing: 1.5px;
+    }
+
+    .hero-slide-subtitle-tag {
+        font-size: 9px;
+        letter-spacing: 1.6px;
+    }
+
+    .hero-slide-image-frame {
+        border-radius: 2px;
+    }
+
+    .hero-slide-cta-btn {
+        bottom: 18px;
+        padding: 9px 20px;
+        font-size: 10px;
+    }
+
+    .hero-slider-nav {
+        width: calc(100% - 16px);
+    }
+
+    .hero-nav-arrow {
+        width: 34px;
+        height: 34px;
+    }
+
+    .products-grid,
+    .products-grid.grid-6 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding-inline: 12px;
+    }
+
+    .product-body,
+    .products-grid.grid-6 .product-body {
+        padding: 8px;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-header {
+        padding-inline: 14px;
+    }
+
+    .mobile-header .mobile-brand .brand-main {
+        letter-spacing: .1em;
+    }
+
+    .mobile-header .mobile-brand .brand-sub {
+        margin-left: 6px;
+        letter-spacing: .16em;
+    }
+
+    .hero-slider-container {
+        padding: 5px;
+    }
+
+    .products-grid,
+    .products-grid.grid-6 {
+        padding-inline: 10px;
+        gap: 9px;
+    }
+}
+
+
+/* =========================================================
+   TIDDIS TAPIS — Afak-inspired composition correction
+   The image is framed inside the viewport so the smart ambient
+   color remains visible; the source image itself stays untinted.
+   ========================================================= */
+.hero-slider-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(18px, 3.2vw, 46px);
+    background: transparent !important;
+}
+
+.hero-slide-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.hero-slide-image-frame {
+    width: min(94%, 1680px);
+    height: min(91%, 900px);
+    margin: 0 auto;
+    border: 1px solid rgba(255, 255, 255, .72);
+    background: rgba(255, 255, 255, .08);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .18), 0 0 0 1px rgba(255, 255, 255, .12);
+}
+
+.hero-slide-image-frame img {
+    object-fit: cover;
+    object-position: center;
+    filter: none !important;
+}
+
+.hero-ambient-bg {
+    opacity: .98;
+    filter: blur(76px) saturate(1.28);
+    transform: scale(1.18);
+}
+
+.hero-ambient-overlay {
+    background: rgba(255, 255, 255, .035) !important;
+    backdrop-filter: blur(22px) saturate(1.12);
+    -webkit-backdrop-filter: blur(22px) saturate(1.12);
+}
+
+@media (min-width: 901px) {
+    .desktop-header {
+        height: var(--tiddis-header-height);
+        padding-inline: clamp(24px, 4vw, 64px);
+    }
+
+    .desktop-header .header-brand {
+        gap: 12px;
+    }
+
+    .desktop-header .header-brand .brand-main {
+        font-size: clamp(22px, 2.2vw, 32px);
+        letter-spacing: .18em;
+    }
+
+    .desktop-header .header-brand .brand-sub {
+        font-size: clamp(10px, 1vw, 14px);
+        letter-spacing: .3em;
+    }
+}
+
+@media (max-width: 900px) {
+    .hero-slider-container {
+        padding: clamp(14px, 4vw, 26px);
+    }
+
+    .hero-slide-image-frame {
+        width: min(92%, 720px);
+        height: min(92%, 900px);
+        border-radius: 2px;
+    }
+
+    .hero-ambient-bg {
+        filter: blur(64px) saturate(1.24);
+        transform: scale(1.2);
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-slider-container {
+        padding: 14px;
+    }
+
+    .hero-slide-image-frame {
+        width: 92%;
+        height: 92%;
+    }
+}
+
+
+/* =========================================================
+   TIDDIS TAPIS — Final visual correction layer
+   Keep the image edge-to-edge inside a quiet ambient reveal;
+   keep controls borderless except for keyboard focus.
+   ========================================================= */
+
+/* Luxury hamburger: no grey tile, border, fill, or inherited shadow. */
+.desktop-header .hamburger,
+.mobile-header .hamburger,
+.floating-hamburger,
+.sidebar .desktop-hamburger,
+.search-toggle-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0 !important;
+    outline: none;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0;
+}
+
+.desktop-header .hamburger,
+.mobile-header .hamburger {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 42px;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 9px;
+    margin: 0;
+    transform: translateZ(0);
+}
+
+.desktop-header .hamburger:hover,
+.desktop-header .hamburger:active,
+.desktop-header .hamburger.active,
+.mobile-header .hamburger:hover,
+.mobile-header .hamburger:active,
+.mobile-header .hamburger.active,
+.search-toggle-btn:hover,
+.search-toggle-btn:active {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.desktop-header .hamburger:focus-visible,
+.mobile-header .hamburger:focus-visible,
+.search-toggle-btn:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--accent) 78%, transparent) !important;
+    outline-offset: 4px;
+}
+
+.desktop-header .hamburger span,
+.mobile-header .hamburger span {
+    width: 22px;
+    height: 1.5px;
+    flex: 0 0 1.5px;
+    margin: 0;
+    background: currentColor;
+    border-radius: 999px;
+    transform-origin: center;
+}
+
+/* The persistent header is the only visible desktop opener. */
+.floating-hamburger,
+.sidebar .desktop-hamburger {
+    display: none !important;
+}
+
+/* Full-frame hero: image reaches the frame edge; only ambient color shows outside. */
+.hero-slider-container {
+    padding: clamp(8px, 1.2vw, 18px) !important;
+    background: transparent !important;
+}
+
+.hero-slide-card {
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.hero-slide-image-frame {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: clamp(4px, .8vw, 12px) !important;
+    background: transparent !important;
+    box-shadow: 0 22px 64px rgba(0, 0, 0, .2) !important;
+}
+
+.hero-slide-image-frame img {
+    border: 0 !important;
+    filter: none !important;
+}
+
+.hero-ambient-bg {
+    inset: -56px !important;
+    opacity: .98 !important;
+    filter: blur(78px) saturate(1.34) !important;
+    transform: scale(1.2) !important;
+}
+
+.hero-ambient-overlay {
+    background: rgba(18, 18, 18, .045) !important;
+    backdrop-filter: blur(18px) saturate(1.16) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.16) !important;
+}
+
+/* Grid controls remain compact and visually map to 3 / 6 columns. */
+.grid-density-btn {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 8px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.grid-density-btn:hover:not(.active),
+.grid-density-btn:focus-visible {
+    border: 0 !important;
+    background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+    outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent) !important;
+    outline-offset: 2px;
+}
+
+.grid-density-btn.active {
+    border: 0 !important;
+    background: var(--accent) !important;
+    color: #fff !important;
+}
+
+@media (max-width: 900px) {
+    .hero-slider-container {
+        padding: 6px !important;
+    }
+
+    .hero-slide-image-frame {
+        border-radius: 3px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-slider-container {
+        padding: 5px !important;
+    }
+}
+
+/* ============================================ */
+/* Admin Panel Specific Sidebar Fixes */
+/* ============================================ */
+@media (min-width: 901px) {
+    #admin-sidebar.sidebar {
+        transform: translateX(0);
+        left: 0;
+        box-shadow: none;
+        border-right: 1px solid var(--border-color);
+    }
+    
+    .admin-content {
+        margin-left: var(--sidebar-width);
+    }
+    
+    .admin-mobile-header {
+        display: none !important;
+    }
+}
+
+#admin-hamburger.hamburger {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 7px;
+}
+
+#admin-hamburger.hamburger:hover {
+    background: rgba(0,0,0,0.05);
+    border-color: var(--border-color);
+}

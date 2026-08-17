@@ -10,7 +10,7 @@
 
     <!-- الهيدر الثابت: العلامة تبقى ظاهرة، والزر يفتح القائمة الجانبية -->
     <header class="desktop-header" id="desktop-header">
-        <button class="hamburger header-hamburger" id="header-hamburger-btn" aria-label="Toggle navigation" aria-expanded="false">
+        <button class="hamburger header-hamburger" id="header-hamburger-btn" aria-label="Open navigation" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
         <a class="header-brand" href="index.html" aria-label="Tiddis Tapis home">
@@ -20,7 +20,7 @@
     </header>
 
     <!-- Floating Hamburger for legacy compatibility -->
-    <button class="hamburger floating-hamburger" id="floating-hamburger-btn" aria-label="Open menu">
+    <button class="hamburger floating-hamburger" id="floating-hamburger-btn" aria-label="Open navigation" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
 
@@ -28,7 +28,7 @@
     <div class="sidebar" id="sidebar">
         <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close menu">✕</button>
         <div class="logo-container" style="display:flex; align-items:center; gap:12px;">
-            <button class="hamburger desktop-hamburger" id="desktop-hamburger-btn" aria-label="Toggle navigation" style="display:flex;">
+            <button class="hamburger desktop-hamburger" id="desktop-hamburger-btn" aria-label="Open navigation" aria-expanded="false" style="display:flex;">
                 <span></span><span></span><span></span>
             </button>
             <div class="logo-wrapper">
@@ -65,7 +65,7 @@
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
             </button>
-            <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+            <button class="hamburger" id="hamburger-btn" aria-label="Open navigation" aria-expanded="false">
                 <span></span><span></span><span></span>
             </button>
         </div>
@@ -98,13 +98,13 @@
                         Filters
                     </button>
                     <div class="grid-toggle-wrapper">
-                        <button class="grid-density-btn" id="grid-density-loose" aria-label="Fewer columns" title="Fewer columns">
+                        <button class="grid-density-btn" id="grid-density-loose" aria-label="3 columns" title="3 columns">
                             <svg class="icon-mobile" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="16" height="16"/></svg>
-                            <svg class="icon-desktop" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7"/><rect x="9" y="0" width="7" height="7"/><rect x="0" y="9" width="7" height="7"/><rect x="9" y="9" width="7" height="7"/></svg>
+                            <svg class="icon-desktop" viewBox="0 0 18 18" fill="currentColor"><rect x="0" y="0" width="4.5" height="8"/><rect x="6.75" y="0" width="4.5" height="8"/><rect x="13.5" y="0" width="4.5" height="8"/><rect x="0" y="10" width="4.5" height="8"/><rect x="6.75" y="10" width="4.5" height="8"/><rect x="13.5" y="10" width="4.5" height="8"/></svg>
                         </button>
-                        <button class="grid-density-btn" id="grid-density-dense" aria-label="More columns" title="More columns">
+                        <button class="grid-density-btn" id="grid-density-dense" aria-label="6 columns" title="6 columns">
                             <svg class="icon-mobile" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="7" height="7"/><rect x="9" y="0" width="7" height="7"/><rect x="0" y="9" width="7" height="7"/><rect x="9" y="9" width="7" height="7"/></svg>
-                            <svg class="icon-desktop" viewBox="0 0 16 16" fill="currentColor"><rect x="0" y="0" width="3" height="3"/><rect x="4.3" y="0" width="3" height="3"/><rect x="8.6" y="0" width="3" height="3"/><rect x="13" y="0" width="3" height="3"/><rect x="0" y="4.3" width="3" height="3"/><rect x="4.3" y="4.3" width="3" height="3"/><rect x="8.6" y="4.3" width="3" height="3"/><rect x="13" y="4.3" width="3" height="3"/><rect x="0" y="8.6" width="3" height="3"/><rect x="4.3" y="8.6" width="3" height="3"/><rect x="8.6" y="8.6" width="3" height="3"/><rect x="13" y="8.6" width="3" height="3"/><rect x="0" y="13" width="3" height="3"/><rect x="4.3" y="13" width="3" height="3"/><rect x="8.6" y="13" width="3" height="3"/><rect x="13" y="13" width="3" height="3"/></svg>
+                            <svg class="icon-desktop" viewBox="0 0 18 18" fill="currentColor"><rect x="0" y="0" width="2.3" height="8"/><rect x="3.15" y="0" width="2.3" height="8"/><rect x="6.3" y="0" width="2.3" height="8"/><rect x="9.45" y="0" width="2.3" height="8"/><rect x="12.6" y="0" width="2.3" height="8"/><rect x="15.7" y="0" width="2.3" height="8"/><rect x="0" y="10" width="2.3" height="8"/><rect x="3.15" y="10" width="2.3" height="8"/><rect x="6.3" y="10" width="2.3" height="8"/><rect x="9.45" y="10" width="2.3" height="8"/><rect x="12.6" y="10" width="2.3" height="8"/><rect x="15.7" y="10" width="2.3" height="8"/></svg>
                         </button>
                     </div>
                 </div>
