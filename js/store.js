@@ -1458,7 +1458,8 @@ function getDisplayLogoUrl(value) {
 }
 
 window.generateProductPDF = async function(productId, variantOverride = null) {
-    const product = AppState.products.all.find(p => p.id === productId);
+    const product = AppState.products.all.find(p => p.id === productId)
+        || (AppState.order.currentProduct?.id === productId ? AppState.order.currentProduct : null);
     if (!product) {
         alert('Product not found.');
         return;
@@ -1648,6 +1649,9 @@ async function loadProductDetail() {
         }
         
         const product = { id: docSnap.id, ...docSnap.data() };
+        // صفحة التفاصيل تحمل المنتج مباشرة ولا تملأ قائمة المتجر العامة؛
+        // نحفظه كمنتج حالي حتى تعمل Technical Sheet من هذه الصفحة أيضاً.
+        AppState.order.currentProduct = product;
         renderProductDetail(product);
         
     } catch (error) {
