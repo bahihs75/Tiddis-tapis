@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /bahi2005.html
+Sitemap: https://tiddis-tapis.pages.dev/sitemap.xml

@@ -152,7 +152,7 @@ A public visitor can create an order without an account. The completed order is 
 
 ### 2.10 About Us and Contact
 
-The storefront includes a responsive About Us section with a local fallback image at `assets/about-tiddis.jpg`. The image and text can be updated from the settings area when the corresponding setting is available.
+The storefront includes a responsive About Us section. Its image is managed through the admin Image Library and may use an ImgBB-hosted URL or another trusted HTTPS source configured by the administrator.
 
 The Contact section is populated dynamically. Each configured social or contact platform can be displayed with its platform name, link, and optional custom SVG icon. Do not assume that the footer contains a public administration link; the administration route is a separate operational interface.
 
@@ -216,8 +216,6 @@ Tiddis-tapis/
 │   ├── admin-auth.js
 │   ├── admin.js
 │   └── store.js
-├── assets/
-│   └── about-tiddis.jpg
 ├── DATA_STRUCTURE_V2.md
 ├── BASELINE_AUDIT.md
 ├── PHASE2_DATA_SECURITY_DESIGN.md

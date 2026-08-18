@@ -40,6 +40,16 @@ const AppState = {
         overviewIndex: new Map()
     },
     attributes: [],
+    catalogFilters: [],
+    catalogFallback: false,
+    catalogExperience: {
+        colorSwatches: true,
+        desktopHoverPreview: true,
+        mobileColorRail: true,
+        lifestyleView: false,
+        availabilityFilter: false,
+        shareableFilters: true
+    },
     filters: {
         category: 'all',
         type: 'products',  // 'products' | 'overview'
@@ -47,7 +57,8 @@ const AppState = {
         advanced: {
             categories: [],
             prices: [],
-            attributes: {}
+            attributes: {},
+            catalog: {}
         }
     },
     ui: {
@@ -177,6 +188,40 @@ function getPageSize() {
     return 4;
 }
 
+function escapeStoreHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[char]));
+}
+
+function normalizeCatalogColor(value) {
+    const candidate = String(value || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(candidate) || /^(rgb|hsl)a?\(/i.test(candidate) ? candidate : '#D9D0C4';
+}
+
+function getCatalogProductValue(product, key) {
+    const values = product?.filterValues || product?.catalogValues || {};
+    if (Object.prototype.hasOwnProperty.call(values, key)) return values[key];
+    const attributes = product?.attributes || {};
+    if (Object.prototype.hasOwnProperty.call(attributes, key)) return attributes[key];
+    const aliases = {
+        color: ['colour', 'colors', 'colours'],
+        quality: ['material', 'fabric', 'matiere'],
+        size: ['dimensions', 'dimension']
+    };
+    for (const alias of aliases[key] || []) {
+        if (Object.prototype.hasOwnProperty.call(values, alias)) return values[alias];
+        if (Object.prototype.hasOwnProperty.call(attributes, alias)) return attributes[alias];
+    }
+    return null;
+}
+
+function asCatalogArray(value) {
+    if (Array.isArray(value)) return value.map(item => String(item));
+    if (value === null || value === undefined || value === '') return [];
+    return [String(value)];
+}
+
 /** بناء فهارس التصنيف (O(n) مرة واحدة فقط) */
 function buildCategoryIndexes(products) {
     const categoryIndex = new Map();
@@ -203,66 +248,90 @@ function buildCategoryIndexes(products) {
 }
 
 /** الحصول على المنتجات المفلترة (O(1) + O(k)) */
+function isPublicProduct(product) {
+    if (!product || product.available === false || product.status === 'archived' || product.status === 'draft') return false;
+    if (product.publishAt) {
+        const date = product.publishAt?.toDate ? product.publishAt.toDate() : new Date(product.publishAt);
+        if (date instanceof Date && !Number.isNaN(date.getTime()) && date > new Date()) return false;
+    }
+    return true;
+}
+
 function getFilteredProducts(state) {
     const { all } = state.products;
     const { search, advanced } = state.filters;
-    
-    // Guard Clause
     if (!all || all.length === 0) return [];
-    
-    let result = all;
-    
-    // 1. تصفية البحث النصي
+
+    let result = all.filter(isPublicProduct);
+
     if (search && search.trim() !== '') {
         const term = search.toLowerCase().trim();
-        result = result.filter(p => {
+        result = result.filter(product => {
             const searchable = [
-                p.name || '',
-                p.category || '',
-                ...(p.tags || []),
-                ...(p.variants ? p.variants.map(v => `${v.size || ''} ${v.color || ''}`) : [])
+                product.name || '',
+                product.category || '',
+                product.overviewCategory || '',
+                ...(product.tags || []),
+                ...(product.variants ? product.variants.map(variant => `${variant.size || ''} ${variant.color || ''}`) : [])
             ].join(' ').toLowerCase();
             return searchable.includes(term);
         });
     }
 
-    // 2. تصفية الفئات (Multi-select مع دعم الفئات الفرعية تلقائياً)
+    // OR داخل مجموعة الفئات، مع تضمين الفئات الفرعية، ثم AND مع المجموعات الأخرى.
     if (advanced.categories.length > 0) {
         const allowedCategories = new Set();
-        advanced.categories.forEach(catName => {
-            allowedCategories.add(catName);
-            const allCats = [...(AppState.categories.products || []), ...(AppState.categories.overview || [])];
-            const foundCat = allCats.find(c => c.name === catName);
-            if (foundCat && foundCat.subcategories && Array.isArray(foundCat.subcategories)) {
-                foundCat.subcategories.forEach(sub => allowedCategories.add(sub));
-            }
+        const allCategories = [...(AppState.categories.products || []), ...(AppState.categories.overview || [])];
+        advanced.categories.forEach(categoryName => {
+            allowedCategories.add(categoryName);
+            const category = allCategories.find(item => item.name === categoryName);
+            (category?.subcategories || []).forEach(subcategory => allowedCategories.add(subcategory));
         });
-        result = result.filter(p => allowedCategories.has(p.category) || allowedCategories.has(p.overviewCategory));
+        result = result.filter(product => allowedCategories.has(product.category) || allowedCategories.has(product.overviewCategory));
     }
 
-    // 3. تصفية النطاق السعري
     if (advanced.prices.length > 0) {
-        result = result.filter(p => {
-            const price = parseFloat(p.basePrice) || 0;
+        result = result.filter(product => {
+            const price = parseFloat(product.basePrice) || 0;
             return advanced.prices.some(range => price >= range.min && price <= range.max);
         });
     }
 
-    // 4. تصفية السمات الديناميكية (Intersection)
-    for (const [attrId, selectedOptions] of Object.entries(advanced.attributes)) {
-        if (selectedOptions.length > 0) {
-            result = result.filter(p => {
-                const productAttrValue = p.attributes ? p.attributes[attrId] : null;
-                if (!productAttrValue) return false;
-                
-                if (Array.isArray(productAttrValue)) {
-                    return productAttrValue.some(val => selectedOptions.includes(val));
-                }
-                return selectedOptions.includes(productAttrValue);
-            });
-        }
+    // التوافق مع السمات القديمة.
+    for (const [attributeId, selectedOptions] of Object.entries(advanced.attributes || {})) {
+        if (!selectedOptions.length) continue;
+        result = result.filter(product => asCatalogArray(product.attributes?.[attributeId]).some(value => selectedOptions.includes(value)));
     }
-    
+
+    // تعريفات الكتالوج هي مصدر الحقيقة الجديد: OR داخل الفلتر الواحد وAND بين الفلاتر.
+    for (const filter of AppState.catalogFilters || []) {
+        const key = filter.key || filter.id;
+        const selection = advanced.catalog?.[key];
+        if (!key || selection === undefined || selection === null || selection === '' || (Array.isArray(selection) && selection.length === 0)) continue;
+
+        if (filter.type === 'range') {
+            const min = selection.min === null || selection.min === '' ? null : Number(selection.min);
+            const max = selection.max === null || selection.max === '' ? null : Number(selection.max);
+            result = result.filter(product => {
+                const price = Number(product.basePrice) || 0;
+                return (min === null || price >= min) && (max === null || price <= max);
+            });
+            continue;
+        }
+
+        if (filter.type === 'toggle') {
+            if (selection !== true) continue;
+            result = result.filter(isPublicProduct);
+            continue;
+        }
+
+        const selectedValues = asCatalogArray(selection);
+        result = result.filter(product => {
+            const productValues = asCatalogArray(getCatalogProductValue(product, key));
+            return productValues.some(value => selectedValues.includes(value));
+        });
+    }
+
     return result;
 }
 
@@ -274,7 +343,6 @@ const CONTACT_ICONS = {
     instagram: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M12 2.16c2.67 0 2.99.01 4.04.06 1.05.05 1.77.21 2.4.46.65.25 1.2.6 1.75 1.15s.9 1.1 1.15 1.75c.25.63.41 1.35.46 2.4.05 1.05.06 1.37.06 4.04s-.01 2.99-.06 4.04c-.05 1.05-.21 1.77-.46 2.4a4.9 4.9 0 0 1-1.15 1.75 4.9 4.9 0 0 1-1.75 1.15c-.63.25-1.35.41-2.4.46-1.05.05-1.37.06-4.04.06s-2.99-.01-4.04-.06c-1.05-.05-1.77-.21-2.4-.46a4.9 4.9 0 0 1-1.75-1.15 4.9 4.9 0 0 1-1.15-1.75c-.25-.63-.41-1.35-.46-2.4C2.17 14.99 2.16 14.67 2.16 12s.01-2.99.06-4.04c.05-1.05.21-1.77.46-2.4.25-.65.6-1.2 1.15-1.75S4.87 2.91 5.52 2.66c.63-.25 1.35-.41 2.4-.46C8.97 2.17 9.29 2.16 12 2.16zm0 1.8c-2.63 0-2.93.01-3.97.06-.9.04-1.4.19-1.72.31-.43.17-.74.37-1.06.7-.32.32-.52.63-.7 1.06-.12.32-.27.82-.31 1.72-.05 1.04-.06 1.34-.06 3.97s.01 2.93.06 3.97c.04.9.19 1.4.31 1.72.17.43.37.74.7 1.06.32.32.63.52 1.06.7.32.12.82.27 1.72.31 1.04.05 1.34.06 3.97.06s2.93-.01 3.97-.06c.9-.04 1.4-.19 1.72-.31.43-.17.74-.37 1.06-.7.32-.32.52-.63.7-1.06.12-.32.27-.82.31-1.72.05-1.04.06-1.34.06-3.97s-.01-2.93-.06-3.97c-.04-.9-.19-1.4-.31-1.72a2.9 2.9 0 0 0-.7-1.06 2.9 2.9 0 0 0-1.06-.7c-.32-.12-.82-.27-1.72-.31-1.04-.05-1.34-.06-3.97-.06zm0 3.7a4.34 4.34 0 1 1 0 8.68 4.34 4.34 0 0 1 0-8.68zm0 1.8a2.54 2.54 0 1 0 0 5.08 2.54 2.54 0 0 0 0-5.08zm4.53-2a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>`,
     facebook: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.8 8.44-4.95 8.44-9.94z"/></svg>`,
     tiktok: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M16.6 2h-3.2v13.4a2.6 2.6 0 1 1-2.6-2.6c.24 0 .47.02.7.07V9.6a5.8 5.8 0 1 0 5.1 5.76V8.9a7.5 7.5 0 0 0 4.4 1.4V7.1a4.3 4.3 0 0 1-4.4-4.1z"/></svg>`,
-    telegram: `<svg class="tiddis-icon solid" viewBox="0 0 24 24" width="18" height="18"><path d="M22.05 3.24 2.4 10.9c-.9.35-.9 1.72.02 2.02l4.9 1.58 1.9 6.1c.28.9 1.44 1.13 2.05.4l2.6-3.08 4.94 3.7c.83.62 2.03.16 2.24-.87l3.3-16.02c.22-1.08-.92-1.94-1.9-1.55zM17.9 7.1l-7.87 7.24-.32 3.5-1.55-4.98 9.2-6.28c.4-.27.83.23.54.52z"/></svg>`
 };
 
 const CONTACT_NAMES = {
@@ -284,7 +352,6 @@ const CONTACT_NAMES = {
     instagram: 'Instagram',
     facebook: 'Facebook',
     tiktok: 'TikTok',
-    telegram: 'Telegram'
 };
 
 // ============================================
@@ -307,6 +374,8 @@ function listenToProducts() {
         AppState.products.overviewIndex = indexes.overviewIndex;
         AppState.products.loaded = true;
         
+        if (AppState.catalogFallback) syncCatalogFallbackFromProducts();
+
         // إعادة التصفية والعرض
         filterProducts();
         updateProductCount();
@@ -398,8 +467,8 @@ async function loadAttributes() {
     try {
         const querySnapshot = await getDocs(collection(db, 'attributes'));
         AppState.attributes = [];
-        querySnapshot.forEach((doc) => {
-            AppState.attributes.push({ id: doc.id, ...doc.data() });
+        querySnapshot.forEach((attributeDoc) => {
+            AppState.attributes.push({ id: attributeDoc.id, ...attributeDoc.data() });
         });
         renderFilterUI();
     } catch (error) {
@@ -407,48 +476,161 @@ async function loadAttributes() {
     }
 }
 
-function renderFilterUI() {
-    // 1. رندر الفئات
-    if (DOM.optionsCategories) {
-        DOM.optionsCategories.innerHTML = AppState.categories.products.map(cat => `
-            <label><input type="checkbox" class="category-filter" value="${cat.name}"> ${cat.name}</label>
-        `).join('');
-    }
+function buildCatalogFallbackFilters() {
+    const definitions = [{
+        id: 'price',
+        key: 'price',
+        label: 'Price Range',
+        type: 'range',
+        display: 'range',
+        order: 30,
+        status: 'published',
+        options: []
+    }];
+    const seenKeys = new Set(['price']);
+    (AppState.attributes || []).forEach(attribute => {
+        const key = String(attribute.id || '').trim();
+        if (!key || seenKeys.has(key)) return;
+        const label = String(attribute.label || key);
+        const isColor = /color|colour|لون|couleur/i.test(`${key} ${label}`);
+        definitions.push({
+            id: key,
+            key,
+            label,
+            type: isColor ? 'single-select' : 'multi-select',
+            display: isColor ? 'swatches' : 'chips',
+            order: definitions.length + 30,
+            status: 'published',
+            options: (Array.isArray(attribute.options) ? attribute.options : []).map(value => ({
+                value: String(value),
+                label: String(value),
+                status: 'published'
+            }))
+        });
+        seenKeys.add(key);
+    });
+    return definitions;
+}
 
-    // 2. رندر السمات الديناميكية (مع دعم خاص للون لعرض الأيقونات الدائرية إذا كانت السمة تخص اللون)
-    if (DOM.dynamicFilterGroups) {
-        DOM.dynamicFilterGroups.innerHTML = AppState.attributes.map(attr => {
-            const isColorAttr = attr.id.toLowerCase() === 'color' || attr.label.toLowerCase().includes('color') || attr.label.includes('لون');
-            return `
-                <div class="filter-group">
-                    <h4>${attr.label}</h4>
-                    <div class="filter-options ${isColorAttr ? 'color-filter-options' : ''}">
-                        ${(attr.options || []).map(opt => {
-                            if (isColorAttr) {
-                                // محاولة إيجاد لون حقيقي أو رمز للأيقونة
-                                const colorMap = {
-                                    'Beige': '#f5f5dc', 'Gold': '#d4af37', 'Red': '#800020', 'Blue': '#1e3f66',
-                                    'Black': '#111111', 'White': '#ffffff', 'Gray': '#808080', 'Green': '#2c5e3a',
-                                    'Brown': '#654321', 'Burgundy': '#6b1d2f', 'Navy': '#000080', 'Cream': '#fffdd0'
-                                };
-                                const bgHex = colorMap[opt] || opt;
-                                return `
-                                    <label class="color-checkbox-label" title="${opt}">
-                                        <input type="checkbox" class="attribute-filter" data-attr-id="${attr.id}" value="${opt}">
-                                        <span class="color-swatch-icon" style="background-color: ${bgHex};"></span>
-                                        <span>${opt}</span>
-                                    </label>
-                                `;
-                            } else {
-                                return `
-                                    <label><input type="checkbox" class="attribute-filter" data-attr-id="${attr.id}" value="${opt}"> ${opt}</label>
-                                `;
-                            }
-                        }).join('')}
-                    </div>
+function syncCatalogFallbackFromProducts() {
+    if (!AppState.catalogFallback) return;
+    const values = new Map();
+    (AppState.products.all || []).forEach(product => {
+        const productValues = asCatalogArray(getCatalogProductValue(product, 'color'));
+        const variants = Array.isArray(product.variants) ? product.variants : [];
+        variants.forEach(variant => {
+            if (variant.color) productValues.push(variant.color);
+        });
+        productValues.forEach(value => {
+            const clean = String(value || '').trim();
+            if (clean && !values.has(clean.toLowerCase())) values.set(clean.toLowerCase(), clean);
+        });
+    });
+    if (!values.size) return;
+    let colorFilter = (AppState.catalogFilters || []).find(filter => String(filter.key || filter.id).toLowerCase() === 'color');
+    if (!colorFilter) {
+        colorFilter = {
+            id: 'color',
+            key: 'color',
+            label: 'Color',
+            type: 'single-select',
+            display: 'swatches',
+            order: 40,
+            status: 'published',
+            options: []
+        };
+        AppState.catalogFilters.push(colorFilter);
+    }
+    const existing = new Set((colorFilter.options || []).map(option => String(option.value || option.label || '').toLowerCase()));
+    values.forEach(value => {
+        if (!existing.has(value.toLowerCase())) colorFilter.options.push({
+            value,
+            label: value,
+            color: normalizeCatalogColor(value),
+            status: 'published'
+        });
+    });
+    renderFilterUI();
+}
+
+async function loadCatalogFilters() {
+    try {
+        const [filtersSnapshot, experienceSnapshot] = await Promise.all([
+            getDocs(collection(db, 'catalogFilters')),
+            getDoc(doc(db, 'settings', 'catalogExperience'))
+        ]);
+        AppState.catalogFilters = filtersSnapshot.docs
+            .map(filterDoc => ({ id: filterDoc.id, ...filterDoc.data() }))
+            .filter(filter => filter.status !== 'archived' && filter.visible !== false)
+            .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+        AppState.catalogExperience = experienceSnapshot.exists()
+            ? { ...AppState.catalogExperience, ...experienceSnapshot.data() }
+            : AppState.catalogExperience;
+        renderFilterUI();
+    } catch (error) {
+        // Firestore rules may not have been published yet; legacy filters remain usable.
+        console.warn('Catalog filters unavailable; using local catalog fallback until Firestore rules are published.', error);
+        AppState.catalogFallback = true;
+        AppState.catalogFilters = buildCatalogFallbackFilters();
+        syncCatalogFallbackFromProducts();
+        renderFilterUI();
+    }
+}
+
+function renderFilterUI() {
+    const categoryMarkup = (AppState.categories.products || []).map(category => `
+        <label><input type="checkbox" class="category-filter" value="${escapeStoreHtml(category.name)}"> <span>${escapeStoreHtml(category.name)}</span></label>
+    `).join('');
+    if (DOM.optionsCategories) DOM.optionsCategories.innerHTML = categoryMarkup || '<span class="filter-empty">No categories available</span>';
+
+    const priceDefinition = (AppState.catalogFilters || []).find(filter => (filter.key || filter.id) === 'price');
+    const priceGroup = document.getElementById('filter-group-price');
+    if (priceGroup) {
+        if (priceDefinition) {
+            priceGroup.hidden = false;
+            priceGroup.querySelector('h4').textContent = priceDefinition.label || 'Price Range';
+            const options = priceGroup.querySelector('.filter-options');
+            if (options) options.innerHTML = `
+                <div class="catalog-range-filter">
+                    <label>From <input type="number" class="catalog-filter-min" data-catalog-filter-key="price" min="0" inputmode="numeric"></label>
+                    <label>To <input type="number" class="catalog-filter-max" data-catalog-filter-key="price" min="0" inputmode="numeric"></label>
                 </div>
             `;
+        } else {
+            priceGroup.hidden = false;
+        }
+    }
+
+    const controlledFilters = (AppState.catalogFilters || []).filter(filter => (filter.key || filter.id) !== 'price');
+    if (DOM.dynamicFilterGroups) {
+        const catalogMarkup = controlledFilters.map(filter => {
+            const key = String(filter.key || filter.id);
+            const type = filter.type || 'multi-select';
+            const isSingle = type === 'single-select';
+            const isSwatch = filter.display === 'swatches';
+            const options = (filter.options || []).filter(option => option.status !== 'archived');
+            const optionsMarkup = options.map(option => {
+                const value = String(option.value || option.label || '');
+                const label = String(option.label || value);
+                const image = /^https?:\/\//i.test(String(option.swatchUrl || '')) ? String(option.swatchUrl) : '';
+                const swatch = isSwatch ? `<span class="color-swatch-icon" style="--catalog-swatch-color:${normalizeCatalogColor(option.color)};">${image ? `<img src="${escapeStoreHtml(image)}" alt="">` : ''}</span>` : '';
+                return `<label class="${isSwatch ? 'color-checkbox-label' : ''}" title="${escapeStoreHtml(label)}">
+                    <input type="${isSingle ? 'radio' : 'checkbox'}" class="catalog-filter-option-input" data-catalog-filter-key="${escapeStoreHtml(key)}" value="${escapeStoreHtml(value)}" name="catalog-filter-${escapeStoreHtml(key)}">
+                    ${swatch}<span>${escapeStoreHtml(label)}</span>
+                </label>`;
+            }).join('');
+            if (type === 'toggle') {
+                return `<div class="filter-group catalog-filter-group" data-catalog-filter-key="${escapeStoreHtml(key)}"><h4>${escapeStoreHtml(filter.label || key)}</h4><div class="filter-options"><label><input type="checkbox" class="catalog-filter-toggle-input" data-catalog-filter-key="${escapeStoreHtml(key)}"> <span>${escapeStoreHtml(filter.description || 'Show available products')}</span></label></div></div>`;
+            }
+            return `<div class="filter-group catalog-filter-group ${isSwatch ? 'is-swatch-filter' : ''}" data-catalog-filter-key="${escapeStoreHtml(key)}"><h4>${escapeStoreHtml(filter.label || key)}</h4><div class="filter-options ${isSwatch ? 'color-filter-options' : ''}">${optionsMarkup || '<span class="filter-empty">No options available</span>'}</div></div>`;
         }).join('');
+        const legacyMarkup = AppState.attributes.map(attribute => {
+            const key = attribute.id;
+            const label = attribute.label || key;
+            const optionsMarkup = (attribute.options || []).map(option => `<label><input type="checkbox" class="attribute-filter" data-attr-id="${escapeStoreHtml(key)}" value="${escapeStoreHtml(option)}"> <span>${escapeStoreHtml(option)}</span></label>`).join('');
+            return `<div class="filter-group legacy-filter-group"><h4>${escapeStoreHtml(label)}</h4><div class="filter-options">${optionsMarkup}</div></div>`;
+        }).join('');
+        DOM.dynamicFilterGroups.innerHTML = catalogMarkup || legacyMarkup;
     }
 }
 
@@ -732,6 +914,43 @@ function updateProductCount() {
 // 8. إنشاء بطاقة المنتج (مع إصلاحات)
 // ============================================
 
+function getProductColorEntries(product) {
+    const colorFilter = (AppState.catalogFilters || []).find(filter => {
+        const key = String(filter.key || filter.id || '').toLowerCase();
+        return key === 'color' || key === 'colour' || key.includes('color') || key.includes('colour');
+    });
+    const catalogValues = asCatalogArray(getCatalogProductValue(product, colorFilter?.key || 'color'));
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const entries = [];
+    const seen = new Set();
+    const optionList = colorFilter?.options || [];
+    const colorMap = {
+        black: '#171717', white: '#F5F2EC', beige: '#CDBFAE', brown: '#80624A',
+        grey: '#9D9D9A', gray: '#9D9D9A', red: '#8E3137', blue: '#536E83',
+        green: '#65745D', gold: '#B69A62', burgundy: '#6B3940', cream: '#E8DEC9'
+    };
+    const addEntry = (value, variant = null) => {
+        const label = String(value || variant?.color || '').trim();
+        if (!label) return;
+        const key = label.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        const option = optionList.find(item => String(item.value || item.label || '').toLowerCase() === key);
+        const image = variant?.image || product.additionalImages?.[entries.length] || product.imageUrl || '';
+        entries.push({
+            label: option?.label || label,
+            value: option?.value || label,
+            color: normalizeCatalogColor(option?.color || colorMap[key] || '#D9D0C4'),
+            swatchUrl: /^https?:\/\//i.test(String(option?.swatchUrl || '')) ? String(option.swatchUrl) : '',
+            image,
+            variantIndex: variant ? variants.indexOf(variant) : -1
+        });
+    };
+    catalogValues.forEach(value => addEntry(value, variants.find(variant => String(variant.color || '').toLowerCase() === String(value).toLowerCase())));
+    if (!entries.length) variants.forEach(variant => addEntry(variant.color, variant));
+    return entries;
+}
+
 function createProductCard(product) {
     const card = document.createElement('div');
     card.className = 'product-card';
@@ -740,7 +959,7 @@ function createProductCard(product) {
     
     // النقر على البطاقة يوجه إلى صفحة التفاصيل
     card.addEventListener('click', function(e) {
-        if (e.target.closest('.order-btn') || e.target.closest('.variant-select') || e.target.closest('.image-nav-btn')) {
+        if (e.target.closest('.order-btn') || e.target.closest('.variant-select') || e.target.closest('.image-nav-btn') || e.target.closest('.product-color-swatch')) {
             return;
         }
         window.location.href = `product.html?id=${product.id}`;
@@ -766,6 +985,12 @@ function createProductCard(product) {
     }
     allImages = [...new Set(allImages)];
     const hasMultipleImages = allImages.length > 1;
+    const colorEntries = getProductColorEntries(product);
+    const colorRailHtml = colorEntries.length ? `
+        <div class="product-color-rail" aria-label="Available colors">
+            ${colorEntries.map(entry => `<button type="button" class="product-color-swatch" data-color-value="${escapeStoreHtml(entry.value)}" data-image="${escapeStoreHtml(entry.image)}" data-variant-index="${entry.variantIndex}" aria-label="${escapeStoreHtml(entry.label)}" title="${escapeStoreHtml(entry.label)}" style="--swatch-color:${entry.color};">${entry.swatchUrl ? `<img src="${escapeStoreHtml(entry.swatchUrl)}" alt="">` : ''}</button>`).join('')}
+        </div>
+    ` : '';
     
     // قائمة المتغيرات
     let variantOptionsHtml = '';
@@ -797,6 +1022,7 @@ function createProductCard(product) {
                 </div>
             ` : ''}
         </div>
+        ${colorRailHtml}
         <div class="product-body">
             <div class="product-info-row">
                 <div class="product-details">
@@ -845,6 +1071,35 @@ function createProductCard(product) {
         card._allImages = allImages;
     }
     
+    // تبديل الصورة عند المرور على سطح المكتب، مع احترام إعداد المشرف وتقليل الحركة.
+    // نستخدم صورة اللون التالية أولاً، ثم الصورة الإضافية التالية كخطة بديلة.
+    const hoverPreviewImage = colorEntries[1]?.image || allImages[1] || '';
+    if (AppState.catalogExperience.desktopHoverPreview && hoverPreviewImage && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        const image = card.querySelector('.product-main-image');
+        const originalImage = image?.src || '';
+        card.addEventListener('mouseenter', () => {
+            if (image) image.src = hoverPreviewImage;
+        });
+        card.addEventListener('mouseleave', () => {
+            if (image && originalImage) image.src = originalImage;
+        });
+    }
+
+    card.querySelectorAll('.product-color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', event => {
+            event.stopPropagation();
+            const image = card.querySelector('.product-main-image');
+            const imageUrl = swatch.dataset.image;
+            if (image && imageUrl) image.src = imageUrl;
+            card.querySelectorAll('.product-color-swatch').forEach(item => item.classList.toggle('is-selected', item === swatch));
+            const variantIndex = Number(swatch.dataset.variantIndex);
+            if (variantSelect && Number.isInteger(variantIndex) && variantIndex >= 0) {
+                variantSelect.value = String(variantIndex);
+                variantSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    });
+
     // ===== معالجة المتغيرات (مع إعادة تعيين المؤشر) =====
     const variantSelect = card.querySelector('.variant-select');
     if (variantSelect) {
@@ -1031,7 +1286,8 @@ if (DOM.orderForm) {
             wilayaName: wilayaName,
             timestamp: new Date().toISOString(),
             productId: product?.id || '',
-            status: 'en attente'
+            status: 'en attente',
+            utm: getTiddisUtm()
         };
         
         const submitBtn = this.querySelector('.order-submit-btn');
@@ -1125,45 +1381,51 @@ if (DOM.clearFiltersBtn) {
 }
 
 function updateAdvancedFilters() {
-    // 1. جمع الفئات
-    const selectedCategories = [];
-    document.querySelectorAll('.category-filter:checked').forEach(cb => {
-        selectedCategories.push(cb.value);
-    });
-    AppState.filters.advanced.categories = selectedCategories;
-
-    // 2. جمع الأسعار
-    const selectedPrices = [];
-    document.querySelectorAll('.price-filter:checked').forEach(cb => {
-        selectedPrices.push({
-            min: parseFloat(cb.dataset.min),
-            max: parseFloat(cb.dataset.max)
-        });
-    });
-    AppState.filters.advanced.prices = selectedPrices;
-
-    // 3. جمع السمات الديناميكية
+    const selectedCategories = Array.from(document.querySelectorAll('.category-filter:checked')).map(input => input.value);
+    const selectedPrices = Array.from(document.querySelectorAll('.price-filter:checked')).map(input => ({
+        min: parseFloat(input.dataset.min),
+        max: parseFloat(input.dataset.max)
+    }));
     const selectedAttributes = {};
-    document.querySelectorAll('.attribute-filter:checked').forEach(cb => {
-        const attrId = cb.dataset.attrId;
-        if (!selectedAttributes[attrId]) selectedAttributes[attrId] = [];
-        selectedAttributes[attrId].push(cb.value);
+    document.querySelectorAll('.attribute-filter:checked').forEach(input => {
+        const attributeId = input.dataset.attrId;
+        if (!selectedAttributes[attributeId]) selectedAttributes[attributeId] = [];
+        selectedAttributes[attributeId].push(input.value);
     });
-    AppState.filters.advanced.attributes = selectedAttributes;
+
+    const catalog = {};
+    (AppState.catalogFilters || []).forEach(filter => {
+        const key = filter.key || filter.id;
+        if (!key) return;
+        if (filter.type === 'range') {
+            const minInput = document.querySelector(`.catalog-filter-min[data-catalog-filter-key="${CSS.escape(key)}"]`);
+            const maxInput = document.querySelector(`.catalog-filter-max[data-catalog-filter-key="${CSS.escape(key)}"]`);
+            const min = minInput?.value === '' || minInput?.value === undefined ? null : Number(minInput.value);
+            const max = maxInput?.value === '' || maxInput?.value === undefined ? null : Number(maxInput.value);
+            if (min !== null || max !== null) catalog[key] = { min, max };
+            return;
+        }
+        if (filter.type === 'toggle') {
+            const toggle = document.querySelector(`.catalog-filter-toggle-input[data-catalog-filter-key="${CSS.escape(key)}"]`);
+            if (toggle?.checked) catalog[key] = true;
+            return;
+        }
+        const selected = Array.from(document.querySelectorAll(`.catalog-filter-option-input[data-catalog-filter-key="${CSS.escape(key)}"]:checked`)).map(input => input.value);
+        if (selected.length) catalog[key] = filter.type === 'single-select' ? selected[0] : selected;
+    });
+
+    AppState.filters.advanced = {
+        categories: selectedCategories,
+        prices: selectedPrices,
+        attributes: selectedAttributes,
+        catalog
+    };
 }
 
 function clearAdvancedFilters() {
-    // إلغاء تحديد جميع الـ checkboxes
-    document.querySelectorAll('.filters-panel input[type="checkbox"]').forEach(cb => cb.checked = false);
-    
-    // إعادة تعيين الحالة
-    AppState.filters.advanced = {
-        categories: [],
-        prices: [],
-        attributes: {}
-    };
-    
-    // إعادة تعيين الفلاتر البسيطة أيضاً لضمان الاتساق
+    document.querySelectorAll('.filters-panel input[type="checkbox"], .filters-panel input[type="radio"]').forEach(input => input.checked = false);
+    document.querySelectorAll('.filters-panel input.catalog-filter-min, .filters-panel input.catalog-filter-max').forEach(input => input.value = '');
+    AppState.filters.advanced = { categories: [], prices: [], attributes: {}, catalog: {} };
     AppState.filters.category = 'all';
 }
 
@@ -1188,7 +1450,11 @@ const LEGACY_LOGO_URLS = new Set([
 
 function getDisplayLogoUrl(value) {
     const candidate = typeof value === 'string' ? value.trim() : '';
-    return !candidate || LEGACY_LOGO_URLS.has(candidate) ? DEFAULT_TRANSPARENT_LOGO : candidate;
+    const normalized = candidate.split('?')[0].replace(/\/$/, '');
+    const isLegacyLogo = LEGACY_LOGO_URLS.has(normalized)
+        || normalized.endsWith('/tiddis-logo-liquid-glass.png')
+        || normalized.endsWith('/tiddis-logo.png');
+    return !candidate || isLegacyLogo ? DEFAULT_TRANSPARENT_LOGO : candidate;
 }
 
 window.generateProductPDF = async function(productId, variantOverride = null) {
@@ -1416,6 +1682,25 @@ function renderProductDetail(product) {
         });
     }
     const uniqueImages = [...new Set(allImages)];
+    const colorEntries = getProductColorEntries(product);
+    const colorRailHtml = AppState.catalogExperience.mobileColorRail && colorEntries.length ? `
+        <div class="product-detail-color-rail" aria-label="Available colors">
+            <span class="product-detail-color-label">Available colors</span>
+            <div class="product-detail-color-swatches">
+                ${colorEntries.map(entry => `<button type="button" class="product-color-swatch detail-color-swatch" data-color-value="${escapeStoreHtml(entry.value)}" data-image="${escapeStoreHtml(entry.image)}" data-variant-index="${entry.variantIndex}" aria-label="${escapeStoreHtml(entry.label)}" title="${escapeStoreHtml(entry.label)}" style="--swatch-color:${entry.color};">${entry.swatchUrl ? `<img src="${escapeStoreHtml(entry.swatchUrl)}" alt="">` : ''}</button>`).join('')}
+            </div>
+        </div>
+    ` : '';
+    const catalogDetailsHtml = (AppState.catalogFilters || []).map(filter => {
+        const key = filter.key || filter.id;
+        const value = getCatalogProductValue(product, key);
+        if (value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length)) return '';
+        const label = filter.label || key;
+        const displayValue = filter.type === 'range' && typeof value === 'object'
+            ? [value.min, value.max].filter(item => item !== null && item !== '').join(' – ')
+            : asCatalogArray(value).join(', ');
+        return `<div class="info-item"><label>${escapeStoreHtml(label)}</label><span>${escapeStoreHtml(displayValue)}</span></div>`;
+    }).join('');
     
     // توليد HTML المعرض
     const thumbnailsHtml = uniqueImages.map((url, idx) => `
@@ -1450,6 +1735,7 @@ function renderProductDetail(product) {
                 <div class="thumbnails-sidebar" id="thumbnails-sidebar" aria-label="Product images">
                     ${thumbnailsHtml}
                 </div>
+                ${colorRailHtml}
             </div>
 
             <section class="product-info-glass-box glass-element" aria-labelledby="product-detail-name">
@@ -1464,6 +1750,7 @@ function renderProductDetail(product) {
                         <span>${product.category || 'KSOR'}</span>
                     </div>
                     ${attributesHtml}
+                    ${catalogDetailsHtml}
                     ${hasVariants ? `
                     <div class="info-item">
                         <label for="product-detail-variant">Options</label>
@@ -1503,6 +1790,20 @@ function renderProductDetail(product) {
             this.classList.add('active');
             const newSrc = this.querySelector('img').src;
             if (mainImg) mainImg.src = newSrc;
+        });
+    });
+
+    const detailSwatches = document.querySelectorAll('.detail-color-swatch');
+    detailSwatches.forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            detailSwatches.forEach(item => item.classList.toggle('is-selected', item === swatch));
+            const imageUrl = swatch.dataset.image;
+            const variantIndex = Number(swatch.dataset.variantIndex);
+            if (imageUrl && mainImg) mainImg.src = imageUrl;
+            if (variantSelect && Number.isInteger(variantIndex) && variantIndex >= 0) {
+                variantSelect.value = String(variantIndex);
+                variantSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         });
     });
 
@@ -1597,13 +1898,20 @@ function applyStoreSettings() {
             return;
         }
 
+        image.dataset.logoFallbackApplied = 'false';
         image.onload = () => {
             image.style.display = 'inline-block';
             wrapper?.classList.add('has-image');
         };
         image.onerror = () => {
-            image.style.display = 'none';
-            wrapper?.classList.remove('has-image');
+            if (image.dataset.logoFallbackApplied !== 'true' && image.src !== new URL(DEFAULT_TRANSPARENT_LOGO, document.baseURI).href) {
+                image.dataset.logoFallbackApplied = 'true';
+                image.src = DEFAULT_TRANSPARENT_LOGO;
+                return;
+            }
+            // حافظ على نفس حالة الهيدر ولا تُظهر نصاً بديلاً مختلفاً أثناء reload.
+            image.style.display = 'inline-block';
+            wrapper?.classList.add('has-image');
         };
         image.src = logoUrl;
     });
@@ -2033,6 +2341,7 @@ async function initStore() {
     try {
         await loadCategories();
         await loadAttributes();
+        await loadCatalogFilters();
         await loadDeliveryRates();
         listenToStoreSettings();
         listenToProducts();
@@ -2058,6 +2367,82 @@ async function initStore() {
 }
 
 document.addEventListener('DOMContentLoaded', initStore);
+
+
+
+// ============================================
+// 24. Consent-controlled marketing, UTM and PWA
+// ============================================
+const TIDDIS_CONSENT_KEY = 'tiddis-consent-v1';
+const TIDDIS_UTM_KEY = 'tiddis-utm-v1';
+let optionalTrackingLoaded = false;
+
+function captureTiddisUtm() {
+    const params = new URLSearchParams(window.location.search);
+    const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+    const values = {};
+    keys.forEach(key => { const value = params.get(key); if (value) values[key] = value.slice(0, 160); });
+    if (Object.keys(values).length) localStorage.setItem(TIDDIS_UTM_KEY, JSON.stringify({ ...values, capturedAt: new Date().toISOString() }));
+}
+
+function getTiddisUtm() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(TIDDIS_UTM_KEY) || '{}');
+        if (!stored || typeof stored !== 'object') return {};
+        const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'capturedAt'];
+        return Object.fromEntries(allowed.filter(key => stored[key]).map(key => [key, String(stored[key]).slice(0, 160)]));
+    } catch { return {}; }
+}
+
+function loadOptionalTracking() {
+    if (optionalTrackingLoaded) return;
+    const settings = AppState.settings.storeSettings || {};
+    const marketing = settings.marketing || {};
+    const metaId = String(marketing.metaPixelId || '').trim();
+    const tiktokId = String(marketing.tiktokPixelId || '').trim();
+    if (!metaId && !tiktokId) return;
+    optionalTrackingLoaded = true;
+    if (metaId && !document.getElementById('tiddis-meta-pixel')) {
+        window.fbq = window.fbq || function() { window.fbq.callMethod ? window.fbq.callMethod.apply(window.fbq, arguments) : window.fbq.queue.push(arguments); };
+        window.fbq.queue = window.fbq.queue || [];
+        window.fbq('init', metaId); window.fbq('track', 'PageView');
+        const script = document.createElement('script'); script.id = 'tiddis-meta-pixel'; script.async = true; script.src = 'https://connect.facebook.net/en_US/fbevents.js'; document.head.appendChild(script);
+    }
+    if (tiktokId && !document.getElementById('tiddis-tiktok-pixel')) {
+        window.ttq = window.ttq || []; window.ttq.push(['init', tiktokId]); window.ttq.push(['page']);
+        const script = document.createElement('script'); script.id = 'tiddis-tiktok-pixel'; script.async = true; script.src = 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=' + encodeURIComponent(tiktokId) + '&lib=ttq'; document.head.appendChild(script);
+    }
+}
+
+function setupTiddisConsentAndTracking() {
+    captureTiddisUtm();
+    const existing = localStorage.getItem(TIDDIS_CONSENT_KEY);
+    const settings = AppState.settings.storeSettings || {};
+    const marketing = settings.marketing || {};
+    const banner = document.createElement('section');
+    banner.id = 'cookie-consent-banner'; banner.className = 'cookie-consent-banner'; banner.setAttribute('role', 'dialog'); banner.setAttribute('aria-live', 'polite');
+    banner.innerHTML = `<div><strong>${escapeMarkup(marketing.consentTitle || 'Your privacy matters')}</strong><p>${escapeMarkup(marketing.consentText || 'Essential storage keeps the store working. Optional analytics and marketing tools load only when you agree.')}</p><a href="${escapeAttribute(marketing.privacyPolicyUrl || 'privacy.html')}">Privacy policy</a></div><div class="cookie-consent-actions"><button type="button" data-consent="reject" class="btn-ghost">Continue essential only</button><button type="button" data-consent="accept" class="btn-primary">Accept optional tools</button></div>`;
+    if (!existing) { document.body.appendChild(banner); }
+    banner.addEventListener('click', event => {
+        const choice = event.target.closest?.('[data-consent]')?.dataset.consent;
+        if (!choice) return;
+        if (choice === 'accept') {
+            localStorage.setItem(TIDDIS_CONSENT_KEY, JSON.stringify({ choice: 'accept', savedAt: new Date().toISOString() }));
+            loadOptionalTracking();
+        } else {
+            localStorage.removeItem(TIDDIS_CONSENT_KEY);
+        }
+        banner.remove();
+    });
+    if (existing) {
+        try { if (JSON.parse(existing).choice === 'accept') loadOptionalTracking(); } catch { localStorage.removeItem(TIDDIS_CONSENT_KEY); }
+    }
+}
+
+function escapeMarkup(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
+function escapeAttribute(value) { return escapeMarkup(value).replace(/javascript:/gi, ''); }
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(error => console.warn('PWA service worker unavailable:', error)));
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupTiddisConsentAndTracking); else setupTiddisConsentAndTracking();
 
 // تصدير للاستخدام في admin.js وصفحة تفاصيل المنتج
 export { AppState, filterProducts, loadProductDetail };

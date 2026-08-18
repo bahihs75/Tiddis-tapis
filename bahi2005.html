@@ -48,18 +48,23 @@
         <div class="logo-container">
             <div class="brand-main">TIDDIS</div>
             <div class="brand-sub">ADMIN</div>
+            <span id="admin-role-badge" class="admin-role-badge" aria-label="Current admin role">ADMIN</span>
         </div>
         <nav class="sidebar-nav">
             <a href="#" class="nav-link active" data-section="dashboard">Dashboard</a>
+            <a href="#" class="nav-link" data-section="insights" data-required-role="marketing">Insights</a>
+            <a href="#" class="nav-link" data-section="activity">Activity Log</a>
+            <a href="#" class="nav-link" data-section="data-tools" data-required-role="admin">Data Tools</a>
             <a href="#" class="nav-link" data-section="hero">Hero Slider</a>
             <a href="#" class="nav-link" data-section="categories">Categories</a>
             <a href="#" class="nav-link" data-section="overview">Overview Categories</a>
             <a href="#" class="nav-link" data-section="attributes">Attributes</a>
+            <a href="#" class="nav-link" data-section="catalog">Catalog Experience</a>
             <a href="#" class="nav-link" data-section="products">Products</a>
             <a href="#" class="nav-link" data-section="delivery">Delivery</a>
             <a href="#" class="nav-link" data-section="orders">Orders</a>
             <a href="#" class="nav-link" data-section="library">Image Library</a>
-            <a href="#" class="nav-link" data-section="settings">Settings</a>
+            <a href="#" class="nav-link" data-section="settings" data-required-role="admin">Settings</a>
         </nav>
         <div class="sidebar-footer">
             <a href="index.html" class="back-to-store admin-home-link" aria-label="Go to store home">
@@ -111,9 +116,69 @@
                     <span class="stat-label">Total Orders</span>
                     <span class="stat-value" id="stat-orders">0</span>
                 </div>
+                <div class="stat-card">
+                    <span class="stat-label">Published Products</span>
+                    <span class="stat-value" id="stat-published-products">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Orders This Week</span>
+                    <span class="stat-value" id="stat-orders-week">0</span>
+                </div>
             </div>
             <div id="recent-orders-list" style="margin-top:30px;">
                 <p>No recent orders.</p>
+            </div>
+        </section>
+
+        <section id="section-insights" class="admin-section" data-required-role="marketing">
+            <div class="section-heading-row">
+                <div>
+                    <p class="eyebrow">OPERATIONS</p>
+                    <h2>Insights</h2>
+                </div>
+                <button type="button" id="refresh-insights-btn" class="admin-action-btn">Refresh Insights</button>
+            </div>
+            <div class="admin-card">
+                <h3>Orders by Status</h3>
+                <div id="orders-status-chart" class="status-chart" aria-live="polite"></div>
+            </div>
+            <div class="admin-card">
+                <h3>Catalog Health</h3>
+                <div id="catalog-health-summary" class="catalog-health-grid" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section id="section-activity" class="admin-section">
+            <div class="section-heading-row">
+                <div>
+                    <p class="eyebrow">GOVERNANCE</p>
+                    <h2>Activity Log</h2>
+                </div>
+                <button type="button" id="refresh-activity-btn" class="admin-action-btn">Refresh Activity</button>
+            </div>
+            <div class="admin-card">
+                <div id="activity-log-list" class="activity-log-list" aria-live="polite">
+                    <p class="admin-empty-state">Activity log is loading.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-data-tools" class="admin-section" data-required-role="admin">
+            <div class="section-heading-row">
+                <div>
+                    <p class="eyebrow">DATA SAFETY</p>
+                    <h2>Data Tools</h2>
+                </div>
+            </div>
+            <div class="admin-card data-tools-card">
+                <h3>Backup and Restore</h3>
+                <p class="admin-help-text">Export a JSON backup before large edits. Import only a backup created by this panel.</p>
+                <div class="data-tools-actions">
+                    <button type="button" id="export-backup-btn" class="admin-action-btn">Export JSON Backup</button>
+                    <label class="admin-action-btn file-action-label" for="import-backup-file">Import JSON Backup</label>
+                    <input type="file" id="import-backup-file" accept="application/json,.json" hidden>
+                </div>
+                <p id="backup-status" class="admin-operation-status" aria-live="polite"></p>
             </div>
         </section>
 
@@ -196,6 +261,16 @@
                 <div class="form-group">
                     <label for="hero-slide-svg-icon">SVG Icon Code (Small icon at bottom of slide)</label>
                     <textarea id="hero-slide-svg-icon" rows="3" placeholder="<svg viewBox='0 0 24 24'>...</svg>" class="form-input" style="font-family:monospace; font-size:12px;"></textarea>
+                    <div class="form-row hero-text-controls">
+                        <div class="form-group">
+                            <label for="hero-text-color">Hero Text Color</label>
+                            <input type="color" id="hero-text-color" value="#ffffff" class="form-input">
+                        </div>
+                        <div class="form-group hero-text-analysis-result" id="hero-text-analysis-result" aria-live="polite">
+                            <span class="admin-help-text">Use the analyzer to suggest a readable color from the selected image.</span>
+                        </div>
+                    </div>
+                    <button type="button" id="analyze-hero-text-color-btn" class="admin-action-btn">Analyze Text Contrast</button>
                 </div>
                 <div class="form-row" style="margin-top:16px;">
                     <button id="save-hero-slide-btn" class="btn-primary">Save Hero Slide</button>
@@ -258,6 +333,68 @@
                 <h3>Existing Attributes</h3>
                 <div id="attributes-list">
                     <p>Loading attributes...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 2.5 Catalog Experience Section -->
+        <!-- ========================================== -->
+        <section id="section-catalog" class="admin-section">
+            <h2>Catalog Experience</h2>
+            <p class="admin-section-intro">Control the product filters, swatches, responsive image behavior, and published catalog experience from one place. Product records use these definitions instead of free-text values.</p>
+
+            <div class="admin-card catalog-settings-card">
+                <div class="admin-card-heading-row">
+                    <div>
+                        <h3>Experience settings</h3>
+                        <p class="admin-helper-text">These switches control behavior only; they cannot change the Liquid Glass visual language.</p>
+                    </div>
+                    <button type="button" id="save-catalog-experience-btn" class="btn-primary">Save settings</button>
+                </div>
+                <div class="catalog-feature-grid">
+                    <label class="catalog-feature-toggle"><input type="checkbox" id="catalog-feature-color-swatches"> <span>Color swatches</span><small>Show visual color choices in filters and cards.</small></label>
+                    <label class="catalog-feature-toggle"><input type="checkbox" id="catalog-feature-hover-preview"> <span>Desktop hover preview</span><small>Switch to the optional hover image on pointer devices.</small></label>
+                    <label class="catalog-feature-toggle"><input type="checkbox" id="catalog-feature-mobile-rail"> <span>Mobile color rail</span><small>Keep color choices touch-friendly below the product image.</small></label>
+                    <label class="catalog-feature-toggle"><input type="checkbox" id="catalog-feature-lifestyle"> <span>Lifestyle view</span><small>Offer a room-context view only when imagery exists.</small></label>
+                    <label class="catalog-feature-toggle"><input type="checkbox" id="catalog-feature-stock-filter"> <span>Availability filter</span><small>Let visitors narrow to available products.</small></label>
+                    <label class="catalog-feature-toggle"><input type="checkbox" id="catalog-feature-shareable"> <span>Shareable filters</span><small>Keep active filters in the URL for sharing.</small></label>
+                </div>
+            </div>
+
+            <div class="admin-card catalog-filter-create-card">
+                <h3>Add catalog filter</h3>
+                <p class="admin-helper-text">Create the definition first, then assign its published options to products.</p>
+                <div class="catalog-filter-create-grid">
+                    <input type="text" id="catalog-filter-key" class="form-input" placeholder="Stable key, e.g. material">
+                    <input type="text" id="catalog-filter-label" class="form-input" placeholder="Visitor label, e.g. Material">
+                    <select id="catalog-filter-type" class="form-input">
+                        <option value="single-select">Single select</option>
+                        <option value="multi-select">Multi select</option>
+                        <option value="range">Price range</option>
+                        <option value="toggle">Toggle</option>
+                        <option value="tree">Category tree</option>
+                    </select>
+                    <select id="catalog-filter-display" class="form-input">
+                        <option value="checklist">Checklist</option>
+                        <option value="swatches">Swatches</option>
+                        <option value="dual-slider">Dual slider</option>
+                        <option value="select">Select</option>
+                    </select>
+                    <button type="button" id="add-catalog-filter-btn" class="btn-primary">Add filter</button>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <div class="admin-card-heading-row">
+                    <div>
+                        <h3>Filter definitions</h3>
+                        <p class="admin-helper-text">Changing a label is safe. Stable keys and option IDs are preserved so existing products do not break.</p>
+                    </div>
+                    <span id="catalog-filter-summary" class="catalog-filter-summary">Loading filters...</span>
+                </div>
+                <div id="catalog-filters-list" class="catalog-filters-list">
+                    <p>Loading catalog filters...</p>
                 </div>
             </div>
         </section>
@@ -338,8 +475,29 @@
                             <label for="product-base-price">Base Price (DZD) *</label>
                             <input type="number" id="product-base-price" placeholder="12500" required>
                         </div>
+                        <div class="form-row catalog-governance-grid">
+                            <div class="form-group">
+                                <label for="product-status">Publication Status</label>
+                                <select id="product-status" class="form-input">
+                                    <option value="draft">Draft</option>
+                                    <option value="published" selected>Published</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="product-publish-at">Publish At (optional)</label>
+                                <input type="datetime-local" id="product-publish-at" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="product-sort-order">Sort Order</label>
+                                <input type="number" id="product-sort-order" class="form-input" min="0" step="1" placeholder="0">
+                            </div>
+                        </div>
                         <div id="dynamic-attributes-container">
-                            <!-- Dynamic attributes (Quality, Color, etc.) will be loaded here -->
+                            <!-- Legacy dynamic attributes remain supported during migration. -->
+                        </div>
+                        <div id="catalog-product-fields" class="catalog-product-fields">
+                            <!-- Published catalog filter fields are injected here. -->
                         </div>
                         <div class="form-group">
                             <label for="product-main-image">Main Image URL *</label>
@@ -534,6 +692,21 @@
                     <button id="test-sheets-btn" class="btn-secondary" style="margin-top:8px;">Test Connection</button>
                 </div>
             </div>
+            <div class="admin-card" id="marketing-analytics-settings">
+                <h3>Marketing, Privacy & Consent</h3>
+                <p class="admin-help-text">Pixels are injected only after visitor consent. Leave an ID empty to keep that integration disabled.</p>
+                <div class="form-row catalog-governance-grid">
+                    <div class="form-group"><label for="meta-pixel-id">Meta Pixel ID</label><input id="meta-pixel-id" class="form-input" inputmode="numeric" placeholder="Optional"></div>
+                    <div class="form-group"><label for="tiktok-pixel-id">TikTok Pixel ID</label><input id="tiktok-pixel-id" class="form-input" placeholder="Optional"></div>
+                    <div class="form-group"><label for="privacy-policy-url">Privacy Policy URL</label><input id="privacy-policy-url" class="form-input" value="privacy.html"></div>
+                    <div class="form-group"><label for="terms-url">Terms URL</label><input id="terms-url" class="form-input" value="terms.html"></div>
+                </div>
+                <div class="form-row catalog-governance-grid">
+                    <div class="form-group"><label for="cookie-consent-title">Consent Banner Title</label><input id="cookie-consent-title" class="form-input" value="Your privacy matters"></div>
+                    <div class="form-group"><label for="cookie-consent-text">Consent Banner Text</label><textarea id="cookie-consent-text" class="form-input" rows="2">We use essential storage to operate the store. Optional analytics and marketing tools load only when you agree.</textarea></div>
+                </div>
+                <button type="button" id="save-marketing-settings-btn" class="btn-primary">Save Marketing & Privacy Settings</button>
+            </div>
             <div class="admin-card image-api-card">
                 <div class="admin-card-heading-row">
                     <div>
@@ -617,7 +790,6 @@
                         <option value="instagram">Instagram</option>
                         <option value="facebook">Facebook</option>
                         <option value="tiktok">TikTok</option>
-                        <option value="telegram">Telegram</option>
                         <option value="pinterest">Pinterest</option>
                     </select>
                     <input type="text" id="new-contact-value" placeholder="Link or phone number" class="form-input">

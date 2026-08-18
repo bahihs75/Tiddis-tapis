@@ -6,7 +6,7 @@
 // - حماية كاملة للحذف (على مستوى العميل)
 // ============================================
 
-import { db } from './firebase-config.js';
+import { db, auth } from './firebase-config.js';
 import {
     collection,
     getDocs,
@@ -33,6 +33,15 @@ let allCategoriesOverview = [];
 let allProducts = [];
 let allOrders = [];
 let allAttributes = [];
+let allCatalogFilters = [];
+let catalogExperience = {
+    colorSwatches: true,
+    desktopHoverPreview: true,
+    mobileColorRail: true,
+    lifestyleView: false,
+    availabilityFilter: false,
+    shareableFilters: true
+};
 let deliveryRates = {};
 let storeSettings = {};
 let editingProductId = null;
@@ -52,6 +61,9 @@ let imageLibrary = [];
 // ============================================
 const sections = {
     dashboard: document.getElementById('section-dashboard'),
+    insights: document.getElementById('section-insights'),
+    activity: document.getElementById('section-activity'),
+    'data-tools': document.getElementById('section-data-tools'),
     hero: document.getElementById('section-hero'),
     categories: document.getElementById('section-categories'),
     overview: document.getElementById('section-overview'),
@@ -59,6 +71,7 @@ const sections = {
     delivery: document.getElementById('section-delivery'),
     orders: document.getElementById('section-orders'),
     attributes: document.getElementById('section-attributes'),
+    catalog: document.getElementById('section-catalog'),
     library: document.getElementById('section-library'),
     settings: document.getElementById('section-settings')
 };
@@ -110,6 +123,17 @@ const recentOrdersList = document.getElementById('recent-orders-list');
 const attributesList = document.getElementById('attributes-list');
 const newAttributeLabel = document.getElementById('new-attribute-label');
 const addAttributeBtn = document.getElementById('add-attribute-btn');
+
+// عناصر تجربة الكتالوج والفلاتر القابلة للإدارة
+const catalogFiltersList = document.getElementById('catalog-filters-list');
+const catalogFilterSummary = document.getElementById('catalog-filter-summary');
+const catalogFilterKeyInput = document.getElementById('catalog-filter-key');
+const catalogFilterLabelInput = document.getElementById('catalog-filter-label');
+const catalogFilterTypeSelect = document.getElementById('catalog-filter-type');
+const catalogFilterDisplaySelect = document.getElementById('catalog-filter-display');
+const addCatalogFilterBtn = document.getElementById('add-catalog-filter-btn');
+const saveCatalogExperienceBtn = document.getElementById('save-catalog-experience-btn');
+const catalogProductFields = document.getElementById('catalog-product-fields');
 
 // عناصر إدارة التوصيل
 const deliveryTableBody = document.getElementById('delivery-table-body');
@@ -292,6 +316,7 @@ function activateAdminSection(section, clickedLink = null) {
     if (section === 'products') loadProducts();
     if (section === 'delivery') loadDeliveryRates();
     if (section === 'orders') loadOrders();
+    if (section === 'catalog') loadCatalogExperience();
     if (section === 'library') loadImageLibrary();
     if (section === 'settings') loadSettings();
 }
@@ -1107,6 +1132,535 @@ function renderProductAttributeFields() {
 }
 
 // ============================================
+// 6.8 تجربة الكتالوج والفلاتر القابلة للإدارة
+// ============================================
+const CATALOG_EXPERIENCE_DEFAULTS = {
+    colorSwatches: true,
+    desktopHoverPreview: true,
+    mobileColorRail: true,
+    lifestyleView: false,
+    availabilityFilter: false,
+    shareableFilters: true
+};
+
+function escapeAdminMarkup(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[character]));
+}
+
+function normalizeCatalogKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 48);
+}
+
+function normalizeCatalogColor(value) {
+    const candidate = String(value || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(candidate) ? candidate : '#D9D0C4';
+}
+
+function safeCatalogImageUrl(value) {
+    const candidate = String(value || '').trim();
+    if (!candidate) return '';
+    return /^(https?:\/\/|\/|\.\/|tiddis-logo\.svg)/i.test(candidate) ? candidate : '';
+}
+
+function slugCatalogOption(value) {
+    return normalizeCatalogKey(value).replace(/-/g, '_') || `option_${Date.now()}`;
+}
+
+function legacyAttributeOptions(labelPart) {
+    const match = allAttributes.find(attribute => String(attribute.label || '').toLowerCase().includes(labelPart));
+    return Array.isArray(match?.options) ? match.options : [];
+}
+
+function buildDefaultCatalogOption(filterKey, value, index) {
+    const label = String(value || '').trim();
+    const knownColors = {
+        black: '#171717',
+        white: '#F5F2EC',
+        beige: '#CDBFAE',
+        brown: '#80624A',
+        grey: '#9D9D9A',
+        gray: '#9D9D9A',
+        red: '#8E3137',
+        blue: '#536E83',
+        green: '#65745D',
+        gold: '#B69A62',
+        noir: '#171717',
+        blanc: '#F5F2EC',
+        beige: '#CDBFAE',
+        marron: '#80624A',
+        gris: '#9D9D9A'
+    };
+    const colorKey = label.toLowerCase();
+    return {
+        id: `${filterKey}_${slugCatalogOption(label)}_${index + 1}`,
+        label,
+        value: label,
+        color: knownColors[colorKey] || '#D9D0C4',
+        swatchUrl: '',
+        status: 'published',
+        order: index
+    };
+}
+
+async function ensureDefaultCatalogFilters() {
+    const snapshot = await getDocs(collection(db, 'catalogFilters'));
+    if (!snapshot.empty) return snapshot.docs.map(filterDoc => ({ id: filterDoc.id, ...filterDoc.data() }));
+
+    const defaults = [
+        {
+            id: 'color',
+            label: 'Color',
+            type: 'single-select',
+            display: 'swatches',
+            description: 'A single visual color choice; selecting another color replaces the previous one.',
+            options: legacyAttributeOptions('color').map((value, index) => buildDefaultCatalogOption('color', value, index)),
+            order: 0
+        },
+        {
+            id: 'quality',
+            label: 'Quality',
+            type: 'multi-select',
+            display: 'checklist',
+            description: 'Multiple qualities may be selected together.',
+            options: legacyAttributeOptions('quality').map((value, index) => buildDefaultCatalogOption('quality', value, index)),
+            order: 1
+        },
+        {
+            id: 'size',
+            label: 'Size',
+            type: 'multi-select',
+            display: 'checklist',
+            description: 'Multiple sizes may be selected together.',
+            options: legacyAttributeOptions('size').map((value, index) => buildDefaultCatalogOption('size', value, index)),
+            order: 2
+        },
+        {
+            id: 'price',
+            label: 'Price',
+            type: 'range',
+            display: 'dual-slider',
+            description: 'A numeric range based on the product base price.',
+            options: [],
+            order: 3
+        },
+        {
+            id: 'availability',
+            label: 'Availability',
+            type: 'toggle',
+            display: 'checklist',
+            description: 'Show products currently available for order.',
+            options: [{ id: 'availability_available', label: 'Available', value: 'available', status: 'published', order: 0 }],
+            order: 4
+        }
+    ];
+
+    await Promise.all(defaults.map(filter => setDoc(doc(db, 'catalogFilters', filter.id), {
+        key: filter.id,
+        label: filter.label,
+        type: filter.type,
+        display: filter.display,
+        description: filter.description,
+        options: filter.options,
+        order: filter.order,
+        visible: true,
+        status: 'published',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    })));
+
+    return defaults.map(filter => ({ ...filter, key: filter.id, visible: true, status: 'published' }));
+}
+
+function syncCatalogExperienceControls() {
+    const controls = {
+        'catalog-feature-color-swatches': catalogExperience.colorSwatches,
+        'catalog-feature-hover-preview': catalogExperience.desktopHoverPreview,
+        'catalog-feature-mobile-rail': catalogExperience.mobileColorRail,
+        'catalog-feature-lifestyle': catalogExperience.lifestyleView,
+        'catalog-feature-stock-filter': catalogExperience.availabilityFilter,
+        'catalog-feature-shareable': catalogExperience.shareableFilters
+    };
+    Object.entries(controls).forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) input.checked = value !== false;
+    });
+}
+
+function readCatalogExperienceControls() {
+    return {
+        colorSwatches: document.getElementById('catalog-feature-color-swatches')?.checked !== false,
+        desktopHoverPreview: document.getElementById('catalog-feature-hover-preview')?.checked !== false,
+        mobileColorRail: document.getElementById('catalog-feature-mobile-rail')?.checked !== false,
+        lifestyleView: document.getElementById('catalog-feature-lifestyle')?.checked === true,
+        availabilityFilter: document.getElementById('catalog-feature-stock-filter')?.checked === true,
+        shareableFilters: document.getElementById('catalog-feature-shareable')?.checked !== false,
+        updatedAt: serverTimestamp()
+    };
+}
+
+function renderCatalogFilters() {
+    if (!catalogFiltersList) return;
+    const filters = [...allCatalogFilters].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    const publishedCount = filters.filter(filter => filter.status !== 'archived' && filter.visible !== false).length;
+    if (catalogFilterSummary) catalogFilterSummary.textContent = `${publishedCount} visitor filters · ${filters.length} total definitions`;
+
+    if (!filters.length) {
+        catalogFiltersList.innerHTML = '<div class="empty-state-message"><span class="empty-icon">⌕</span>No catalog filters defined yet.</div>';
+        return;
+    }
+
+    catalogFiltersList.innerHTML = filters.map((filter, filterIndex) => {
+        const filterId = escapeAdminMarkup(filter.id);
+        const key = escapeAdminMarkup(filter.key || filter.id);
+        const label = escapeAdminMarkup(filter.label || filter.key || filter.id);
+        const description = escapeAdminMarkup(filter.description || '');
+        const options = Array.isArray(filter.options) ? filter.options : [];
+        const archivedClass = filter.status === 'archived' ? ' is-archived' : '';
+        return `
+            <article class="catalog-filter-editor${archivedClass}" data-filter-id="${filterId}">
+                <div class="catalog-filter-editor-head">
+                    <div>
+                        <span class="catalog-filter-index">${String(filterIndex + 1).padStart(2, '0')}</span>
+                        <strong>${label}</strong>
+                        <code>${key}</code>
+                    </div>
+                    <span class="catalog-filter-status">${escapeAdminMarkup(filter.status || 'published')}</span>
+                </div>
+                <div class="catalog-filter-editor-grid">
+                    <label>Visitor label<input class="form-input" data-catalog-filter-field="label" value="${label}"></label>
+                    <label>Type<select class="form-input" data-catalog-filter-field="type">
+                        ${['single-select', 'multi-select', 'range', 'toggle', 'tree'].map(type => `<option value="${type}" ${filter.type === type ? 'selected' : ''}>${type}</option>`).join('')}
+                    </select></label>
+                    <label>Display<select class="form-input" data-catalog-filter-field="display">
+                        ${['checklist', 'swatches', 'dual-slider', 'select'].map(display => `<option value="${display}" ${filter.display === display ? 'selected' : ''}>${display}</option>`).join('')}
+                    </select></label>
+                    <label>Status<select class="form-input" data-catalog-filter-field="status">
+                        ${['draft', 'published', 'archived'].map(status => `<option value="${status}" ${filter.status === status ? 'selected' : ''}>${status}</option>`).join('')}
+                    </select></label>
+                    <label>Order<input type="number" min="0" class="form-input" data-catalog-filter-field="order" value="${Number(filter.order) || 0}"></label>
+                    <label class="catalog-filter-visible"><input type="checkbox" data-catalog-filter-field="visible" ${filter.visible !== false ? 'checked' : ''}> Visible to visitors</label>
+                </div>
+                <label class="catalog-filter-description">Description<textarea class="form-input" rows="2" data-catalog-filter-field="description">${description}</textarea></label>
+                <div class="catalog-filter-editor-actions">
+                    <button type="button" class="admin-action-btn save-catalog-filter-btn" data-filter-id="${filterId}">Save definition</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--danger archive-catalog-filter-btn" data-filter-id="${filterId}">${filter.status === 'archived' ? 'Keep archived' : 'Archive filter'}</button>
+                </div>
+                <div class="catalog-options-editor">
+                    <div class="catalog-options-heading"><h4>Options and swatches</h4><span>${options.length} option${options.length === 1 ? '' : 's'}</span></div>
+                    <div class="catalog-options-list">
+                        ${options.length ? options.map((option, optionIndex) => {
+                            const optionLabel = escapeAdminMarkup(option.label || option.value || '');
+                            const optionValue = escapeAdminMarkup(option.value || option.label || '');
+                            const optionColor = normalizeCatalogColor(option.color);
+                            const optionImage = safeCatalogImageUrl(option.swatchUrl);
+                            return `
+                                <div class="catalog-option-editor" data-option-index="${optionIndex}">
+                                    <span class="catalog-option-preview" style="--catalog-swatch-color:${optionColor};">${optionImage ? `<img src="${escapeAdminMarkup(optionImage)}" alt="">` : ''}</span>
+                                    <input class="form-input" data-option-field="label" value="${optionLabel}" aria-label="Option label">
+                                    <input class="form-input" data-option-field="value" value="${optionValue}" aria-label="Option value">
+                                    <input class="form-input catalog-option-color" data-option-field="color" value="${escapeAdminMarkup(option.color || optionColor)}" aria-label="Option color">
+                                    <input class="form-input catalog-option-swatch-url" data-option-field="swatchUrl" value="${escapeAdminMarkup(option.swatchUrl || '')}" placeholder="Optional image URL" aria-label="Option swatch image URL">
+                                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".catalog-option-swatch-url" data-media-usage="other">Library</button>
+                                    <button type="button" class="admin-action-btn save-catalog-option-btn" data-filter-id="${filterId}" data-option-index="${optionIndex}">Save</button>
+                                    <button type="button" class="admin-action-btn admin-action-btn--danger archive-catalog-option-btn" data-filter-id="${filterId}" data-option-index="${optionIndex}">Archive</button>
+                                </div>
+                            `;
+                        }).join('') : '<p class="admin-helper-text">No options yet. Add the first option below.</p>'}
+                    </div>
+                    <div class="catalog-option-add-row">
+                        <input class="form-input new-catalog-option-label" placeholder="Label, e.g. Ivory">
+                        <input class="form-input new-catalog-option-value" placeholder="Stable value">
+                        <input class="form-input new-catalog-option-color" placeholder="#D9D0C4">
+                        <input class="form-input new-catalog-option-image" placeholder="Optional swatch image URL">
+                        <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".new-catalog-option-image" data-media-usage="other">Library</button>
+                        <button type="button" class="admin-action-btn add-catalog-option-btn" data-filter-id="${filterId}">Add option</button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+}
+
+function renderCatalogProductFields() {
+    if (!catalogProductFields) return;
+    const filters = allCatalogFilters
+        .filter(filter => filter.status === 'published' && filter.visible !== false)
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    if (!filters.length) {
+        catalogProductFields.innerHTML = '';
+        return;
+    }
+
+    catalogProductFields.innerHTML = `
+        <div class="catalog-product-fields-heading">
+            <h3>Catalog presentation</h3>
+            <p>Choose the controlled values that visitors can use for filtering. Legacy attributes remain supported.</p>
+        </div>
+        ${filters.map(filter => {
+            const key = escapeAdminMarkup(filter.key || filter.id);
+            const options = (filter.options || []).filter(option => option.status !== 'archived');
+            const inputType = filter.type === 'single-select' ? 'radio' : 'checkbox';
+            if (filter.type === 'range') {
+                return `
+                    <fieldset class="catalog-product-field" data-catalog-filter-key="${key}" data-catalog-filter-type="range">
+                        <legend>${escapeAdminMarkup(filter.label || key)}</legend>
+                        <div class="catalog-range-inputs"><input type="number" class="form-input catalog-range-min" placeholder="Minimum"><span>to</span><input type="number" class="form-input catalog-range-max" placeholder="Maximum"></div>
+                    </fieldset>
+                `;
+            }
+            if (filter.type === 'toggle') {
+                return `
+                    <fieldset class="catalog-product-field" data-catalog-filter-key="${key}" data-catalog-filter-type="toggle">
+                        <legend>${escapeAdminMarkup(filter.label || key)}</legend>
+                        <label class="catalog-toggle-input"><input type="checkbox" class="catalog-filter-toggle-input"> ${escapeAdminMarkup(filter.description || 'Enable this state')}</label>
+                    </fieldset>
+                `;
+            }
+            return `
+                <fieldset class="catalog-product-field ${filter.display === 'swatches' ? 'is-swatch-field' : ''}" data-catalog-filter-key="${key}" data-catalog-filter-type="${escapeAdminMarkup(filter.type || 'multi-select')}">
+                    <legend>${escapeAdminMarkup(filter.label || key)}</legend>
+                    <div class="catalog-product-options">
+                        ${options.length ? options.map(option => {
+                            const optionValue = escapeAdminMarkup(option.value || option.label || '');
+                            const optionColor = normalizeCatalogColor(option.color);
+                            const optionImage = safeCatalogImageUrl(option.swatchUrl);
+                            return `<label class="catalog-product-option"><input type="${inputType}" name="catalog-${key}" class="catalog-filter-option-input" value="${optionValue}"><span class="catalog-option-chip" ${filter.display === 'swatches' ? `style="--catalog-swatch-color:${optionColor};"` : ''}>${optionImage ? `<img src="${escapeAdminMarkup(optionImage)}" alt="">` : ''}${escapeAdminMarkup(option.label || option.value || '')}</span></label>`;
+                        }).join('') : '<span class="admin-helper-text">No published options. Add them in Catalog Experience.</span>'}
+                    </div>
+                </fieldset>
+            `;
+        }).join('')}
+    `;
+}
+
+function readCatalogProductValues() {
+    const values = {};
+    catalogProductFields?.querySelectorAll('[data-catalog-filter-key]').forEach(field => {
+        const key = field.dataset.catalogFilterKey;
+        const type = field.dataset.catalogFilterType;
+        if (!key) return;
+        if (type === 'range') {
+            const minValue = field.querySelector('.catalog-range-min')?.value;
+            const maxValue = field.querySelector('.catalog-range-max')?.value;
+            if (minValue !== '' || maxValue !== '') values[key] = { min: minValue === '' ? null : Number(minValue), max: maxValue === '' ? null : Number(maxValue) };
+            return;
+        }
+        if (type === 'toggle') {
+            values[key] = field.querySelector('.catalog-filter-toggle-input')?.checked === true;
+            return;
+        }
+        const selected = Array.from(field.querySelectorAll('.catalog-filter-option-input:checked')).map(input => input.value);
+        if (type === 'single-select') values[key] = selected[0] || '';
+        else if (selected.length) values[key] = selected;
+    });
+    return values;
+}
+
+function applyCatalogProductValues(values = {}) {
+    catalogProductFields?.querySelectorAll('[data-catalog-filter-key]').forEach(field => {
+        const key = field.dataset.catalogFilterKey;
+        const type = field.dataset.catalogFilterType;
+        const value = values[key];
+        if (type === 'range' && value && typeof value === 'object') {
+            const min = field.querySelector('.catalog-range-min');
+            const max = field.querySelector('.catalog-range-max');
+            if (min) min.value = value.min ?? '';
+            if (max) max.value = value.max ?? '';
+            return;
+        }
+        if (type === 'toggle') {
+            const toggle = field.querySelector('.catalog-filter-toggle-input');
+            if (toggle) toggle.checked = value === true;
+            return;
+        }
+        const selectedValues = Array.isArray(value) ? value : [value];
+        field.querySelectorAll('.catalog-filter-option-input').forEach(input => {
+            input.checked = selectedValues.includes(input.value);
+        });
+    });
+}
+
+async function loadCatalogExperience() {
+    try {
+        const experienceSnap = await getDoc(doc(db, 'settings', 'catalogExperience'));
+        catalogExperience = experienceSnap.exists() ? { ...CATALOG_EXPERIENCE_DEFAULTS, ...experienceSnap.data() } : { ...CATALOG_EXPERIENCE_DEFAULTS };
+        allCatalogFilters = await ensureDefaultCatalogFilters();
+        allCatalogFilters.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+        syncCatalogExperienceControls();
+        renderCatalogFilters();
+        renderCatalogProductFields();
+    } catch (error) {
+        console.error('Error loading catalog experience:', error);
+        if (catalogFiltersList) catalogFiltersList.innerHTML = '<p style="color:#c0392b;">Error loading catalog experience.</p>';
+    }
+}
+
+async function saveCatalogExperience() {
+    try {
+        catalogExperience = readCatalogExperienceControls();
+        await setDoc(doc(db, 'settings', 'catalogExperience'), catalogExperience, { merge: true });
+        showAdminMessage('Catalog experience settings saved.');
+    } catch (error) {
+        console.error('Error saving catalog experience:', error);
+        showAdminMessage('Error saving catalog experience.', 'error');
+    }
+}
+
+async function saveCatalogFilter(filterId, card) {
+    const label = card.querySelector('[data-catalog-filter-field="label"]')?.value.trim();
+    if (!label) {
+        showAdminMessage('A visitor label is required.', 'error');
+        return;
+    }
+    const filterData = {
+        label,
+        type: card.querySelector('[data-catalog-filter-field="type"]')?.value || 'multi-select',
+        display: card.querySelector('[data-catalog-filter-field="display"]')?.value || 'checklist',
+        status: card.querySelector('[data-catalog-filter-field="status"]')?.value || 'draft',
+        order: Number(card.querySelector('[data-catalog-filter-field="order"]')?.value) || 0,
+        visible: card.querySelector('[data-catalog-filter-field="visible"]')?.checked !== false,
+        description: card.querySelector('[data-catalog-filter-field="description"]')?.value.trim() || '',
+        updatedAt: serverTimestamp()
+    };
+    await updateDoc(doc(db, 'catalogFilters', filterId), filterData);
+    await loadCatalogExperience();
+    showAdminMessage('Filter definition saved.');
+}
+
+async function saveCatalogOption(filterId, optionIndex, editor) {
+    const filter = allCatalogFilters.find(item => item.id === filterId);
+    if (!filter) return;
+    const options = Array.isArray(filter.options) ? [...filter.options] : [];
+    const current = options[optionIndex];
+    if (!current) return;
+    const label = editor.querySelector('[data-option-field="label"]')?.value.trim();
+    const value = editor.querySelector('[data-option-field="value"]')?.value.trim() || label;
+    if (!label || !value) {
+        showAdminMessage('Option label and value are required.', 'error');
+        return;
+    }
+    options[optionIndex] = {
+        ...current,
+        label,
+        value,
+        color: normalizeCatalogColor(editor.querySelector('[data-option-field="color"]')?.value),
+        swatchUrl: safeCatalogImageUrl(editor.querySelector('[data-option-field="swatchUrl"]')?.value),
+        status: current.status === 'archived' ? 'published' : (current.status || 'published')
+    };
+    await updateDoc(doc(db, 'catalogFilters', filterId), { options, updatedAt: serverTimestamp() });
+    await loadCatalogExperience();
+    showAdminMessage('Catalog option saved.');
+}
+
+async function addCatalogOption(filterId, card) {
+    const filter = allCatalogFilters.find(item => item.id === filterId);
+    if (!filter) return;
+    const label = card.querySelector('.new-catalog-option-label')?.value.trim();
+    const value = card.querySelector('.new-catalog-option-value')?.value.trim() || label;
+    if (!label || !value) {
+        showAdminMessage('Option label and value are required.', 'error');
+        return;
+    }
+    const options = Array.isArray(filter.options) ? [...filter.options] : [];
+    if (options.some(option => option.value === value && option.status !== 'archived')) {
+        showAdminMessage('This option value already exists in the filter.', 'error');
+        return;
+    }
+    options.push({
+        id: `${filter.key || filter.id}_${slugCatalogOption(value)}_${Date.now()}`,
+        label,
+        value,
+        color: normalizeCatalogColor(card.querySelector('.new-catalog-option-color')?.value),
+        swatchUrl: safeCatalogImageUrl(card.querySelector('.new-catalog-option-image')?.value),
+        status: 'published',
+        order: options.length
+    });
+    await updateDoc(doc(db, 'catalogFilters', filterId), { options, updatedAt: serverTimestamp() });
+    await loadCatalogExperience();
+    showAdminMessage('Catalog option added.');
+}
+
+async function archiveCatalogOption(filterId, optionIndex) {
+    const filter = allCatalogFilters.find(item => item.id === filterId);
+    if (!filter || !Array.isArray(filter.options) || !filter.options[optionIndex]) return;
+    const options = filter.options.map((option, index) => index === optionIndex ? { ...option, status: 'archived' } : option);
+    await updateDoc(doc(db, 'catalogFilters', filterId), { options, updatedAt: serverTimestamp() });
+    await loadCatalogExperience();
+    showAdminMessage('Catalog option archived.');
+}
+
+async function archiveCatalogFilter(filterId) {
+    await updateDoc(doc(db, 'catalogFilters', filterId), { status: 'archived', visible: false, updatedAt: serverTimestamp() });
+    await loadCatalogExperience();
+    showAdminMessage('Catalog filter archived.');
+}
+
+addCatalogFilterBtn?.addEventListener('click', async () => {
+    const key = normalizeCatalogKey(catalogFilterKeyInput?.value);
+    const label = catalogFilterLabelInput?.value.trim();
+    if (!key || !label) {
+        showAdminMessage('A stable key and visitor label are required.', 'error');
+        return;
+    }
+    if (allCatalogFilters.some(filter => (filter.key || filter.id) === key)) {
+        showAdminMessage('This stable key already exists.', 'error');
+        return;
+    }
+    try {
+        await setDoc(doc(db, 'catalogFilters', key), {
+            key,
+            label,
+            type: catalogFilterTypeSelect?.value || 'multi-select',
+            display: catalogFilterDisplaySelect?.value || 'checklist',
+            description: '',
+            options: [],
+            order: allCatalogFilters.length,
+            visible: true,
+            status: 'draft',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+        if (catalogFilterKeyInput) catalogFilterKeyInput.value = '';
+        if (catalogFilterLabelInput) catalogFilterLabelInput.value = '';
+        await loadCatalogExperience();
+        showAdminMessage('Catalog filter added as draft.');
+    } catch (error) {
+        console.error('Error adding catalog filter:', error);
+        showAdminMessage('Error adding catalog filter.', 'error');
+    }
+});
+
+saveCatalogExperienceBtn?.addEventListener('click', saveCatalogExperience);
+
+catalogFiltersList?.addEventListener('click', async event => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    const filterId = button.dataset.filterId;
+    const card = button.closest('[data-filter-id]');
+    try {
+        if (button.classList.contains('save-catalog-filter-btn')) await saveCatalogFilter(filterId, card);
+        if (button.classList.contains('archive-catalog-filter-btn')) await archiveCatalogFilter(filterId);
+        if (button.classList.contains('save-catalog-option-btn')) await saveCatalogOption(filterId, Number(button.dataset.optionIndex), button.closest('[data-option-index]'));
+        if (button.classList.contains('archive-catalog-option-btn')) await archiveCatalogOption(filterId, Number(button.dataset.optionIndex));
+        if (button.classList.contains('add-catalog-option-btn')) await addCatalogOption(filterId, card);
+    } catch (error) {
+        console.error('Error updating catalog definition:', error);
+        showAdminMessage('Catalog definition could not be updated.', 'error');
+    }
+});
+
+// ============================================
 // 7. إدارة المنتجات (Products)
 // ============================================
 
@@ -1283,6 +1837,11 @@ productForm?.addEventListener('submit', async function(e) {
     const basePrice = parseFloat(productBasePriceInput?.value);
     const imageUrl = productMainImageInput?.value.trim();
     const customizableSize = productCustomizableCheckbox?.checked || false;
+    const status = document.getElementById('product-status')?.value || 'published';
+    const publishAtRaw = document.getElementById('product-publish-at')?.value || '';
+    const sortOrder = Number(document.getElementById('product-sort-order')?.value || 0);
+    const publishAt = publishAtRaw ? new Date(publishAtRaw).toISOString() : null;
+    const filterValues = readCatalogProductValues();
 
     // جمع السمات
     const attributes = {};
@@ -1326,6 +1885,10 @@ productForm?.addEventListener('submit', async function(e) {
         customizableSize,
         variants,
         attributes,
+        filterValues,
+        status,
+        publishAt,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
         updatedAt: serverTimestamp()
     };
 
@@ -1338,10 +1901,12 @@ productForm?.addEventListener('submit', async function(e) {
 
         if (editingProductId) {
             await updateDoc(doc(db, 'products', editingProductId), productData);
+            await logAdminActivity('updated', 'product', editingProductId, `${name} (${status})`);
             showAdminMessage('Product updated successfully!');
         } else {
             productData.createdAt = new Date().toISOString();
-            await addDoc(collection(db, 'products'), productData);
+            const createdProduct = await addDoc(collection(db, 'products'), productData);
+            await logAdminActivity('created', 'product', createdProduct.id, `${name} (${status})`);
             showAdminMessage('Product added successfully!');
         }
 
@@ -1397,6 +1962,12 @@ async function editProduct(productId) {
         if (productCategorySelect) productCategorySelect.value = product.category || '';
         if (productOverviewCategorySelect) productOverviewCategorySelect.value = product.overviewCategory || '';
         if (productBasePriceInput) productBasePriceInput.value = product.basePrice || '';
+        const productStatusInput = document.getElementById('product-status');
+        const productPublishAtInput = document.getElementById('product-publish-at');
+        const productSortOrderInput = document.getElementById('product-sort-order');
+        if (productStatusInput) productStatusInput.value = product.status || 'published';
+        if (productPublishAtInput) productPublishAtInput.value = product.publishAt ? new Date(product.publishAt).toISOString().slice(0, 16) : '';
+        if (productSortOrderInput) productSortOrderInput.value = product.sortOrder ?? 0;
         if (productMainImageInput) productMainImageInput.value = product.imageUrl || '';
         if (productCustomizableCheckbox) productCustomizableCheckbox.checked = product.customizableSize || false;
 
@@ -1407,6 +1978,7 @@ async function editProduct(productId) {
             const val = cb.value;
             cb.checked = attributes[attrId] && attributes[attrId].includes(val);
         });
+        applyCatalogProductValues(product.filterValues || {});
 
         if (product.imageUrl && mainImagePreview) {
             mainImagePreview.innerHTML = `<img src="${product.imageUrl}" alt="Preview">`;
@@ -1829,7 +2401,8 @@ async function loadSettings() {
                 googleSheetsUrl: '',
                 imageProvider: 'imgbb',
                 imageApiKey: '',
-                imageSources: []
+                imageSources: [],
+                marketing: { metaPixelId: '', tiktokPixelId: '', privacyPolicyUrl: 'privacy.html', termsUrl: 'terms.html', consentTitle: 'Your privacy matters', consentText: 'We use essential storage to operate the store. Optional analytics and marketing tools load only when you agree.' }
             };
             await setDoc(settingsRef, storeSettings);
         }
@@ -1863,6 +2436,14 @@ async function loadSettings() {
         }
         if (sidebarBgColorInput) sidebarBgColorInput.value = storeSettings.sidebarBgColor || '#ffffff';
         if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
+        const marketing = storeSettings.marketing || {};
+        const setField = (id, value) => { const field = document.getElementById(id); if (field) field.value = value || ''; };
+        setField('meta-pixel-id', marketing.metaPixelId);
+        setField('tiktok-pixel-id', marketing.tiktokPixelId);
+        setField('privacy-policy-url', marketing.privacyPolicyUrl || 'privacy.html');
+        setField('terms-url', marketing.termsUrl || 'terms.html');
+        setField('cookie-consent-title', marketing.consentTitle || 'Your privacy matters');
+        setField('cookie-consent-text', marketing.consentText || 'We use essential storage to operate the store. Optional analytics and marketing tools load only when you agree.');
 
         renderContactIconsList(storeSettings.contacts || []);
         
@@ -2050,7 +2631,6 @@ function renderContactIconsList(contacts) {
         instagram: '📷',
         facebook: '👍',
         tiktok: '🎵',
-        telegram: '✈️',
         pinterest: '📌'
     };
 
@@ -2106,7 +2686,7 @@ let activeMediaPickerTarget = null;
 function resolveMediaPickerTarget(trigger) {
     const selector = trigger?.dataset.mediaTarget;
     if (!selector) return null;
-    const row = trigger.closest('.image-upload-row, .variant-row');
+    const row = trigger.closest('.image-upload-row, .variant-row, .catalog-option-editor, .catalog-option-add-row');
     if (row && selector.startsWith('.')) return row.querySelector(selector);
     try {
         return document.querySelector(selector);
@@ -3241,11 +3821,13 @@ async function initAdmin() {
         await loadCategories();
         await loadOverviewCategories();
         await loadAttributes();
+        await loadCatalogExperience();
         await loadProducts();
         await loadDeliveryRates();
         await loadOrders();
         await loadSettings();
         await loadImageLibrary();
+        await initTiddisAdminEnhancements();
 
         updateCategoryStats();
         updateProductStats();
@@ -3269,3 +3851,219 @@ async function initAdmin() {
 }
 
 export { initAdmin };
+
+
+// ============================================
+// 13. Governance, analytics, backups and operations
+// ============================================
+const TIDDIS_ADMIN_ENHANCEMENTS_KEY = 'tiddis-admin-enhancements-v1';
+let adminEnhancementsReady = false;
+
+function adminEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function currentAdminRole() {
+    return String(sessionStorage.getItem('tiddisAdminRole') || 'admin').toLowerCase();
+}
+
+async function logAdminActivity(action, entity, entityId = '', detail = '') {
+    const actor = auth.currentUser;
+    const payload = {
+        actorUid: actor?.uid || 'unknown',
+        actorEmail: actor?.email || sessionStorage.getItem('tiddisAdminEmail') || '',
+        role: currentAdminRole(),
+        action: String(action).slice(0, 80),
+        entity: String(entity).slice(0, 80),
+        entityId: String(entityId).slice(0, 120),
+        detail: String(detail).slice(0, 500),
+        createdAt: serverTimestamp()
+    };
+    try {
+        await addDoc(collection(db, 'activityLog'), payload);
+    } catch (error) {
+        const local = JSON.parse(localStorage.getItem('tiddisActivityFallback') || '[]');
+        local.unshift({ ...payload, createdAt: new Date().toISOString() });
+        localStorage.setItem('tiddisActivityFallback', JSON.stringify(local.slice(0, 100)));
+        console.warn('Activity log could not be written to Firestore:', error);
+    }
+}
+
+async function loadActivityLog() {
+    const target = document.getElementById('activity-log-list');
+    if (!target) return;
+    try {
+        const snap = await getDocs(collection(db, 'activityLog'));
+        const items = snap.docs.map(item => ({ id: item.id, ...item.data() }));
+        const fallback = JSON.parse(localStorage.getItem('tiddisActivityFallback') || '[]');
+        const merged = [...items, ...fallback].sort((a, b) => String(b.createdAt?.toDate?.() || b.createdAt || '').localeCompare(String(a.createdAt?.toDate?.() || a.createdAt || ''))).slice(0, 80);
+        target.innerHTML = merged.length ? merged.map(item => {
+            const date = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now());
+            return `<div class="activity-log-row"><div><strong>${adminEscape(item.action)}</strong><span>${adminEscape(item.entity)} ${adminEscape(item.entityId)}</span></div><div><span>${adminEscape(item.actorEmail || 'Unknown actor')}</span><time datetime="${date.toISOString()}">${date.toLocaleString()}</time></div></div>`;
+        }).join('') : '<p class="admin-empty-state">No activity recorded yet.</p>';
+    } catch (error) {
+        const fallback = JSON.parse(localStorage.getItem('tiddisActivityFallback') || '[]');
+        target.innerHTML = fallback.length ? fallback.map(item => `<div class="activity-log-row"><div><strong>${adminEscape(item.action)}</strong><span>${adminEscape(item.entity)}</span></div><div><span>Local fallback</span><time>${new Date(item.createdAt).toLocaleString()}</time></div></div>`).join('') : '<p class="admin-empty-state">Activity log is waiting for the Firestore rule to be published.</p>';
+    }
+}
+
+function renderOperationalInsights() {
+    const chart = document.getElementById('orders-status-chart');
+    const health = document.getElementById('catalog-health-summary');
+    const statuses = ['pending', 'processing', 'contacted', 'completed', 'cancelled'];
+    const labels = { pending: 'Pending', processing: 'Processing', contacted: 'Contacted', completed: 'Completed', cancelled: 'Cancelled' };
+    const counts = statuses.map(status => ({ status, count: allOrders.filter(order => String(order.status || 'pending').toLowerCase() === status).length }));
+    if (chart) {
+        const max = Math.max(1, ...counts.map(item => item.count));
+        chart.innerHTML = counts.map(item => `<div class="status-bar-row"><span>${labels[item.status]}</span><div class="status-bar-track"><i style="width:${Math.round((item.count / max) * 100)}%"></i></div><strong>${item.count}</strong></div>`).join('');
+    }
+    if (health) {
+        const published = allProducts.filter(product => product.status !== 'draft' && product.status !== 'archived' && (!product.publishAt || new Date(product.publishAt) <= new Date())).length;
+        const draft = allProducts.filter(product => product.status === 'draft').length;
+        const archived = allProducts.filter(product => product.status === 'archived').length;
+        health.innerHTML = `<div class="health-stat"><span>Visible now</span><strong>${published}</strong></div><div class="health-stat"><span>Draft</span><strong>${draft}</strong></div><div class="health-stat"><span>Archived</span><strong>${archived}</strong></div>`;
+    }
+    const publishedEl = document.getElementById('stat-published-products');
+    const weekEl = document.getElementById('stat-orders-week');
+    if (publishedEl) publishedEl.textContent = String(allProducts.filter(product => product.status !== 'draft' && product.status !== 'archived' && (!product.publishAt || new Date(product.publishAt) <= new Date())).length);
+    if (weekEl) {
+        const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        weekEl.textContent = String(allOrders.filter(order => { const d = order.timestamp?.toDate ? order.timestamp.toDate().getTime() : Date.parse(order.timestamp || ''); return Number.isFinite(d) && d >= weekAgo; }).length);
+    }
+}
+
+function enforceAdminRolePresentation() {
+    const role = currentAdminRole();
+    document.documentElement.dataset.adminRole = role;
+    document.querySelectorAll('[data-required-role]').forEach(element => {
+        const required = String(element.dataset.requiredRole || 'admin').toLowerCase();
+        const allowed = role === 'admin' || role === required;
+        element.hidden = !allowed;
+        element.setAttribute('aria-hidden', String(!allowed));
+    });
+    const roleBadge = document.getElementById('admin-role-badge');
+    if (roleBadge) roleBadge.textContent = role.toUpperCase();
+}
+
+function setupProductImageDragDrop() {
+    const container = document.getElementById('additional-images-container');
+    if (!container || container.dataset.dragReady === 'true') return;
+    container.dataset.dragReady = 'true';
+    container.addEventListener('dragstart', event => {
+        const row = event.target.closest('.image-upload-row');
+        if (!row) return;
+        row.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move';
+    });
+    container.addEventListener('dragend', event => event.target.closest('.image-upload-row')?.classList.remove('is-dragging'));
+    container.addEventListener('dragover', event => {
+        event.preventDefault();
+        const dragging = container.querySelector('.is-dragging');
+        const target = event.target.closest('.image-upload-row');
+        if (!dragging || !target || dragging === target) return;
+        const rect = target.getBoundingClientRect();
+        target.parentElement.insertBefore(dragging, event.clientY < rect.top + rect.height / 2 ? target : target.nextSibling);
+    });
+    container.querySelectorAll('.image-upload-row').forEach(row => row.setAttribute('draggable', 'true'));
+    new MutationObserver(() => container.querySelectorAll('.image-upload-row').forEach(row => row.setAttribute('draggable', 'true'))).observe(container, { childList: true });
+}
+
+function setupHeroContrastAnalyzer() {
+    const button = document.getElementById('analyze-hero-text-color-btn');
+    const imageInput = document.getElementById('hero-slide-image');
+    const colorInput = document.getElementById('hero-text-color');
+    const result = document.getElementById('hero-text-analysis-result');
+    if (!button || button.dataset.ready === 'true') return;
+    button.dataset.ready = 'true';
+    button.addEventListener('click', () => {
+        const src = imageInput?.value.trim();
+        if (!src) { if (result) result.textContent = 'Add an image URL first.'; return; }
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 16; canvas.height = 16;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(image, 0, 0, 16, 16);
+                const pixels = ctx.getImageData(0, 0, 16, 16).data;
+                let luminance = 0; let count = 0;
+                for (let i = 0; i < pixels.length; i += 4) { if (pixels[i + 3] < 20) continue; const r = pixels[i] / 255; const g = pixels[i + 1] / 255; const b = pixels[i + 2] / 255; const convert = value => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4; luminance += 0.2126 * convert(r) + 0.7152 * convert(g) + 0.0722 * convert(b); count++; }
+                const average = count ? luminance / count : 0.5;
+                const suggested = average > 0.48 ? '#241f20' : '#ffffff';
+                if (colorInput) colorInput.value = suggested;
+                if (result) result.innerHTML = `<span class="contrast-swatch" style="background:${suggested}"></span> Suggested ${suggested} based on sampled image luminance. You can override it.`;
+            } catch (error) { if (result) result.textContent = 'The image blocked pixel sampling. Choose the text color manually.'; }
+        };
+        image.onerror = () => { if (result) result.textContent = 'Could not load this image for analysis.'; };
+        image.src = src;
+    });
+}
+
+function setupMarketingSettings() {
+    const button = document.getElementById('save-marketing-settings-btn');
+    if (!button || button.dataset.ready === 'true') return;
+    button.dataset.ready = 'true';
+    button.addEventListener('click', async () => {
+        storeSettings.marketing = {
+            metaPixelId: document.getElementById('meta-pixel-id')?.value.trim() || '',
+            tiktokPixelId: document.getElementById('tiktok-pixel-id')?.value.trim() || '',
+            privacyPolicyUrl: document.getElementById('privacy-policy-url')?.value.trim() || 'privacy.html',
+            termsUrl: document.getElementById('terms-url')?.value.trim() || 'terms.html',
+            consentTitle: document.getElementById('cookie-consent-title')?.value.trim() || 'Your privacy matters',
+            consentText: document.getElementById('cookie-consent-text')?.value.trim() || ''
+        };
+        if (await saveStoreSettings()) { await logAdminActivity('updated', 'marketingSettings', 'storeSettings', 'Consent-controlled pixels and legal links'); showAdminMessage('Marketing and privacy settings saved.'); }
+    });
+}
+
+function setupBackupTools() {
+    const exportButton = document.getElementById('export-backup-btn');
+    const importInput = document.getElementById('import-backup-file');
+    const status = document.getElementById('backup-status');
+    const collections = ['products', 'categories', 'attributes', 'catalogFilters', 'orders', 'settings'];
+    const download = (name, data) => { const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = name; anchor.click(); URL.revokeObjectURL(url); };
+    exportButton?.addEventListener('click', async () => {
+        try {
+            const snapshot = { schema: 'tiddis-backup', version: 1, exportedAt: new Date().toISOString(), collections: {} };
+            for (const name of collections) { const snap = await getDocs(collection(db, name)); snapshot.collections[name] = snap.docs.map(item => ({ id: item.id, data: item.data() })); }
+            download(`tiddis-backup-${new Date().toISOString().slice(0, 10)}.json`, snapshot);
+            if (status) status.textContent = 'Backup exported successfully.';
+            await logAdminActivity('exported', 'backup', '', 'JSON snapshot');
+        } catch (error) { if (status) status.textContent = 'Backup export failed. Check Firestore permissions.'; console.error(error); }
+    });
+    importInput?.addEventListener('change', async event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+            const data = JSON.parse(await file.text());
+            if (data.schema !== 'tiddis-backup' || !data.collections || typeof data.collections !== 'object') throw new Error('Invalid Tiddis backup');
+            const allowed = new Set(collections);
+            const batch = writeBatch(db); let count = 0;
+            Object.entries(data.collections).forEach(([name, rows]) => { if (!allowed.has(name) || !Array.isArray(rows)) return; rows.forEach(row => { if (!row?.id || !row?.data || typeof row.data !== 'object') return; batch.set(doc(db, name, row.id), row.data, { merge: true }); count++; }); });
+            if (count > 450) throw new Error('Backup is too large for one safe batch. Split it before importing.');
+            await batch.commit();
+            if (status) status.textContent = `Imported ${count} documents. Reload the relevant sections.`;
+            await logAdminActivity('imported', 'backup', '', `${count} documents`);
+        } catch (error) { if (status) status.textContent = `Import failed: ${error.message}`; console.error(error); }
+        event.target.value = '';
+    });
+}
+
+function setupAdminEnhancementListeners() {
+    document.getElementById('refresh-activity-btn')?.addEventListener('click', loadActivityLog);
+    document.getElementById('refresh-insights-btn')?.addEventListener('click', renderOperationalInsights);
+}
+
+async function initTiddisAdminEnhancements() {
+    if (adminEnhancementsReady) return;
+    adminEnhancementsReady = true;
+    enforceAdminRolePresentation();
+    setupProductImageDragDrop();
+    setupHeroContrastAnalyzer();
+    setupMarketingSettings();
+    setupBackupTools();
+    setupAdminEnhancementListeners();
+    renderOperationalInsights();
+    await loadActivityLog();
+}

@@ -20,6 +20,12 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // تعريفات تجربة الكتالوج والفلاتر: يقرأها المتجر العام، وتعدلها لوحة الإدارة فقط.
+    match /catalogFilters/{filterId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     // الإعدادات العامة للمتجر: يقرأها الجميع، ويكتبها المستخدمون المصادق عليهم فقط
     match /settings/{settingId} {
       allow read: if true;
@@ -36,6 +42,12 @@ service cloud.firestore {
     // لا تُعرض روابط المكتبة أو بيانات الحذف للزوار العامين.
     match /imageLibrary/{imageId} {
       allow read, write: if request.auth != null;
+    }
+
+    // سجل تغييرات إداري append-only من واجهة الإدارة.
+    match /activityLog/{activityId} {
+      allow create, read: if request.auth != null;
+      allow update, delete: if false;
     }
   }
 }

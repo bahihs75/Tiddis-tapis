@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Luxury Rugs &amp; Carpets</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -13,10 +14,8 @@
         <button class="hamburger header-hamburger" id="header-hamburger-btn" aria-label="Open navigation" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
-        <a class="header-brand" href="index.html" aria-label="Tiddis Tapis home">
-            <img id="header-logo" class="header-logo-image" src="" alt="TIDDIS TAPIS" aria-hidden="true">
-            <span class="brand-main">TIDDIS</span>
-            <span class="brand-sub">TAPIS</span>
+        <a class="header-brand has-image" href="index.html" aria-label="Tiddis Tapis home">
+            <img id="header-logo" class="header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
         </a>
     </header>
 
@@ -32,12 +31,8 @@
             <button class="hamburger desktop-hamburger" id="desktop-hamburger-btn" aria-label="Open navigation" aria-expanded="false" style="display:flex;">
                 <span></span><span></span><span></span>
             </button>
-            <div class="logo-wrapper">
-                <img id="sidebar-logo" src="" alt="TIDDIS Logo" style="display:none; max-height:32px; margin-right:10px; background:transparent;">
-                <div>
-                    <div class="brand-main">TIDDIS</div>
-                    <div class="brand-sub">TAPIS</div>
-                </div>
+            <div class="logo-wrapper" aria-hidden="true">
+                <img id="sidebar-logo" src="" alt="" style="display:none; max-height:32px; margin-right:10px; background:transparent;">
             </div>
         </div>
         <nav class="sidebar-nav" id="sidebar-nav">
@@ -50,13 +45,9 @@
 
     <!-- رأس الهاتف المحمول -->
     <div class="mobile-header">
-        <div class="mobile-brand">
+        <div class="mobile-brand has-image">
             <div class="logo-wrapper" style="display:flex; align-items:center;">
-                <img id="mobile-logo" class="mobile-header-logo-image" src="" alt="TIDDIS TAPIS" aria-hidden="true" style="display:none; background:transparent;">
-                <div>
-                    <span class="brand-main">TIDDIS</span>
-                    <span class="brand-sub">TAPIS</span>
-                </div>
+                <img id="mobile-logo" class="mobile-header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
             </div>
         </div>
         <div class="mobile-header-actions">
@@ -178,6 +169,7 @@
         <!-- تذييل الصفحة -->
         <footer class="main-footer">
             <p>&copy; 2025 TIDDIS TAPIS — All rights reserved.</p>
+                    <div class="legal-footer-links"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
         </footer>
     </main>
 

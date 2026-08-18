@@ -34,6 +34,15 @@ onAuthStateChanged(auth, async (user) => {
         loginScreen.style.display = 'none';
         adminApp.style.display = '';
         if (currentEmailEl) currentEmailEl.textContent = user.email;
+        resetTiddisIdleTimer();
+        try {
+            const token = await user.getIdTokenResult();
+            sessionStorage.setItem('tiddisAdminRole', String(token.claims.role || 'admin').toLowerCase());
+            sessionStorage.setItem('tiddisAdminEmail', user.email || '');
+        } catch (error) {
+            sessionStorage.setItem('tiddisAdminRole', 'admin');
+            sessionStorage.setItem('tiddisAdminEmail', user.email || '');
+        }
         
         // تحميل وتهيئة بيانات لوحة التحكم فقط بعد تسجيل الدخول الناجح.
         // إبقاء هذا الاستيراد ديناميكياً يمنع خطأً في admin.js من تعطيل نموذج الدخول.
@@ -90,4 +99,18 @@ loginForm.addEventListener('submit', async (e) => {
 // تسجيل الخروج
 signOutBtn?.addEventListener('click', async () => {
     await signOut(auth);
+});
+
+
+// Governance helpers: claims are read-only on the client and must be assigned server-side.
+const TIDDIS_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+let tiddisIdleTimer = null;
+function resetTiddisIdleTimer() {
+    if (tiddisIdleTimer) clearTimeout(tiddisIdleTimer);
+    tiddisIdleTimer = setTimeout(async () => {
+        try { await signOut(auth); } catch (error) { console.warn('Idle sign out failed:', error); }
+    }, TIDDIS_IDLE_TIMEOUT_MS);
+}
+['pointerdown', 'keydown', 'touchstart', 'mousemove'].forEach(eventName => {
+    window.addEventListener(eventName, resetTiddisIdleTimer, { passive: true });
 });
