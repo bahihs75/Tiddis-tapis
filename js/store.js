@@ -1723,7 +1723,7 @@ function renderProductDetail(product) {
 
     container.innerHTML = `
         <div class="product-detail-layout">
-            <a class="product-back-rail" href="index.html#products-grid" aria-label="Back to products">
+            <a class="product-back-rail" href="/#products-grid" aria-label="Back to products">
                 <span class="product-back-icon" aria-hidden="true">←</span>
                 <span class="product-back-label">Back to products</span>
             </a>

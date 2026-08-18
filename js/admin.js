@@ -176,6 +176,8 @@ const editImageApiBtn = document.getElementById('edit-image-api-btn');
 const saveImageApiBtn = document.getElementById('save-image-api-btn');
 const cancelImageApiBtn = document.getElementById('cancel-image-api-btn');
 const PRIVATE_IMAGE_SOURCES_KEY = 'tiddis-tapis:private-image-sources:v1';
+const PRIVATE_IMAGE_SOURCES_COLLECTION = 'privateSettings';
+const PRIVATE_IMAGE_SOURCES_DOCUMENT = 'imageApiSources';
 const DEFAULT_TRANSPARENT_LOGO = 'tiddis-logo.svg';
 const LEGACY_LOGO_URLS = new Set([
     'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
@@ -2363,23 +2365,59 @@ function normalizeImageSources(sources) {
         .filter(source => source.provider === 'direct' || source.apiKey);
 }
 
-function readPrivateImageSources() {
+function readCachedPrivateImageSources() {
     try {
         const raw = localStorage.getItem(PRIVATE_IMAGE_SOURCES_KEY);
         return raw ? normalizeImageSources(JSON.parse(raw)) : [];
     } catch (error) {
-        console.warn('Unable to read private image sources from this browser.', error);
+        console.warn('Unable to read the cached private image sources from this browser.', error);
         return [];
     }
 }
 
-function savePrivateImageSources() {
+function cachePrivateImageSources(sources) {
     try {
-        localStorage.setItem(PRIVATE_IMAGE_SOURCES_KEY, JSON.stringify(normalizeImageSources(imageApiSources)));
+        localStorage.setItem(PRIVATE_IMAGE_SOURCES_KEY, JSON.stringify(normalizeImageSources(sources)));
         return true;
     } catch (error) {
-        console.error('Unable to save private image sources locally:', error);
-        showAdminMessage('Could not save the private image sources on this device.', 'error');
+        console.warn('Unable to cache private image sources locally:', error);
+        return false;
+    }
+}
+
+async function readPrivateImageSources() {
+    const cachedSources = readCachedPrivateImageSources();
+    try {
+        const privateSourcesRef = doc(db, PRIVATE_IMAGE_SOURCES_COLLECTION, PRIVATE_IMAGE_SOURCES_DOCUMENT);
+        const privateSourcesSnap = await getDoc(privateSourcesRef);
+        if (privateSourcesSnap.exists()) {
+            const remoteSources = normalizeImageSources(privateSourcesSnap.data().sources);
+            cachePrivateImageSources(remoteSources);
+            return { sources: remoteSources, remoteAvailable: true, remoteExists: true };
+        }
+        return { sources: cachedSources, remoteAvailable: true, remoteExists: false };
+    } catch (error) {
+        console.warn('Unable to read private image sources from Firestore; using the local cache.', error);
+        return { sources: cachedSources, remoteAvailable: false, remoteExists: false };
+    }
+}
+
+async function savePrivateImageSources({ silent = false } = {}) {
+    const normalizedSources = normalizeImageSources(imageApiSources);
+    try {
+        const privateSourcesRef = doc(db, PRIVATE_IMAGE_SOURCES_COLLECTION, PRIVATE_IMAGE_SOURCES_DOCUMENT);
+        await setDoc(privateSourcesRef, {
+            sources: normalizedSources,
+            updatedAt: serverTimestamp()
+        });
+        cachePrivateImageSources(normalizedSources);
+        return true;
+    } catch (error) {
+        console.error('Unable to sync private image sources to Firestore:', error);
+        cachePrivateImageSources(normalizedSources);
+        if (!silent) {
+            showAdminMessage('Could not sync the image source to private Firestore storage. Publish the updated Firestore rules; a local fallback was kept on this browser.', 'error');
+        }
         return false;
     }
 }
@@ -2420,9 +2458,12 @@ async function loadSettings() {
                     }]
                     : []
         );
-        const privateSources = readPrivateImageSources();
-        imageApiSources = privateSources.length ? privateSources : legacyImageSources;
-        if (!privateSources.length && legacyImageSources.length) savePrivateImageSources();
+        const privateSourceState = await readPrivateImageSources();
+        const privateSources = privateSourceState.sources;
+        imageApiSources = privateSources.length || privateSourceState.remoteExists ? privateSources : legacyImageSources;
+        if (!privateSourceState.remoteExists && imageApiSources.length) {
+            await savePrivateImageSources({ silent: true });
+        }
         renderImageApiSourcesList();
         closeImageApiEditor();
         if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
@@ -3293,7 +3334,7 @@ function renderImageApiSourcesList() {
             const index = Number(button.dataset.index);
             if (!confirm('Delete this image source?')) return;
             imageApiSources.splice(index, 1);
-            if (!savePrivateImageSources()) return;
+            if (!(await savePrivateImageSources())) return;
             if (await saveStoreSettings()) renderImageApiSourcesList();
         });
     });
@@ -3357,11 +3398,11 @@ saveImageApiBtn?.addEventListener('click', async () => {
     const source = { provider, apiKey, label: providerLabel(provider), enabled: true };
     if (imageApiEditingIndex >= 0) imageApiSources[imageApiEditingIndex] = source;
     else imageApiSources.push(source);
-    if (!savePrivateImageSources()) return;
+    if (!(await savePrivateImageSources())) return;
     if (await saveStoreSettings()) {
         renderImageApiSourcesList();
         closeImageApiEditor();
-        showAdminMessage('Image source saved securely.');
+        showAdminMessage('Image source saved to private admin storage.');
     }
 });
 

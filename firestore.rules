@@ -32,6 +32,12 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // أسرار مزودي الصور: لا تُعرض للزوار العامين، وتُتاح حالياً للحسابات المصادق عليها.
+    // يمكن تضييقها لاحقاً إلى custom claims مثل role == admin بعد تفعيلها على الخادم.
+    match /privateSettings/{settingId} {
+      allow read, write: if request.auth != null;
+    }
+
     // الطلبات: السماح لأي زائر بإنشاء طلب، وعدم السماح بالقراءة/التعديل/الحذف إلا للمسجلين
     match /orders/{orderId} {
       allow create: if true;
