@@ -2445,13 +2445,22 @@ if (backToTopBtn) {
 
 async function initStore() {
     try {
-        await loadCategories();
-        await loadAttributes();
-        await loadCatalogFilters();
-        await loadDeliveryRates();
+        // ابدأ المستمعين فوراً حتى يظهر الهيرو والمنتجات بمجرد وصول أول snapshot.
+        // أما البيانات المساعدة فتُحمّل بالتوازي ولا تؤخر أول رسم للصفحة.
         listenToStoreSettings();
         listenToProducts();
-        
+
+        const preloadTasks = [
+            loadCategories(),
+            loadAttributes(),
+            loadCatalogFilters(),
+            loadDeliveryRates()
+        ];
+        const preloadResults = await Promise.allSettled(preloadTasks);
+        preloadResults.forEach(result => {
+            if (result.status === 'rejected') console.warn('Optional store data failed to preload:', result.reason);
+        });
+
         // التحقق من وجود فلاتر في الرابط (للتوجيه من صفحة المنتج)
         const urlParams = new URLSearchParams(window.location.search);
         const urlCat = urlParams.get('category');
@@ -2521,19 +2530,19 @@ function loadOptionalTracking() {
 }
 
 function setupTiddisConsentAndTracking() {
-    captureTiddisUtm();
     const existing = localStorage.getItem(TIDDIS_CONSENT_KEY);
     const settings = AppState.settings.storeSettings || {};
     const marketing = settings.marketing || {};
     const banner = document.createElement('section');
     banner.id = 'cookie-consent-banner'; banner.className = 'cookie-consent-banner'; banner.setAttribute('role', 'dialog'); banner.setAttribute('aria-live', 'polite');
-    banner.innerHTML = `<div><strong>${escapeMarkup(marketing.consentTitle || 'Your privacy matters')}</strong><p>${escapeMarkup(marketing.consentText || 'Essential storage keeps the store working. Optional analytics and marketing tools load only when you agree.')}</p><a href="${escapeAttribute(marketing.privacyPolicyUrl || 'privacy.html')}">Privacy policy</a></div><div class="cookie-consent-actions"><button type="button" data-consent="reject" class="btn-ghost">Continue essential only</button><button type="button" data-consent="accept" class="btn-primary">Accept optional tools</button></div>`;
+    banner.innerHTML = `<div class="cookie-consent-copy"><strong class="cookie-consent-title">${escapeMarkup(marketing.consentTitle || 'Your privacy matters')}</strong><p>${escapeMarkup(marketing.consentText || 'Essential storage keeps the store working. Optional analytics and marketing tools load only when you agree.')}</p><a href="${escapeAttribute(marketing.privacyPolicyUrl || 'privacy.html')}">Privacy policy</a></div><div class="cookie-consent-actions"><button type="button" data-consent="reject" class="btn-ghost">Essential only</button><button type="button" data-consent="accept" class="btn-primary">Accept</button></div>`;
     if (!existing) { document.body.appendChild(banner); }
     banner.addEventListener('click', event => {
         const choice = event.target.closest?.('[data-consent]')?.dataset.consent;
         if (!choice) return;
         if (choice === 'accept') {
             localStorage.setItem(TIDDIS_CONSENT_KEY, JSON.stringify({ choice: 'accept', savedAt: new Date().toISOString() }));
+            captureTiddisUtm();
             loadOptionalTracking();
         } else {
             localStorage.removeItem(TIDDIS_CONSENT_KEY);
@@ -2541,7 +2550,12 @@ function setupTiddisConsentAndTracking() {
         banner.remove();
     });
     if (existing) {
-        try { if (JSON.parse(existing).choice === 'accept') loadOptionalTracking(); } catch { localStorage.removeItem(TIDDIS_CONSENT_KEY); }
+        try {
+            if (JSON.parse(existing).choice === 'accept') {
+                captureTiddisUtm();
+                loadOptionalTracking();
+            }
+        } catch { localStorage.removeItem(TIDDIS_CONSENT_KEY); }
     }
 }
 
