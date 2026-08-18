@@ -353,7 +353,7 @@ function listenToStoreSettings() {
             AppState.settings.storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
                 aboutImage: 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg',
-                logoUrl: 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
+                logoUrl: 'tiddis-logo.svg',
                 sidebarBgColor: '#ffffff',
                 mainBgColor: '#faf9f6',
                 contacts: [],
@@ -1180,6 +1180,17 @@ if (DOM.downloadPdfAfterOrder) {
 // 12. توليد PDF (مع تحسين CORS)
 // ============================================
 
+const DEFAULT_TRANSPARENT_LOGO = 'tiddis-logo.svg';
+const LEGACY_LOGO_URLS = new Set([
+    'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
+    'https://i.ibb.co/Mkjk88PT/tiddis-logo.png'
+]);
+
+function getDisplayLogoUrl(value) {
+    const candidate = typeof value === 'string' ? value.trim() : '';
+    return !candidate || LEGACY_LOGO_URLS.has(candidate) ? DEFAULT_TRANSPARENT_LOGO : candidate;
+}
+
 window.generateProductPDF = async function(productId, variantOverride = null) {
     const product = AppState.products.all.find(p => p.id === productId);
     if (!product) {
@@ -1221,7 +1232,7 @@ window.generateProductPDF = async function(productId, variantOverride = null) {
             <td>${escapeHtml(variant.price || product.basePrice || 0)} DZD</td>
         </tr>
     `).join('');
-    const logoUrl = settings.logoUrl || 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png';
+    const logoUrl = getDisplayLogoUrl(settings.logoUrl);
     const logoHtml = logoUrl
         ? `<img src="${escapeHtml(logoUrl)}" alt="TIDDIS TAPIS" class="sheet-logo-image">`
         : `<div class="sheet-wordmark"><span>TIDDIS</span><small>TAPIS</small></div>`;
@@ -1563,24 +1574,51 @@ function applyStoreSettings() {
         document.body.style.backgroundColor = settings.mainBgColor;
     }
     
-    // الشعار
-    const logoUrl = settings.logoUrl || 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png';
-    const logoElements = [
-        document.getElementById('sidebar-logo'),
-        document.getElementById('mobile-logo'),
-        document.getElementById('product-page-logo')
-    ];
-    logoElements.forEach(el => {
-        if (el) {
-            if (logoUrl) {
-                el.src = logoUrl;
-                el.style.display = 'inline-block';
-                el.style.background = 'transparent';
-            } else {
-                el.style.display = 'none';
-            }
+    // الشعار الشفاف: مصدر واحد في الهيدر، بدون نسخة مقصوصة داخل القائمة.
+    const logoUrl = getDisplayLogoUrl(settings.logoUrl);
+    const logoTargets = [
+        {
+            image: document.getElementById('header-logo'),
+            wrapper: document.querySelector('.desktop-header .header-brand')
+        },
+        {
+            image: document.getElementById('mobile-logo'),
+            wrapper: document.querySelector('.mobile-header .mobile-brand')
         }
+    ];
+
+    logoTargets.forEach(({ image, wrapper }) => {
+        if (!image) return;
+        image.style.background = 'transparent';
+        if (!logoUrl) {
+            image.removeAttribute('src');
+            image.style.display = 'none';
+            wrapper?.classList.remove('has-image');
+            return;
+        }
+
+        image.onload = () => {
+            image.style.display = 'inline-block';
+            wrapper?.classList.add('has-image');
+        };
+        image.onerror = () => {
+            image.style.display = 'none';
+            wrapper?.classList.remove('has-image');
+        };
+        image.src = logoUrl;
     });
+
+    const clippedSidebarLogo = document.getElementById('sidebar-logo');
+    if (clippedSidebarLogo) {
+        clippedSidebarLogo.removeAttribute('src');
+        clippedSidebarLogo.style.display = 'none';
+    }
+
+    const legacyProductLogo = document.getElementById('product-page-logo');
+    if (legacyProductLogo) {
+        legacyProductLogo.removeAttribute('src');
+        legacyProductLogo.style.display = 'none';
+    }
     
     // About Us text and editorial image
     if (DOM.aboutText && settings.aboutText) {

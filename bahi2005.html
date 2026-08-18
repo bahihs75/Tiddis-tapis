@@ -131,6 +131,7 @@
                         <input type="text" id="hero-slide-image" placeholder="https://..." class="form-input" style="flex:1;">
                         <input type="file" id="hero-image-file" accept="image/*" style="display:none;">
                         <button type="button" id="upload-hero-img-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload Image</button>
+                            <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#hero-slide-image" data-media-usage="hero">Choose from Library</button>
                     </div>
                     <small style="color:#666; font-size:11px; display:block; margin-top:4px;">Used when a device-specific image is not provided. Upload via ImgBB or paste a URL.</small>
                 </div>
@@ -141,7 +142,9 @@
                             <input type="text" id="hero-slide-desktop-image" placeholder="Optional landscape image URL" class="form-input" style="flex:1;">
                             <input type="file" id="hero-desktop-image-file" accept="image/*" style="display:none;">
                             <button type="button" id="upload-hero-desktop-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload</button>
+                            <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#hero-slide-desktop-image" data-media-usage="hero">Library</button>
                         </div>
+                        <div class="media-field-preview-row" data-media-preview-for="#hero-slide-desktop-image"></div>
                     </div>
                     <div class="form-group">
                         <label for="hero-slide-mobile-image">Mobile Image URL (portrait)</label>
@@ -149,10 +152,13 @@
                             <input type="text" id="hero-slide-mobile-image" placeholder="Optional portrait image URL" class="form-input" style="flex:1;">
                             <input type="file" id="hero-mobile-image-file" accept="image/*" style="display:none;">
                             <button type="button" id="upload-hero-mobile-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload</button>
+                            <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#hero-slide-mobile-image" data-media-usage="hero">Library</button>
                         </div>
+                        <div class="media-field-preview-row" data-media-preview-for="#hero-slide-mobile-image"></div>
                     </div>
                 </div>
                 <small class="hero-responsive-images-hint">The desktop and mobile images are selected automatically according to the visitor's screen size.</small>
+                <div class="media-field-preview-row" data-media-preview-for="#hero-slide-image" data-media-preview-group="hero"></div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="hero-slide-title">Title</label>
@@ -340,9 +346,11 @@
                             <div class="form-row" style="gap: 10px;">
                                 <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required style="flex: 1;">
                                 <button type="button" id="upload-product-main-btn" class="btn-secondary" style="padding: 0 15px;">Upload</button>
+                                <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#product-main-image" data-media-usage="product">Library</button>
                                 <input type="file" id="product-main-file" accept="image/*" style="display: none;">
                             </div>
                             <div id="main-image-preview" class="image-preview"></div>
+                            <div class="media-field-preview-row" data-media-preview-for="#product-main-image"></div>
                         </div>
                         <div class="form-group">
                             <label>
@@ -356,6 +364,7 @@
                                 <div class="image-upload-row" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
                                     <input type="text" class="additional-image-url" placeholder="Image URL" style="flex: 1;">
                                     <button type="button" class="admin-action-btn upload-additional-btn" style="padding: 5px 15px;">Upload</button>
+                                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".additional-image-url" data-media-usage="product">Library</button>
                                     <input type="file" class="additional-image-file" accept="image/*" style="display: none;">
                                     <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
                                 </div>
@@ -578,6 +587,8 @@
                     <label for="about-image-url">About Us Image URL</label>
                     <input id="about-image-url" type="url" class="form-input" placeholder="https://i.ibb.co/CK9zNFVq/about-tiddis.jpg" autocomplete="off">
                     <p class="admin-help-text">Use a local asset path or a trusted HTTPS image URL. Leave the existing value if you do not want to change the image.</p>
+                    <div class="media-field-preview-row" data-media-preview-for="#about-image-url"></div>
+                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#about-image-url" data-media-usage="about">Choose from Library</button>
                 </div>
                 <button id="save-about-btn" class="btn-primary">Save About Us</button>
             </div>
@@ -588,8 +599,10 @@
                     <div class="form-row" style="gap: 10px;">
                         <input type="text" id="logo-url" placeholder="https://example.com/logo.svg" style="flex: 1;">
                         <button type="button" id="upload-logo-btn" class="btn-secondary" style="padding: 0 15px;">Upload</button>
-                        <input type="file" id="logo-file" accept="image/*" style="display: none;">
+                        <input type="file" id="logo-file" accept="image/*,.svg" style="display: none;">
                     </div>
+                    <div class="media-field-preview-row" data-media-preview-for="#logo-url"></div>
+                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#logo-url" data-media-usage="logo">Choose from Library</button>
                     <button id="save-logo-btn" class="btn-primary" style="margin-top:8px;">Update Logo</button>
                 </div>
             </div>
@@ -634,6 +647,32 @@
                 <button id="color-confirm-yes" class="btn-primary">Yes, Apply</button>
                 <button id="color-confirm-no" class="btn-secondary">Cancel</button>
             </div>
+        </div>
+    </div>
+
+    <div id="media-picker-modal" class="media-picker-overlay" aria-hidden="true" hidden>
+        <div class="media-picker-modal" role="dialog" aria-modal="true" aria-labelledby="media-picker-title">
+            <div class="media-picker-heading">
+                <div>
+                    <span class="media-picker-kicker">TIDDIS TAPIS / MEDIA</span>
+                    <h2 id="media-picker-title">Choose from Image Library</h2>
+                </div>
+                <button type="button" class="modal-close" id="media-picker-close" aria-label="Close image library">&times;</button>
+            </div>
+            <div class="media-picker-toolbar">
+                <input type="search" id="media-picker-search" class="form-input" placeholder="Search images..." aria-label="Search images">
+                <select id="media-picker-usage" class="form-input" aria-label="Filter image usage">
+                    <option value="all">All uses</option>
+                    <option value="hero">Hero</option>
+                    <option value="product">Product</option>
+                    <option value="about">About Us</option>
+                    <option value="technical">Technical Sheet</option>
+                    <option value="logo">Logo / Icon</option>
+                </select>
+            </div>
+            <p id="media-picker-summary" class="admin-help-text" aria-live="polite"></p>
+            <div id="media-picker-grid" class="media-picker-grid"></div>
+            <p id="media-picker-empty" class="admin-empty-state" hidden>No images match your search.</p>
         </div>
     </div>
 

@@ -152,6 +152,15 @@ const editImageApiBtn = document.getElementById('edit-image-api-btn');
 const saveImageApiBtn = document.getElementById('save-image-api-btn');
 const cancelImageApiBtn = document.getElementById('cancel-image-api-btn');
 const PRIVATE_IMAGE_SOURCES_KEY = 'tiddis-tapis:private-image-sources:v1';
+const DEFAULT_TRANSPARENT_LOGO = 'tiddis-logo.svg';
+const LEGACY_LOGO_URLS = new Set([
+    'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
+    'https://i.ibb.co/Mkjk88PT/tiddis-logo.png'
+]);
+const getAdminLogoUrl = value => {
+    const candidate = typeof value === 'string' ? value.trim() : '';
+    return !candidate || LEGACY_LOGO_URLS.has(candidate) ? DEFAULT_TRANSPARENT_LOGO : candidate;
+};
 const aboutUsTextarea = document.getElementById('about-us-text');
 const aboutImageUrlInput = document.getElementById('about-image-url');
 const saveAboutBtn = document.getElementById('save-about-btn');
@@ -1178,10 +1187,13 @@ addVariantBtn?.addEventListener('click', function() {
         <input type="text" class="form-input var-color" placeholder="Color (e.g., Grouna)" style="flex:1; min-width:80px;">
         <input type="number" class="form-input var-price" placeholder="Price (DZD)" style="flex:0.7; min-width:80px;">
         <input type="text" class="form-input var-image" placeholder="Image URL" style="flex:1.5; min-width:120px;">
+        <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".var-image" data-media-usage="product">Library</button>
+        <div class="media-inline-preview" data-media-preview-for="var-image" hidden></div>
         <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-variant">Remove</button>
     `;
     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
     variantsContainer?.appendChild(row);
+    updateMediaFieldPreview(row.querySelector('.var-image'));
 });
 
 addImageRowBtn?.addEventListener('click', function() {
@@ -1189,7 +1201,9 @@ addImageRowBtn?.addEventListener('click', function() {
     row.className = 'image-upload-row';
     row.innerHTML = `
         <input type="text" class="additional-image-url form-input" placeholder="Image URL">
+        <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".additional-image-url" data-media-usage="product">Library</button>
         <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image">Remove</button>
+        <div class="media-inline-preview" data-media-preview-for="additional-image-url" hidden></div>
     `;
     row.querySelector('.btn-remove-image').addEventListener('click', () => {
         row.remove();
@@ -1248,7 +1262,16 @@ productMainImageInput?.addEventListener('input', function() {
             mainImagePreview.innerHTML = '';
         }
     }
+    updateMediaFieldPreview(this);
     updatePDFImageSelector();
+});
+
+// تحديث معاينات المكتبة لكل حقل صورة، بما في ذلك الحقول الديناميكية.
+document.addEventListener('input', event => {
+    const input = event.target;
+    if (input instanceof HTMLInputElement && (input.type === 'text' || input.type === 'url')) {
+        updateMediaFieldPreview(input);
+    }
 });
 
 productForm?.addEventListener('submit', async function(e) {
@@ -1329,7 +1352,9 @@ productForm?.addEventListener('submit', async function(e) {
             additionalImagesContainer.innerHTML = `
                 <div class="image-upload-row">
                     <input type="text" class="additional-image-url form-input" placeholder="Image URL">
+                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".additional-image-url" data-media-usage="product">Library</button>
                     <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
+                    <div class="media-inline-preview" data-media-preview-for="additional-image-url" hidden></div>
                 </div>
             `;
         }
@@ -1395,7 +1420,9 @@ async function editProduct(productId) {
                     row.className = 'image-upload-row';
                     row.innerHTML = `
                         <input type="text" class="additional-image-url form-input" value="${url}">
+                        <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".additional-image-url" data-media-usage="product">Library</button>
                         <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image">Remove</button>
+                        <div class="media-inline-preview" data-media-preview-for="additional-image-url" hidden></div>
                     `;
                     row.querySelector('.btn-remove-image').addEventListener('click', () => {
                         row.remove();
@@ -1409,7 +1436,9 @@ async function editProduct(productId) {
                 row.className = 'image-upload-row';
                 row.innerHTML = `
                     <input type="text" class="additional-image-url form-input" placeholder="Image URL">
+                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".additional-image-url" data-media-usage="product">Library</button>
                     <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
+                    <div class="media-inline-preview" data-media-preview-for="additional-image-url" hidden></div>
                 `;
                 additionalImagesContainer.appendChild(row);
             }
@@ -1434,10 +1463,13 @@ async function editProduct(productId) {
                         <input type="text" class="form-input var-color" value="${v.color || ''}" placeholder="Color" style="flex:1; min-width:80px;">
                         <input type="number" class="form-input var-price" value="${v.price || ''}" placeholder="Price" style="flex:0.7; min-width:80px;">
                         <input type="text" class="form-input var-image" value="${v.image || ''}" placeholder="Image URL" style="flex:1.5; min-width:120px;">
+                        <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".var-image" data-media-usage="product">Library</button>
+                        <div class="media-inline-preview" data-media-preview-for="var-image" hidden></div>
                         <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-variant">Remove</button>
                     `;
                     row.querySelector('.btn-remove-variant').addEventListener('click', () => row.remove());
                     variantsContainer.appendChild(row);
+                    updateMediaFieldPreview(row.querySelector('.var-image'));
                 });
             }
         }
@@ -1790,7 +1822,7 @@ async function loadSettings() {
             storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
                 aboutImage: 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg',
-                logoUrl: 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
+                logoUrl: 'tiddis-logo.svg',
                 sidebarBgColor: '#ffffff',
                 mainBgColor: '#faf9f6',
                 contacts: [],
@@ -1821,8 +1853,14 @@ async function loadSettings() {
         renderImageApiSourcesList();
         closeImageApiEditor();
         if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
-        if (aboutImageUrlInput) aboutImageUrlInput.value = storeSettings.aboutImage || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
-        if (logoUrlInput) logoUrlInput.value = storeSettings.logoUrl || 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png';
+        if (aboutImageUrlInput) {
+            aboutImageUrlInput.value = storeSettings.aboutImage || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
+            updateMediaFieldPreview(aboutImageUrlInput);
+        }
+        if (logoUrlInput) {
+            logoUrlInput.value = getAdminLogoUrl(storeSettings.logoUrl);
+            updateMediaFieldPreview(logoUrlInput);
+        }
         if (sidebarBgColorInput) sidebarBgColorInput.value = storeSettings.sidebarBgColor || '#ffffff';
         if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
 
@@ -2063,6 +2101,118 @@ const libraryUsageLabels = {
     other: 'Other'
 };
 
+let activeMediaPickerTarget = null;
+
+function resolveMediaPickerTarget(trigger) {
+    const selector = trigger?.dataset.mediaTarget;
+    if (!selector) return null;
+    const row = trigger.closest('.image-upload-row, .variant-row');
+    if (row && selector.startsWith('.')) return row.querySelector(selector);
+    try {
+        return document.querySelector(selector);
+    } catch (error) {
+        console.warn('Invalid media picker target:', selector, error);
+        return null;
+    }
+}
+
+function updateMediaFieldPreview(inputElement) {
+    if (!inputElement) return;
+    const url = String(inputElement.value || '').trim();
+    const previews = Array.from(document.querySelectorAll('.media-field-preview-row, .media-inline-preview'))
+        .filter(preview => {
+            const key = String(preview.dataset.mediaPreviewFor || '').replace(/^\./, '');
+            return preview.dataset.mediaPreviewFor === `#${inputElement.id}`
+                || preview.dataset.mediaPreviewFor === inputElement.dataset.mediaPreviewKey
+                || (key && inputElement.classList.contains(key));
+        });
+    previews.forEach(preview => {
+        preview.innerHTML = url
+            ? `<img src="${libraryEscapeHtml(url)}" alt="Selected image preview" loading="lazy" onerror="this.classList.add('is-broken')"><span>${libraryEscapeHtml(url.split('/').pop()?.split('?')[0] || 'Selected image')}</span>`
+            : '';
+        preview.hidden = !url;
+    });
+}
+
+function renderMediaPickerOptions() {
+    const grid = document.getElementById('media-picker-grid');
+    const summary = document.getElementById('media-picker-summary');
+    const empty = document.getElementById('media-picker-empty');
+    if (!grid) return;
+    const search = String(document.getElementById('media-picker-search')?.value || '').trim().toLowerCase();
+    const usage = document.getElementById('media-picker-usage')?.value || 'all';
+    const records = imageLibrary.filter(record => {
+        const haystack = [record.name, record.url, record.provider, record.section, record.originalFileName, ...(record.tags || []), ...(record.usedBy || [])].join(' ').toLowerCase();
+        const matchesSearch = !search || haystack.includes(search);
+        const matchesUsage = usage === 'all' || record.usage === usage || (record.usages || []).includes(usage);
+        return matchesSearch && matchesUsage;
+    });
+    if (summary) summary.textContent = `${records.length} image${records.length === 1 ? '' : 's'} available · choose one to use in this field.`;
+    if (empty) empty.hidden = records.length > 0;
+    grid.innerHTML = records.map(record => {
+        const usageText = (record.usages?.length ? record.usages : [record.usage]).map(item => libraryUsageLabels[item] || item).join(' · ');
+        return `<button type="button" class="media-picker-option" data-media-url="${libraryEscapeHtml(record.url)}" data-media-name="${libraryEscapeHtml(record.name)}">
+            <span class="media-picker-option-thumb"><img src="${libraryEscapeHtml(record.thumbnailUrl || record.url)}" alt="${libraryEscapeHtml(record.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('is-broken')"></span>
+            <span class="media-picker-option-copy"><strong>${libraryEscapeHtml(record.name)}</strong><small>${libraryEscapeHtml(String(record.provider || 'source').toUpperCase())} · ${libraryEscapeHtml(usageText || 'Image')}</small></span>
+        </button>`;
+    }).join('');
+
+    grid.querySelectorAll('.media-picker-option').forEach(option => {
+        option.addEventListener('click', () => {
+            if (!activeMediaPickerTarget) return;
+            activeMediaPickerTarget.value = option.dataset.mediaUrl || '';
+            activeMediaPickerTarget.dispatchEvent(new Event('input', { bubbles: true }));
+            activeMediaPickerTarget.dispatchEvent(new Event('change', { bubbles: true }));
+            updateMediaFieldPreview(activeMediaPickerTarget);
+            closeMediaPicker();
+            showAdminMessage(`Selected ${option.dataset.mediaName || 'image'} from Image Library.`);
+        });
+    });
+}
+
+function openMediaPicker(trigger) {
+    const target = resolveMediaPickerTarget(trigger);
+    const modal = document.getElementById('media-picker-modal');
+    if (!target || !modal) {
+        showAdminMessage('This image field is not available.', 'error');
+        return;
+    }
+    activeMediaPickerTarget = target;
+    const search = document.getElementById('media-picker-search');
+    const usage = document.getElementById('media-picker-usage');
+    if (search) search.value = '';
+    if (usage) usage.value = trigger.dataset.mediaUsage || 'all';
+    renderMediaPickerOptions();
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    search?.focus({ preventScroll: true });
+}
+
+function closeMediaPicker() {
+    const modal = document.getElementById('media-picker-modal');
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    activeMediaPickerTarget = null;
+}
+
+document.addEventListener('click', event => {
+    const trigger = event.target.closest('.media-library-trigger');
+    if (trigger) {
+        event.preventDefault();
+        openMediaPicker(trigger);
+        return;
+    }
+    if (event.target.closest('#media-picker-close')) {
+        closeMediaPicker();
+        return;
+    }
+    if (event.target.id === 'media-picker-modal') closeMediaPicker();
+});
+document.getElementById('media-picker-search')?.addEventListener('input', renderMediaPickerOptions);
+document.getElementById('media-picker-usage')?.addEventListener('change', renderMediaPickerOptions);
+
+
 function providerFromImageUrl(url = '') {
     const value = String(url).trim();
     if (/^(?:\.?\.?\/)?assets\//i.test(value) || /^\/assets\//i.test(value)) return 'local';
@@ -2192,10 +2342,13 @@ function buildKnownSiteImages() {
     };
 
     (storeSettings.heroSlides || []).forEach((slide, index) => {
-        addKnown(slide.image, 'hero', `Hero slide ${index + 1}${slide.title ? ` · ${slide.title}` : ''}`);
+        const slideLabel = `Hero slide ${index + 1}${slide.title ? ` · ${slide.title}` : ''}`;
+        addKnown(slide.image, 'hero', slideLabel);
+        addKnown(slide.desktopImage, 'hero', `${slideLabel} · Desktop`);
+        addKnown(slide.mobileImage, 'hero', `${slideLabel} · Mobile`);
     });
     addKnown(storeSettings.aboutImage, 'about', 'About Us');
-    addKnown(storeSettings.logoUrl, 'logo', 'Store logo');
+    addKnown(getAdminLogoUrl(storeSettings.logoUrl), 'logo', 'Store logo');
 
     allProducts.forEach(product => {
         const productLabel = `Product · ${product.name || product.id || 'Untitled'}`;

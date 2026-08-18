@@ -2900,6 +2900,68 @@ body.sidebar-active .sidebar::after {
     }
 }
 
+/* Transparent brand treatment: one logo in the header, no clipped duplicate in the drawer. */
+.desktop-header .header-brand {
+    align-items: center;
+    min-width: 0;
+    line-height: 1;
+}
+
+.desktop-header .header-logo-image {
+    display: none;
+    width: auto;
+    max-width: min(230px, 28vw);
+    height: 42px;
+    object-fit: contain;
+    object-position: left center;
+    background: transparent !important;
+}
+
+.desktop-header .header-brand.has-image .header-logo-image {
+    display: inline-block;
+}
+
+.desktop-header .header-brand.has-image .brand-main,
+.desktop-header .header-brand.has-image .brand-sub,
+.mobile-header .mobile-brand.has-image .brand-main,
+.mobile-header .mobile-brand.has-image .brand-sub {
+    display: none !important;
+}
+
+.sidebar .logo-wrapper > #sidebar-logo {
+    display: none !important;
+}
+
+.sidebar .logo-wrapper {
+    gap: 0;
+    background: transparent !important;
+}
+
+.mobile-header .mobile-header-logo-image {
+    display: none;
+    width: auto;
+    max-width: min(190px, 62vw);
+    height: 32px;
+    object-fit: contain;
+    object-position: left center;
+    background: transparent !important;
+}
+
+.mobile-header .mobile-brand.has-image .mobile-header-logo-image {
+    display: inline-block !important;
+}
+
+.media-picker-modal {
+    border-radius: 22px !important;
+}
+
+.media-picker-option,
+.media-picker-option-thumb,
+.media-field-preview-row img,
+.media-inline-preview img {
+    border-radius: 10px !important;
+}
+
 
 /* ============================================
    TIDDIS TAPIS — Responsive correction pass
@@ -5304,6 +5366,222 @@ body.sidebar-active .sidebar::after {
     }
 }
 
+/* Media Picker — reusable thumbnail selection for every image field. */
+.media-field-preview-row,
+.media-inline-preview {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 0;
+    margin-top: 8px;
+    color: var(--text-muted, #6b6b6b);
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    overflow: hidden;
+}
+
+.media-field-preview-row[hidden],
+.media-inline-preview[hidden] {
+    display: none;
+}
+
+.media-field-preview-row img,
+.media-inline-preview img {
+    width: 52px;
+    height: 38px;
+    flex: 0 0 52px;
+    object-fit: contain;
+    border: 1px solid rgba(78, 26, 29, .14);
+    background: rgba(255, 255, 255, .54);
+    border-radius: 8px;
+}
+
+.media-field-preview-row img.is-broken,
+.media-inline-preview img.is-broken,
+.media-picker-option-thumb img.is-broken {
+    opacity: .24;
+}
+
+.media-field-preview-row span,
+.media-inline-preview span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-library-trigger {
+    white-space: nowrap;
+}
+
+.media-picker-overlay[hidden] {
+    display: none;
+}
+
+.media-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5100;
+    display: grid;
+    place-items: center;
+    padding: clamp(14px, 3vw, 34px);
+    background: rgba(18, 15, 14, .3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.media-picker-modal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 920px);
+    max-height: min(86dvh, 760px);
+    padding: clamp(20px, 3vw, 30px);
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, .72);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .78);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .74);
+    backdrop-filter: blur(28px) saturate(1.12);
+    -webkit-backdrop-filter: blur(28px) saturate(1.12);
+}
+
+.media-picker-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    padding-right: 30px;
+}
+
+.media-picker-kicker {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-muted, #6b6b6b);
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.media-picker-heading h2 {
+    margin: 0;
+    font-family: var(--font-serif, Georgia, serif);
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 400;
+    letter-spacing: .02em;
+}
+
+.media-picker-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.media-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.media-picker-option {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 9px;
+    text-align: left;
+    border: 1px solid rgba(78, 26, 29, .12);
+    border-radius: 13px;
+    color: var(--text-primary, #211c1b);
+    background: rgba(255, 255, 255, .42);
+    cursor: pointer;
+    transition: transform .32s cubic-bezier(.32, .72, 0, 1), background .32s cubic-bezier(.32, .72, 0, 1), border-color .32s cubic-bezier(.32, .72, 0, 1);
+}
+
+.media-picker-option:hover,
+.media-picker-option:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(78, 26, 29, .32);
+    background: rgba(255, 255, 255, .82);
+    outline: none;
+}
+
+.media-picker-option-thumb {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 52px;
+    overflow: hidden;
+    border-radius: 9px;
+    background: rgba(78, 26, 29, .06);
+}
+
+.media-picker-option-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.media-picker-option-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.media-picker-option-copy strong,
+.media-picker-option-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-picker-option-copy strong {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.media-picker-option-copy small {
+    color: var(--text-muted, #6b6b6b);
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
+}
+
+@media (max-width: 760px) {
+    .media-picker-modal {
+        max-height: 92dvh;
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .media-picker-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .media-picker-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .media-picker-option {
+        grid-template-columns: 44px minmax(0, 1fr);
+        padding: 7px;
+    }
+
+    .media-picker-option-thumb {
+        width: 44px;
+        height: 42px;
+    }
+
+    .media-picker-option-copy strong {
+        font-size: 10px;
+    }
+}
+
 /* Responsive Hero image sources: preserve the existing Liquid Glass frame. */
 .hero-slide-image-frame > picture {
     display: block;
@@ -5341,5 +5619,78 @@ body.sidebar-active .sidebar::after {
 @media (prefers-reduced-motion: reduce) {
     .hero-slide-image-frame > picture > img {
         transition: none !important;
+    }
+}
+
+/* Final brand/media overrides: kept at the end so legacy responsive rules cannot reintroduce clipping. */
+.desktop-header .header-brand {
+    align-items: center !important;
+    min-width: 0;
+    line-height: 1;
+}
+
+.desktop-header .header-logo-image {
+    display: none;
+    width: auto;
+    max-width: min(230px, 28vw);
+    height: 42px;
+    object-fit: contain;
+    object-position: left center;
+    background: transparent !important;
+}
+
+.desktop-header .header-brand.has-image .header-logo-image {
+    display: inline-block;
+}
+
+.desktop-header .header-brand.has-image .brand-main,
+.desktop-header .header-brand.has-image .brand-sub,
+.mobile-header .mobile-brand.has-image .brand-main,
+.mobile-header .mobile-brand.has-image .brand-sub {
+    display: none !important;
+}
+
+.sidebar .logo-wrapper > #sidebar-logo {
+    display: none !important;
+}
+
+.sidebar .logo-wrapper {
+    gap: 0;
+    background: transparent !important;
+}
+
+.mobile-header .mobile-header-logo-image {
+    display: none;
+    width: auto;
+    max-width: min(190px, 62vw);
+    height: 32px;
+    object-fit: contain;
+    object-position: left center;
+    background: transparent !important;
+}
+
+.mobile-header .mobile-brand.has-image .mobile-header-logo-image {
+    display: inline-block !important;
+}
+
+.media-picker-modal {
+    border-radius: 22px !important;
+}
+
+.media-picker-option,
+.media-picker-option-thumb,
+.media-field-preview-row img,
+.media-inline-preview img {
+    border-radius: 10px !important;
+}
+
+@media (max-width: 900px) {
+    .mobile-header .mobile-brand {
+        align-items: center !important;
+    }
+
+    .mobile-header .mobile-header-logo-image {
+        height: 30px;
+        max-width: min(190px, 62vw);
     }
 }
