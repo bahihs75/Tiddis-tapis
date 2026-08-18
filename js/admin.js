@@ -3431,12 +3431,22 @@ const heroExternalUrlGroup = document.getElementById('hero-external-url-group');
  * admin category managers. Values are real storefront URLs, not display names,
  * so renamed categories are refreshed before the next save.
  */
+function normalizeHeroInternalUrl(value, fallback = '/') {
+    const raw = String(value ?? '').trim();
+    if (!raw) return fallback;
+    if (/^index\.html(?:[?#]|$)/i.test(raw)) {
+        const suffix = raw.slice('index.html'.length);
+        return suffix ? `/${suffix}` : '/';
+    }
+    return raw;
+}
+
 function getHeroDestinationOptions() {
     const options = [
-        { value: 'index.html#hero-slider-container', label: 'Overview' },
-        { value: 'index.html#products-grid', label: 'All Products' },
-        { value: 'index.html#about-section', label: 'About Us' },
-        { value: 'index.html#contact-section', label: 'Contact' }
+        { value: '/#hero-slider-container', label: 'Overview' },
+        { value: '/#products-grid', label: 'All Products' },
+        { value: '/#about-section', label: 'About Us' },
+        { value: '/#contact-section', label: 'Contact' }
     ];
     const seen = new Set();
 
@@ -3460,14 +3470,14 @@ function getHeroDestinationOptions() {
             .slice()
             .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name)))
             .forEach(category => {
-                const categoryUrl = `index.html?category=${encodeURIComponent(category.name)}&type=${encodeURIComponent(group.type)}`;
+                const categoryUrl = `/?category=${encodeURIComponent(category.name)}&type=${encodeURIComponent(group.type)}`;
                 if (!seen.has(categoryUrl)) {
                     seen.add(categoryUrl);
                     uniqueOptions.push({ value: categoryUrl, label: `${group.label} · ${category.name}` });
                 }
 
                 (category.subcategories || []).forEach(subcategory => {
-                    const subcategoryUrl = `index.html?category=${encodeURIComponent(subcategory)}&type=${encodeURIComponent(group.type)}`;
+                    const subcategoryUrl = `/?category=${encodeURIComponent(subcategory)}&type=${encodeURIComponent(group.type)}`;
                     if (!seen.has(subcategoryUrl)) {
                         seen.add(subcategoryUrl);
                         uniqueOptions.push({ value: subcategoryUrl, label: `${group.label} · ${category.name} → ${subcategory}` });
@@ -3481,21 +3491,22 @@ function getHeroDestinationOptions() {
 
 function refreshHeroDestinationOptions(selectedValue = heroSlideBtnUrl?.value || '') {
     if (!heroSlideBtnUrl) return;
+    const normalizedSelectedValue = normalizeHeroInternalUrl(selectedValue, '');
     const options = getHeroDestinationOptions();
     heroSlideBtnUrl.innerHTML = options.map(option =>
         `<option value="${option.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${option.label}</option>`
     ).join('');
 
-    const hasSelectedValue = options.some(option => option.value === selectedValue);
+    const hasSelectedValue = options.some(option => option.value === normalizedSelectedValue);
     if (hasSelectedValue) {
-        heroSlideBtnUrl.value = selectedValue;
-    } else if (selectedValue && /^index\.html(?:\?|#)/.test(selectedValue)) {
-        // Preserve a legacy/custom internal URL until the administrator edits it.
-        const legacyOption = document.createElement('option');
-        legacyOption.value = selectedValue;
-        legacyOption.textContent = `Current saved destination · ${selectedValue}`;
-        heroSlideBtnUrl.appendChild(legacyOption);
-        heroSlideBtnUrl.value = selectedValue;
+        heroSlideBtnUrl.value = normalizedSelectedValue;
+    } else if (normalizedSelectedValue && /^(?:\/|#)/.test(normalizedSelectedValue)) {
+        // Preserve a custom internal URL until the administrator edits it.
+        const customOption = document.createElement('option');
+        customOption.value = normalizedSelectedValue;
+        customOption.textContent = `Current saved destination · ${normalizedSelectedValue}`;
+        heroSlideBtnUrl.appendChild(customOption);
+        heroSlideBtnUrl.value = normalizedSelectedValue;
     } else {
         heroSlideBtnUrl.value = options[0]?.value || '';
     }
@@ -3512,12 +3523,12 @@ function updateHeroDestinationMode() {
 }
 
 function getSavedHeroDestination(slide) {
-    if (!slide) return { linkType: 'section', internalUrl: 'index.html#hero-slider-container', externalUrl: '' };
+    if (!slide) return { linkType: 'section', internalUrl: '/#hero-slider-container', externalUrl: '' };
     if (slide.linkType === 'external') {
         return { linkType: 'external', internalUrl: '', externalUrl: slide.btnUrl || '' };
     }
     if (slide.linkType === 'all') {
-        return { linkType: 'section', internalUrl: 'index.html#products-grid', externalUrl: '' };
+        return { linkType: 'section', internalUrl: '/#products-grid', externalUrl: '' };
     }
     if (slide.linkType === 'category' && slide.btnUrl && !/^index\.html(?:\?|#)/.test(slide.btnUrl)) {
         const matchingCategory = (Array.isArray(allCategories) ? allCategories : []).find(cat =>
@@ -3526,11 +3537,11 @@ function getSavedHeroDestination(slide) {
         const type = matchingCategory?.type === 'overview' ? 'overview' : 'products';
         return {
             linkType: 'section',
-            internalUrl: `index.html?category=${encodeURIComponent(slide.btnUrl)}&type=${type}`,
+            internalUrl: `/?category=${encodeURIComponent(slide.btnUrl)}&type=${type}`,
             externalUrl: ''
         };
     }
-    return { linkType: 'section', internalUrl: slide.btnUrl || 'index.html#products-grid', externalUrl: '' };
+    return { linkType: 'section', internalUrl: normalizeHeroInternalUrl(slide.btnUrl, '/#products-grid'), externalUrl: '' };
 }
 
 heroSlideLinkType?.addEventListener('change', updateHeroDestinationMode);

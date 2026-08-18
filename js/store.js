@@ -751,6 +751,17 @@ function attachSidebarEvents() {
     });
 }
 
+/** توحيد روابط المتجر القديمة والجديدة إلى مسار الجذر. */
+function normalizeStoreInternalUrl(value, fallback = '/') {
+    const raw = String(value ?? '').trim();
+    if (!raw) return fallback;
+    if (/^index\.html(?:[?#]|$)/i.test(raw)) {
+        const suffix = raw.slice('index.html'.length);
+        return suffix ? `/${suffix}` : '/';
+    }
+    return raw;
+}
+
 /** معالج النقر على القائمة الجانبية */
 function handleSidebarClick(e) {
     e.preventDefault();
@@ -763,15 +774,15 @@ function handleSidebarClick(e) {
     // استخدام href.includes('product') للتعامل مع الروابط التي تحذف .html تلقائياً
     if (window.location.href.includes('product')) {
         if (category && type) {
-            window.location.href = `index.html?category=${encodeURIComponent(category)}&type=${encodeURIComponent(type)}`;
+            window.location.href = `/?category=${encodeURIComponent(category)}&type=${encodeURIComponent(type)}`;
             return;
         }
         if (section === 'about' || section === 'contact') {
-            window.location.href = `index.html#${section}-section`;
+            window.location.href = `/#${section}-section`;
             return;
         }
         if (link.classList.contains('back-to-store') || section === 'all') {
-            window.location.href = 'index.html';
+            window.location.href = '/';
             return;
         }
     }
@@ -1458,12 +1469,26 @@ function getDisplayLogoUrl(value) {
 }
 
 window.generateProductPDF = async function(productId, variantOverride = null) {
-    const product = AppState.products.all.find(p => p.id === productId)
-        || (AppState.order.currentProduct?.id === productId ? AppState.order.currentProduct : null);
+    let product = AppState.products.all.find(p => String(p.id) === String(productId))
+        || (AppState.order.currentProduct && String(AppState.order.currentProduct.id) === String(productId) ? AppState.order.currentProduct : null);
+    if (!product && productId) {
+        try {
+            const productSnap = await getDoc(doc(db, 'products', String(productId)));
+            if (productSnap.exists()) product = { id: productSnap.id, ...productSnap.data() };
+        } catch (error) {
+            console.warn('Technical Sheet could not reload the product:', error);
+        }
+    }
     if (!product) {
         alert('Product not found.');
         return;
     }
+
+    const catalogLoads = [];
+    if (!AppState.categories.products.length) catalogLoads.push(loadCategories());
+    if (!AppState.attributes.length) catalogLoads.push(loadAttributes());
+    if (!AppState.catalogFilters.length) catalogLoads.push(loadCatalogFilters());
+    if (catalogLoads.length) await Promise.allSettled(catalogLoads);
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -1474,23 +1499,100 @@ window.generateProductPDF = async function(productId, variantOverride = null) {
     const email = contacts.find(c => c.platform === 'email')?.value || 'support@tiddis.com';
     const variants = Array.isArray(product.variants) ? product.variants : [];
     const activeVariant = variantOverride || variants[0] || null;
-    const imageUrl = activeVariant?.image || product.pdfImage || product.imageUrl || '';
-    const availableSizes = variants.map(v => v.size).filter(Boolean).join(' · ') || product.size || '—';
+    const imageUrl = product.pdfImage || activeVariant?.image || product.imageUrl || '';
     const price = activeVariant?.price || product.basePrice || 0;
     const attributes = Array.isArray(AppState.attributes) ? AppState.attributes : [];
-    const getAttribute = (keywords) => {
-        const attr = attributes.find(item => keywords.some(keyword => String(item.label || '').toLowerCase().includes(keyword)));
-        const value = attr && product.attributes ? product.attributes[attr.id] : '';
-        return Array.isArray(value) ? value.join(', ') : (value || '—');
+    const catalogFilters = Array.isArray(AppState.catalogFilters) ? AppState.catalogFilters : [];
+    const normalizeSheetValue = (value) => {
+        if (Array.isArray(value)) return value.map(normalizeSheetValue).filter(Boolean).join(', ');
+        if (value && typeof value === 'object') {
+            if (Object.prototype.hasOwnProperty.call(value, 'min') || Object.prototype.hasOwnProperty.call(value, 'max')) {
+                const min = value.min === null || value.min === undefined || value.min === '' ? '' : String(value.min);
+                const max = value.max === null || value.max === undefined || value.max === '' ? '' : String(value.max);
+                if (min && max) return `${min} – ${max}`;
+                return min || max;
+            }
+            if (Object.prototype.hasOwnProperty.call(value, 'label')) return normalizeSheetValue(value.label);
+            if (Object.prototype.hasOwnProperty.call(value, 'value')) return normalizeSheetValue(value.value);
+            return Object.values(value).map(normalizeSheetValue).filter(Boolean).join(', ');
+        }
+        return String(value ?? '').trim();
     };
-    const color = activeVariant?.color || getAttribute(['color', 'colour', 'لون']);
-    const quality = getAttribute(['quality', 'material', 'خامة', 'جودة']);
-    const dynamicRows = attributes.map(attr => {
-        const raw = product.attributes ? product.attributes[attr.id] : '';
-        const value = Array.isArray(raw) ? raw.join(', ') : raw;
-        if (!value) return '';
-        return `<div class="sheet-spec-row"><span>${escapeHtml(attr.label)}</span><strong>${escapeHtml(value)}</strong></div>`;
-    }).join('');
+    const getProductValue = (keys) => {
+        const candidates = [...new Set((Array.isArray(keys) ? keys : [keys]).filter(Boolean).map(key => String(key).trim()))];
+        const sources = [product.filterValues, product.catalogValues, product.attributes, product];
+        for (const source of sources) {
+            if (!source || typeof source !== 'object') continue;
+            for (const key of candidates) {
+                if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+                const value = normalizeSheetValue(source[key]);
+                if (value) return value;
+            }
+        }
+        return '';
+    };
+    const getLegacyAttribute = (keywords) => {
+        const attr = attributes.find(item => keywords.some(keyword => `${item.id || ''} ${item.label || ''}`.toLowerCase().includes(keyword)));
+        return attr ? getProductValue([attr.id]) : '';
+    };
+    const getCatalogValue = (keywords, aliases = []) => {
+        const tokens = [...keywords, ...aliases].map(token => String(token).toLowerCase());
+        const filter = catalogFilters.find(item => {
+            const key = String(item.key || item.id || '').toLowerCase();
+            const label = String(item.label || '').toLowerCase();
+            return tokens.some(token => key === token || label.includes(token));
+        });
+        return getProductValue([filter?.key, filter?.id, ...keywords, ...aliases]);
+    };
+    const variantSizes = variants.map(v => normalizeSheetValue(v.size)).filter(Boolean);
+    const availableSizes = [...new Set(variantSizes)].join(' · ')
+        || getCatalogValue(['size'], ['sizes', 'dimension', 'dimensions', 'مقاس', 'حجم'])
+        || getProductValue(['size', 'sizes', 'dimension', 'dimensions'])
+        || '—';
+    const color = normalizeSheetValue(activeVariant?.color)
+        || getCatalogValue(['color'], ['colour', 'colors', 'colours', 'لون', 'couleur'])
+        || getLegacyAttribute(['color', 'colour', 'لون', 'couleur'])
+        || '—';
+    const quality = getCatalogValue(['quality'], ['material', 'fabric', 'matiere', 'خامة', 'جودة'])
+        || getLegacyAttribute(['quality', 'material', 'خامة', 'جودة', 'matiere'])
+        || '—';
+    const rawCategory = product.category && typeof product.category === 'object'
+        ? (product.category.id || product.category.name || '')
+        : (product.category || product.collection || product.categoryName || '');
+    const categoryText = normalizeSheetValue(rawCategory);
+    const categoryList = Array.isArray(AppState.categories?.products) ? AppState.categories.products : [];
+    const matchingCategory = categoryList.find(category => String(category.id || '').toLowerCase() === categoryText.toLowerCase() || String(category.name || '').toLowerCase() === categoryText.toLowerCase());
+    const parentCategory = !matchingCategory && categoryText
+        ? categoryList.find(category => Array.isArray(category.subcategories) && category.subcategories.some(subcategory => {
+            const value = subcategory && typeof subcategory === 'object' ? (subcategory.id || subcategory.name) : subcategory;
+            return String(value || '').toLowerCase() === categoryText.toLowerCase();
+        }))
+        : null;
+    const collectionLabel = matchingCategory?.name
+        || (parentCategory ? `${parentCategory.name} / ${categoryText}` : categoryText)
+        || '—';
+    const dynamicRows = [];
+    const dynamicRowLabels = new Set();
+    catalogFilters.forEach(filter => {
+        const key = filter.key || filter.id;
+        const value = getProductValue([key, filter.id]);
+        const label = String(filter.label || key || '').trim();
+        if (!label || !value || filter.type === 'toggle' || String(key).toLowerCase() === 'availability') return;
+        const signature = label.toLowerCase();
+        if (dynamicRowLabels.has(signature)) return;
+        dynamicRowLabels.add(signature);
+        dynamicRows.push(`<div class="sheet-spec-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`);
+    });
+    attributes.forEach(attr => {
+        const value = getProductValue([attr.id]);
+        const label = String(attr.label || attr.id || '').trim();
+        if (!label || !value) return;
+        const signature = label.toLowerCase();
+        if (dynamicRowLabels.has(signature)) return;
+        dynamicRowLabels.add(signature);
+        dynamicRows.push(`<div class="sheet-spec-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`);
+    });
+    const dynamicRowsHtml = dynamicRows.join('');
     const variantRows = variants.map((variant, index) => `
         <tr>
             <td>${String(index + 1).padStart(2, '0')}</td>
@@ -1523,7 +1625,7 @@ window.generateProductPDF = async function(productId, variantOverride = null) {
             <div class="sheet-hero-copy">
                 <span class="sheet-kicker">TIDDIS TAPIS / COLLECTION</span>
                 <h1>${escapeHtml(product.name || 'Untitled rug')}</h1>
-                <p class="sheet-hero-category">${escapeHtml(product.category || 'Curated collection')}</p>
+                <p class="sheet-hero-category">${escapeHtml(collectionLabel === '—' ? 'Curated collection' : collectionLabel)}</p>
                 <div class="sheet-price-block">
                     <span>LISTED PRICE</span>
                     <strong>${escapeHtml(price)} <small>DZD</small></strong>
@@ -1533,7 +1635,7 @@ window.generateProductPDF = async function(productId, variantOverride = null) {
         </section>
 
         <section class="sheet-facts" aria-label="Key product facts">
-            <div><span>COLLECTION</span><strong>${escapeHtml(product.category || '—')}</strong></div>
+            <div><span>COLLECTION</span><strong>${escapeHtml(collectionLabel)}</strong></div>
             <div><span>SIZE</span><strong>${escapeHtml(activeVariant?.size || availableSizes)}</strong></div>
             <div><span>COLOUR</span><strong>${escapeHtml(color)}</strong></div>
             <div><span>QUALITY</span><strong>${escapeHtml(quality)}</strong></div>
@@ -1545,7 +1647,7 @@ window.generateProductPDF = async function(productId, variantOverride = null) {
                 <div class="sheet-spec-row"><span>Available sizes</span><strong>${escapeHtml(availableSizes)}</strong></div>
                 <div class="sheet-spec-row"><span>Custom size</span><strong>${product.customizableSize ? 'Available on request' : 'Standard sizing'}</strong></div>
                 <div class="sheet-spec-row"><span>Current price</span><strong>${escapeHtml(price)} DZD</strong></div>
-                ${dynamicRows}
+                ${dynamicRowsHtml}
             </div>
         </section>
 
@@ -2010,10 +2112,10 @@ function renderHeroSlider(slides) {
         const responsiveHeroImage = window.matchMedia?.('(max-width: 767px)').matches ? mobileImage : desktopImage;
 
         if (slide.linkType === 'section' && slide.btnUrl) {
-            btnHref = slide.btnUrl;
+            btnHref = normalizeStoreInternalUrl(slide.btnUrl, '#products-grid');
         } else if (slide.linkType === 'category' && slide.btnUrl) {
             // Legacy slides: add the missing type parameter for product categories.
-            btnHref = `index.html?category=${encodeURIComponent(slide.btnUrl)}&type=products`;
+            btnHref = `/?category=${encodeURIComponent(slide.btnUrl)}&type=products`;
         } else if (slide.linkType === 'all') {
             btnHref = "#products-grid";
         } else if (slide.linkType === 'external' && slide.btnUrl) {
