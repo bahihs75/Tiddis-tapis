@@ -45,6 +45,7 @@ let editingOverviewSubCategoryOldName = null;
 let imageApiSources = [];
 let imageApiEditingIndex = -1;
 let imageApiEditing = false;
+let imageLibrary = [];
 
 // ============================================
 // 2. عناصر DOM الرئيسية
@@ -58,6 +59,7 @@ const sections = {
     delivery: document.getElementById('section-delivery'),
     orders: document.getElementById('section-orders'),
     attributes: document.getElementById('section-attributes'),
+    library: document.getElementById('section-library'),
     settings: document.getElementById('section-settings')
 };
 
@@ -118,6 +120,24 @@ const resetAllDeliveryBtn = document.getElementById('reset-all-delivery-btn');
 
 // عناصر إدارة الطلبات
 const ordersList = document.getElementById('orders-list');
+
+// عناصر مكتبة الصور
+const refreshImageLibraryBtn = document.getElementById('refresh-image-library-btn');
+const toggleLibraryUploadBtn = document.getElementById('toggle-library-upload-btn');
+const libraryUploadPanel = document.getElementById('library-upload-panel');
+const libraryImageFile = document.getElementById('library-image-file');
+const libraryImageName = document.getElementById('library-image-name');
+const libraryImageUsage = document.getElementById('library-image-usage');
+const libraryImageSection = document.getElementById('library-image-section');
+const libraryImageTags = document.getElementById('library-image-tags');
+const uploadLibraryImageBtn = document.getElementById('upload-library-image-btn');
+const cancelLibraryUploadBtn = document.getElementById('cancel-library-upload-btn');
+const libraryUploadStatus = document.getElementById('library-upload-status');
+const librarySearchInput = document.getElementById('library-search-input');
+const libraryProviderFilter = document.getElementById('library-provider-filter');
+const libraryUsageFilter = document.getElementById('library-usage-filter');
+const librarySummary = document.getElementById('library-summary');
+const imageLibraryList = document.getElementById('image-library-list');
 
 // عناصر الإعدادات
 const googleSheetsUrlInput = document.getElementById('google-sheets-url');
@@ -242,34 +262,36 @@ const WILAYAS = [
 // 4. التنقل بين الأقسام
 // ============================================
 
-adminNavLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const section = this.dataset.section;
+function activateAdminSection(section, clickedLink = null) {
+    const navLinks = document.querySelectorAll('#admin-sidebar .nav-link');
+    navLinks.forEach(link => link.classList.toggle('active', link.dataset.section === section));
+    if (clickedLink) clickedLink.classList.add('active');
 
-        adminNavLinks.forEach(l => l.classList.remove('active'));
-        this.classList.add('active');
-
-        Object.keys(sections).forEach(key => {
-            if (sections[key]) sections[key].classList.remove('active');
-        });
-
-        if (sections[section]) {
-            sections[section].classList.add('active');
-        }
-
-        if (window.innerWidth <= 900) {
-            setAdminSidebarOpen(false);
-        }
-
-        if (section === 'dashboard') loadDashboardData();
-        if (section === 'categories') loadCategories();
-        if (section === 'overview') loadOverviewCategories();
-        if (section === 'products') loadProducts();
-        if (section === 'delivery') loadDeliveryRates();
-        if (section === 'orders') loadOrders();
-        if (section === 'settings') loadSettings();
+    Object.keys(sections).forEach(key => {
+        const sectionElement = sections[key] || document.getElementById(`section-${key}`);
+        if (sectionElement) sectionElement.classList.remove('active');
     });
+
+    const targetSection = sections[section] || document.getElementById(`section-${section}`);
+    if (targetSection) targetSection.classList.add('active');
+
+    if (window.innerWidth <= 900) setAdminSidebarOpen(false);
+
+    if (section === 'dashboard') loadDashboardData();
+    if (section === 'categories') loadCategories();
+    if (section === 'overview') loadOverviewCategories();
+    if (section === 'products') loadProducts();
+    if (section === 'delivery') loadDeliveryRates();
+    if (section === 'orders') loadOrders();
+    if (section === 'library') loadImageLibrary();
+    if (section === 'settings') loadSettings();
+}
+
+document.addEventListener('click', function(e) {
+    const link = e.target.closest?.('#admin-sidebar .nav-link');
+    if (!link) return;
+    e.preventDefault();
+    activateAdminSection(link.dataset.section, link);
 });
 
 if (adminHamburger && adminSidebar) {
@@ -1767,8 +1789,8 @@ async function loadSettings() {
         } else {
             storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
-                aboutImage: 'assets/about-tiddis.jpg',
-                logoUrl: '',
+                aboutImage: 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg',
+                logoUrl: 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
                 sidebarBgColor: '#ffffff',
                 mainBgColor: '#faf9f6',
                 contacts: [],
@@ -1799,8 +1821,8 @@ async function loadSettings() {
         renderImageApiSourcesList();
         closeImageApiEditor();
         if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
-        if (aboutImageUrlInput) aboutImageUrlInput.value = storeSettings.aboutImage || 'assets/about-tiddis.jpg';
-        if (logoUrlInput) logoUrlInput.value = storeSettings.logoUrl || '';
+        if (aboutImageUrlInput) aboutImageUrlInput.value = storeSettings.aboutImage || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
+        if (logoUrlInput) logoUrlInput.value = storeSettings.logoUrl || 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png';
         if (sidebarBgColorInput) sidebarBgColorInput.value = storeSettings.sidebarBgColor || '#ffffff';
         if (mainBgColorInput) mainBgColorInput.value = storeSettings.mainBgColor || '#faf9f6';
 
@@ -1931,14 +1953,14 @@ testSheetsBtn?.addEventListener('click', async function() {
 
 saveAboutBtn?.addEventListener('click', async function() {
     const text = aboutUsTextarea?.value.trim();
-    const imageUrl = aboutImageUrlInput?.value.trim() || 'assets/about-tiddis.jpg';
+    const imageUrl = aboutImageUrlInput?.value.trim() || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
     const validImagePath = /^(https?:\/\/|\/|\.\/|\.\.\/|assets\/)/i.test(imageUrl);
     if (!text) {
         showAdminMessage('Please enter some text for the About section.', 'error');
         return;
     }
     if (!validImagePath) {
-        showAdminMessage('Use an HTTPS image URL or a local path such as assets/about-tiddis.jpg.', 'error');
+        showAdminMessage('Use an HTTPS image URL for the About image.', 'error');
         return;
     }
     storeSettings.aboutText = text;
@@ -2023,6 +2045,479 @@ function renderContactIconsList(contacts) {
         });
     });
 }
+
+const IMAGE_LIBRARY_COLLECTION = 'imageLibrary';
+const LIBRARY_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const IMAGE_LIBRARY_LOCAL_KEY = 'tiddis-tapis:image-library-pending:v1';
+
+const libraryEscapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+}[character]));
+
+const libraryUsageLabels = {
+    hero: 'Hero',
+    product: 'Product',
+    about: 'About Us',
+    technical: 'Technical Sheet',
+    logo: 'Logo / Icon',
+    other: 'Other'
+};
+
+function providerFromImageUrl(url = '') {
+    const value = String(url).trim();
+    if (/^(?:\.?\.?\/)?assets\//i.test(value) || /^\/assets\//i.test(value)) return 'local';
+    if (/imgbb\.com|ibb\.co/i.test(value)) return 'imgbb';
+    return /^https?:\/\//i.test(value) ? 'direct' : 'local';
+}
+
+function normalizeLibraryRecord(id, data = {}) {
+    const usage = libraryUsageLabels[data.usage] ? data.usage : 'other';
+    const usages = Array.isArray(data.usages) ? data.usages.filter(item => libraryUsageLabels[item]) : [usage];
+    const usedBy = Array.isArray(data.usedBy) ? data.usedBy.filter(Boolean) : [];
+    const tags = Array.isArray(data.tags)
+        ? data.tags.map(tag => String(tag).trim()).filter(Boolean)
+        : String(data.tags || '').split(',').map(tag => tag.trim()).filter(Boolean);
+    return {
+        id,
+        name: String(data.name || 'Untitled image').trim().slice(0, 100),
+        provider: ['imgbb', 'direct', 'local'].includes(data.provider) ? data.provider : providerFromImageUrl(data.url),
+        url: String(data.url || '').trim(),
+        thumbnailUrl: String(data.thumbnailUrl || data.url || '').trim(),
+        deleteUrl: String(data.deleteUrl || '').trim(),
+        usage,
+        usages: [...new Set(usages)],
+        section: String(data.section || '').trim().slice(0, 100),
+        tags,
+        usedBy,
+        originalFileName: String(data.originalFileName || '').trim(),
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null
+    };
+}
+
+function libraryTimestampValue(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function libraryDateLabel(value) {
+    const timestamp = libraryTimestampValue(value);
+    return timestamp ? new Date(timestamp).toLocaleDateString('en-GB') : '—';
+}
+
+function readLocalLibraryRecords() {
+    try {
+        const raw = localStorage.getItem(IMAGE_LIBRARY_LOCAL_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed)
+            ? parsed.map(record => normalizeLibraryRecord(record.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, record))
+            : [];
+    } catch (error) {
+        console.warn('Unable to read pending image metadata:', error);
+        return [];
+    }
+}
+
+function writeLocalLibraryRecords(records) {
+    try {
+        localStorage.setItem(IMAGE_LIBRARY_LOCAL_KEY, JSON.stringify(records));
+    } catch (error) {
+        console.warn('Unable to persist pending image metadata:', error);
+    }
+}
+
+function saveLocalLibraryRecord(record) {
+    const records = readLocalLibraryRecords().filter(item => item.url !== record.url);
+    records.push(normalizeLibraryRecord(record.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, record));
+    writeLocalLibraryRecords(records);
+}
+
+function removeLocalLibraryRecord(id) {
+    writeLocalLibraryRecords(readLocalLibraryRecords().filter(record => record.id !== id));
+}
+
+function mergeLibraryRecords(...groups) {
+    const merged = new Map();
+    groups.flat().forEach(record => {
+        const normalized = normalizeLibraryRecord(record.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, record);
+        if (!normalized.url) return;
+        const current = merged.get(normalized.url);
+        if (!current) {
+            merged.set(normalized.url, normalized);
+            return;
+        }
+        merged.set(normalized.url, normalizeLibraryRecord(current.id, {
+            ...current,
+            ...normalized,
+            name: normalized.name !== 'Untitled image' ? normalized.name : current.name,
+            usages: [...new Set([...(current.usages || []), ...(normalized.usages || [])])],
+            usedBy: [...new Set([...(current.usedBy || []), ...(normalized.usedBy || [])])],
+            tags: [...new Set([...(current.tags || []), ...(normalized.tags || [])])]
+        }));
+    });
+    return [...merged.values()].sort((a, b) => libraryTimestampValue(b.createdAt) - libraryTimestampValue(a.createdAt) || a.name.localeCompare(b.name));
+}
+
+function getImageUrlsFromValue(value) {
+    if (typeof value === 'string') return value.trim() ? [value.trim()] : [];
+    if (Array.isArray(value)) return value.flatMap(item => getImageUrlsFromValue(item));
+    if (value && typeof value === 'object') return Object.values(value).flatMap(item => getImageUrlsFromValue(item));
+    return [];
+}
+
+function buildKnownSiteImages() {
+    const known = new Map();
+    const addKnown = (url, usage, usedBy, section = '') => {
+        const normalizedUrl = String(url || '').trim();
+        if (!normalizedUrl) return;
+        const key = normalizedUrl;
+        const existing = known.get(key) || {
+            name: normalizedUrl.split('/').pop()?.split('?')[0] || 'site-image',
+            provider: providerFromImageUrl(normalizedUrl),
+            url: normalizedUrl,
+            thumbnailUrl: normalizedUrl,
+            usage,
+            usages: new Set(),
+            usedBy: new Set(),
+            section: String(section || '').trim(),
+            tags: new Set()
+        };
+        existing.usages.add(libraryUsageLabels[usage] ? usage : 'other');
+        if (usedBy) existing.usedBy.add(String(usedBy));
+        if (section && !existing.section) existing.section = String(section).trim();
+        known.set(key, existing);
+    };
+
+    (storeSettings.heroSlides || []).forEach((slide, index) => {
+        addKnown(slide.image, 'hero', `Hero slide ${index + 1}${slide.title ? ` · ${slide.title}` : ''}`);
+    });
+    addKnown(storeSettings.aboutImage, 'about', 'About Us');
+    addKnown(storeSettings.logoUrl, 'logo', 'Store logo');
+
+    allProducts.forEach(product => {
+        const productLabel = `Product · ${product.name || product.id || 'Untitled'}`;
+        addKnown(product.imageUrl || product.image, 'product', productLabel, product.category || '');
+        getImageUrlsFromValue(product.additionalImages).forEach(url => addKnown(url, 'product', productLabel, product.category || ''));
+        addKnown(product.pdfImage, 'technical', `${productLabel} · Technical sheet`, product.category || '');
+        (product.variants || []).forEach((variant, index) => {
+            addKnown(variant.image, 'product', `${productLabel} · Variant ${index + 1}`, product.category || '');
+        });
+    });
+
+    return [...known.values()].map(item => ({
+        ...item,
+        usages: [...item.usages],
+        usedBy: [...item.usedBy],
+        tags: [...item.tags]
+    }));
+}
+
+async function syncKnownSiteImages() {
+    const known = buildKnownSiteImages();
+    if (!known.length) return false;
+    const existingSnapshot = await getDocs(collection(db, IMAGE_LIBRARY_COLLECTION));
+    const existingByUrl = new Map(existingSnapshot.docs.map(snapshot => [snapshot.data().url, snapshot]));
+    const batch = writeBatch(db);
+    let changed = false;
+
+    known.forEach(item => {
+        const existing = existingByUrl.get(item.url);
+        if (!existing) {
+            const reference = doc(collection(db, IMAGE_LIBRARY_COLLECTION));
+            batch.set(reference, {
+                name: item.name,
+                provider: item.provider,
+                url: item.url,
+                thumbnailUrl: item.thumbnailUrl,
+                usage: item.usages[0] || 'other',
+                usages: item.usages,
+                section: item.section,
+                tags: item.tags,
+                usedBy: item.usedBy,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+            changed = true;
+            return;
+        }
+
+        const current = normalizeLibraryRecord(existing.id, existing.data());
+        const mergedUsages = [...new Set([...(current.usages || []), ...item.usages])];
+        const mergedUsedBy = [...new Set([...(current.usedBy || []), ...item.usedBy])];
+        const needsUpdate = mergedUsages.length !== current.usages.length || mergedUsedBy.length !== current.usedBy.length;
+        if (needsUpdate) {
+            batch.update(existing.ref, {
+                usages: mergedUsages,
+                usedBy: mergedUsedBy,
+                updatedAt: serverTimestamp()
+            });
+            changed = true;
+        }
+    });
+
+    if (changed) await batch.commit();
+    return changed;
+}
+
+function getLibraryUsageReferences(record) {
+    if (!record?.url) return [];
+    const references = [];
+    const addReference = (condition, label) => {
+        if (condition && !references.includes(label)) references.push(label);
+    };
+    (storeSettings.heroSlides || []).forEach((slide, index) => addReference(slide.image === record.url, `Hero slide ${index + 1}`));
+    addReference(storeSettings.aboutImage === record.url, 'About Us');
+    addReference(storeSettings.logoUrl === record.url, 'Store logo');
+    allProducts.forEach(product => {
+        const productLabel = product.name || product.id || 'Untitled product';
+        addReference(product.imageUrl === record.url || product.image === record.url, `Product · ${productLabel}`);
+        addReference(getImageUrlsFromValue(product.additionalImages).includes(record.url), `Product gallery · ${productLabel}`);
+        addReference(product.pdfImage === record.url, `Technical sheet · ${productLabel}`);
+        addReference((product.variants || []).some(variant => variant.image === record.url), `Product variant · ${productLabel}`);
+    });
+    return references;
+}
+
+function renderImageLibrary() {
+    if (!imageLibraryList) return;
+    const search = String(librarySearchInput?.value || '').trim().toLowerCase();
+    const provider = libraryProviderFilter?.value || 'all';
+    const usage = libraryUsageFilter?.value || 'all';
+    const filtered = imageLibrary.filter(record => {
+        const haystack = [record.name, record.url, record.provider, record.section, record.originalFileName, ...(record.tags || []), ...(record.usedBy || [])].join(' ').toLowerCase();
+        const matchesSearch = !search || haystack.includes(search);
+        const matchesProvider = provider === 'all' || record.provider === provider;
+        const matchesUsage = usage === 'all' || record.usage === usage || (record.usages || []).includes(usage);
+        return matchesSearch && matchesProvider && matchesUsage;
+    });
+
+    if (librarySummary) librarySummary.textContent = `${filtered.length} shown · ${imageLibrary.length} catalogued image${imageLibrary.length === 1 ? '' : 's'}`;
+    if (!filtered.length) {
+        imageLibraryList.innerHTML = '<p class="admin-empty-state">No images match the current filters.</p>';
+        return;
+    }
+
+    imageLibraryList.innerHTML = filtered.map(record => {
+        const usageText = (record.usages?.length ? record.usages : [record.usage]).map(item => libraryUsageLabels[item] || item).join(' · ');
+        const usedByText = record.usedBy?.length ? record.usedBy.join(' · ') : 'No usage reference recorded';
+        return `
+            <details class="library-item" data-library-id="${libraryEscapeHtml(record.id)}">
+                <summary class="library-item-summary">
+                    <span class="library-thumb-wrap"><img src="${libraryEscapeHtml(record.thumbnailUrl || record.url)}" alt="${libraryEscapeHtml(record.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('is-broken')"></span>
+                    <span class="library-item-heading"><strong>${libraryEscapeHtml(record.name)}</strong><span>${libraryEscapeHtml(record.provider.toUpperCase())} · ${libraryEscapeHtml(usageText)}</span></span>
+                    <span class="library-item-date">${libraryDateLabel(record.createdAt)}</span>
+                </summary>
+                <div class="library-item-details">
+                    <div class="form-row library-edit-grid">
+                        <label class="form-group"><span>Name</span><input class="form-input library-name-input" value="${libraryEscapeHtml(record.name)}" maxlength="100"></label>
+                        <label class="form-group"><span>Usage</span><select class="form-input library-usage-input">${Object.entries(libraryUsageLabels).map(([key, label]) => `<option value="${key}" ${key === record.usage ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+                        <label class="form-group"><span>Section</span><input class="form-input library-section-input" value="${libraryEscapeHtml(record.section)}" maxlength="100"></label>
+                    </div>
+                    <label class="form-group"><span>Tags</span><input class="form-input library-tags-input" value="${libraryEscapeHtml((record.tags || []).join(', '))}" maxlength="180"></label>
+                    <div class="library-url-row"><input class="form-input library-url-input" value="${libraryEscapeHtml(record.url)}" readonly aria-label="Image URL"><button type="button" class="admin-action-btn library-copy-btn" data-library-id="${libraryEscapeHtml(record.id)}">Copy URL</button></div>
+                    <p class="admin-help-text">Used by: ${libraryEscapeHtml(usedByText)}</p>
+                    <div class="admin-inline-actions library-item-actions"><button type="button" class="admin-action-btn edit-btn library-save-btn" data-library-id="${libraryEscapeHtml(record.id)}">Save metadata</button><button type="button" class="admin-action-btn admin-action-btn--danger library-delete-btn" data-library-id="${libraryEscapeHtml(record.id)}">Delete</button></div>
+                </div>
+            </details>
+        `;
+    }).join('');
+
+    imageLibraryList.querySelectorAll('.library-copy-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const input = button.closest('.library-item-details')?.querySelector('.library-url-input');
+            if (!input) return;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                showAdminMessage('Image URL copied to clipboard.');
+            } catch (error) {
+                input.select();
+                document.execCommand('copy');
+                showAdminMessage('Image URL copied to clipboard.');
+            }
+        });
+    });
+
+    imageLibraryList.querySelectorAll('.library-save-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const item = button.closest('.library-item');
+            const record = imageLibrary.find(entry => entry.id === button.dataset.libraryId);
+            if (!item || !record) return;
+            const nextName = item.querySelector('.library-name-input')?.value.trim();
+            const nextUsage = item.querySelector('.library-usage-input')?.value || 'other';
+            const nextSection = item.querySelector('.library-section-input')?.value.trim() || '';
+            const nextTags = item.querySelector('.library-tags-input')?.value.split(',').map(tag => tag.trim()).filter(Boolean) || [];
+            if (!nextName) {
+                showAdminMessage('Image name cannot be empty.', 'error');
+                return;
+            }
+            button.disabled = true;
+            try {
+                const nextMetadata = { name: nextName, usage: nextUsage, usages: [nextUsage], section: nextSection, tags: nextTags, updatedAt: new Date().toISOString() };
+                if (String(record.id).startsWith('local-')) {
+                    const pending = readLocalLibraryRecords().map(item => item.id === record.id ? { ...item, ...nextMetadata } : item);
+                    writeLocalLibraryRecords(pending);
+                } else {
+                    await updateDoc(doc(db, IMAGE_LIBRARY_COLLECTION, record.id), { ...nextMetadata, updatedAt: serverTimestamp() });
+                }
+                await loadImageLibrary();
+                showAdminMessage(String(record.id).startsWith('local-') ? 'Image metadata saved locally and is waiting for Firestore rules.' : 'Image metadata saved.');
+            } catch (error) {
+                console.error('Unable to save image metadata:', error);
+                showAdminMessage('Could not save image metadata.', 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+    });
+
+    imageLibraryList.querySelectorAll('.library-delete-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const record = imageLibrary.find(entry => entry.id === button.dataset.libraryId);
+            if (!record) return;
+            const references = getLibraryUsageReferences(record);
+            if (references.length) {
+                showAdminMessage(`This image is still used by: ${references.join(', ')}. Update those references first.`, 'error');
+                return;
+            }
+            if (!confirm(`Delete the catalog record for ${record.name}? The remote image will not be deleted automatically.`)) return;
+            button.disabled = true;
+            try {
+                if (String(record.id).startsWith('local-')) {
+                    removeLocalLibraryRecord(record.id);
+                } else {
+                    await deleteDoc(doc(db, IMAGE_LIBRARY_COLLECTION, record.id));
+                }
+                await loadImageLibrary();
+                showAdminMessage('Image catalog record deleted. The remote image was kept safely.');
+            } catch (error) {
+                console.error('Unable to delete image metadata:', error);
+                showAdminMessage('Could not delete image metadata.', 'error');
+                button.disabled = false;
+            }
+        });
+    });
+}
+
+async function loadImageLibrary() {
+    if (!imageLibraryList) return;
+    if (librarySummary) librarySummary.textContent = 'Synchronizing site image references...';
+    const known = buildKnownSiteImages();
+    const pending = readLocalLibraryRecords();
+    try {
+        const changed = await syncKnownSiteImages();
+        const snapshot = await getDocs(collection(db, IMAGE_LIBRARY_COLLECTION));
+        const cloudRecords = snapshot.docs.map(item => normalizeLibraryRecord(item.id, item.data()));
+        imageLibrary = mergeLibraryRecords(cloudRecords, pending, known);
+        renderImageLibrary();
+        if (librarySummary) librarySummary.textContent = `${imageLibrary.length} catalogued images synchronized from site references.`;
+        if (changed && pending.length) librarySummary.textContent += ' Pending local metadata is shown until it is synchronized.';
+    } catch (error) {
+        console.error('Unable to load image library from Firestore:', error);
+        imageLibrary = mergeLibraryRecords(pending, known);
+        renderImageLibrary();
+        if (librarySummary) librarySummary.textContent = imageLibrary.length
+            ? `${imageLibrary.length} images shown locally · Firestore sync is waiting for the imageLibrary rule.`
+            : 'Image library is waiting for the Firestore imageLibrary rule.';
+    }
+}
+
+function resetLibraryUploadForm() {
+    if (libraryImageFile) libraryImageFile.value = '';
+    if (libraryImageName) libraryImageName.value = '';
+    if (libraryImageUsage) libraryImageUsage.value = 'other';
+    if (libraryImageSection) libraryImageSection.value = '';
+    if (libraryImageTags) libraryImageTags.value = '';
+    if (libraryUploadStatus) libraryUploadStatus.textContent = '';
+    if (libraryUploadPanel) libraryUploadPanel.hidden = true;
+}
+
+async function uploadLibraryFileToImgBB(file) {
+    const imgbbSource = imageApiSources.find(source => source.provider === 'imgbb' && source.enabled !== false);
+    const apiKey = imgbbSource?.apiKey || '';
+    if (!apiKey) throw new Error('IMG_BB_KEY_MISSING');
+    if (!file || !file.type.startsWith('image/')) throw new Error('IMAGE_FILE_REQUIRED');
+    if (file.size > LIBRARY_MAX_UPLOAD_BYTES) throw new Error('IMAGE_FILE_TOO_LARGE');
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, { method: 'POST', body: formData });
+    const data = await response.json();
+    if (!response.ok || !data.success || !data.data?.url) throw new Error(data.error?.message || 'IMGBB_UPLOAD_FAILED');
+    return data.data;
+}
+
+refreshImageLibraryBtn?.addEventListener('click', loadImageLibrary);
+toggleLibraryUploadBtn?.addEventListener('click', () => {
+    if (!libraryUploadPanel) return;
+    libraryUploadPanel.hidden = !libraryUploadPanel.hidden;
+    if (!libraryUploadPanel.hidden) libraryImageFile?.focus({ preventScroll: true });
+});
+cancelLibraryUploadBtn?.addEventListener('click', resetLibraryUploadForm);
+[librarySearchInput, libraryProviderFilter, libraryUsageFilter].forEach(input => input?.addEventListener('input', renderImageLibrary));
+[libraryProviderFilter, libraryUsageFilter].forEach(input => input?.addEventListener('change', renderImageLibrary));
+
+uploadLibraryImageBtn?.addEventListener('click', async () => {
+    const file = libraryImageFile?.files?.[0];
+    if (!file) {
+        showAdminMessage('Choose an image file first.', 'error');
+        return;
+    }
+    const name = libraryImageName?.value.trim() || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
+    const usage = libraryImageUsage?.value || 'other';
+    const section = libraryImageSection?.value.trim() || '';
+    const tags = libraryImageTags?.value.split(',').map(tag => tag.trim()).filter(Boolean) || [];
+    uploadLibraryImageBtn.disabled = true;
+    if (libraryUploadStatus) libraryUploadStatus.textContent = 'Uploading to ImgBB and saving metadata...';
+    try {
+        const data = await uploadLibraryFileToImgBB(file);
+        const record = {
+            name: name.slice(0, 100),
+            provider: 'imgbb',
+            url: data.url,
+            thumbnailUrl: data.thumb?.url || data.url,
+            deleteUrl: data.delete_url || '',
+            usage,
+            usages: [usage],
+            section: section.slice(0, 100),
+            tags,
+            usedBy: [],
+            originalFileName: file.name,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        try {
+            const reference = await addDoc(collection(db, IMAGE_LIBRARY_COLLECTION), { ...record, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+            removeLocalLibraryRecord(`local-${record.url}`);
+            record.id = reference.id;
+            await loadImageLibrary();
+            resetLibraryUploadForm();
+            showAdminMessage('Image uploaded to ImgBB and added to the library.');
+        } catch (metadataError) {
+            console.warn('ImgBB upload succeeded but Firestore metadata is pending:', metadataError);
+            record.id = `local-${record.url}`;
+            saveLocalLibraryRecord(record);
+            imageLibrary = mergeLibraryRecords(readLocalLibraryRecords(), buildKnownSiteImages());
+            renderImageLibrary();
+            resetLibraryUploadForm();
+            showAdminMessage('Image uploaded to ImgBB. Metadata is saved locally until the Firestore imageLibrary rule is published.', 'warning');
+        }
+    } catch (error) {
+        console.error('Image Library upload error:', error);
+        const message = error.message === 'IMG_BB_KEY_MISSING'
+            ? 'Add and save an ImgBB API source in Settings before uploading.'
+            : error.message === 'IMAGE_FILE_TOO_LARGE'
+                ? 'Please choose an image smaller than 20 MB.'
+                : error.message === 'IMAGE_FILE_REQUIRED'
+                    ? 'Please choose a valid image file.'
+                    : `Image upload failed: ${error.message || 'Unknown error'}`;
+        if (libraryUploadStatus) libraryUploadStatus.textContent = message;
+        showAdminMessage(message, 'error');
+    } finally {
+        uploadLibraryImageBtn.disabled = false;
+    }
+    });
 
 function maskApiKey(value = '') {
     if (!value) return 'Not configured';
@@ -2141,6 +2636,8 @@ saveImageApiBtn?.addEventListener('click', async () => {
 // Hero Slides Management Logic
 // ============================================
 const heroSlideImage = document.getElementById('hero-slide-image');
+const heroSlideDesktopImage = document.getElementById('hero-slide-desktop-image');
+const heroSlideMobileImage = document.getElementById('hero-slide-mobile-image');
 const heroSlideTitle = document.getElementById('hero-slide-title');
 const heroSlideSubtitle = document.getElementById('hero-slide-subtitle');
 const heroSlideBtnText = document.getElementById('hero-slide-btn-text');
@@ -2278,7 +2775,10 @@ function renderHeroSlidesList(slides) {
         html += `
             <div class="admin-item-row" style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:#fff; border:1px solid var(--border-color, #e0e0e0); border-radius:8px;">
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <img src="${slide.image}" alt="Slide" style="width:60px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/60x40?text=No+Img'">
+                    <picture>
+                        ${slide.mobileImage ? `<source media="(max-width: 767px)" srcset="${slide.mobileImage}">` : ''}
+                        <img src="${slide.desktopImage || slide.image}" alt="Slide" style="width:60px; height:40px; object-fit:cover; border-radius:4px;" onerror="this.src='https://via.placeholder.com/60x40?text=No+Img'">
+                    </picture>
                     <div>
                         <h4 style="margin:0; font-size:14px; font-weight:600;">${slide.title || 'Untitled Slide'}</h4>
                         <p style="margin:2px 0 0; font-size:12px; color:#6b6b6b;">Sub: ${slide.subtitle || '—'} | Btn: ${slide.btnText || '—'} (${slide.linkType || 'category'})</p>
@@ -2302,7 +2802,9 @@ function renderHeroSlidesList(slides) {
 
             editingHeroIndexInput.value = index;
             if (heroFormTitle) heroFormTitle.textContent = `Edit Hero Slide #${index + 1}`;
-            if (heroSlideImage) heroSlideImage.value = slide.image || '';
+            if (heroSlideImage) heroSlideImage.value = slide.image || slide.desktopImage || slide.mobileImage || '';
+            if (heroSlideDesktopImage) heroSlideDesktopImage.value = slide.desktopImage || slide.image || '';
+            if (heroSlideMobileImage) heroSlideMobileImage.value = slide.mobileImage || '';
             if (heroSlideTitle) heroSlideTitle.value = slide.title || '';
             if (heroSlideSubtitle) heroSlideSubtitle.value = slide.subtitle || '';
             if (heroSlideBtnText) heroSlideBtnText.value = slide.btnText || '';
@@ -2374,12 +2876,25 @@ async function uploadToImgBB(file, buttonElement, inputElement) {
     }
 }
 
-// 1. ربط رفع صورة الهيرو
+// ربط رفع صور Hero: fallback وdesktop وmobile
 const uploadHeroImgBtn = document.getElementById('upload-hero-img-btn');
 const heroImageFile = document.getElementById('hero-image-file');
+const uploadHeroDesktopBtn = document.getElementById('upload-hero-desktop-btn');
+const heroDesktopImageFile = document.getElementById('hero-desktop-image-file');
+const uploadHeroMobileBtn = document.getElementById('upload-hero-mobile-btn');
+const heroMobileImageFile = document.getElementById('hero-mobile-image-file');
+
 uploadHeroImgBtn?.addEventListener('click', () => heroImageFile?.click());
 heroImageFile?.addEventListener('change', function() {
-    uploadToImgBB(this.files[0], uploadHeroImgBtn, document.getElementById('hero-slide-image'));
+    uploadToImgBB(this.files[0], uploadHeroImgBtn, heroSlideImage);
+});
+uploadHeroDesktopBtn?.addEventListener('click', () => heroDesktopImageFile?.click());
+heroDesktopImageFile?.addEventListener('change', function() {
+    uploadToImgBB(this.files[0], uploadHeroDesktopBtn, heroSlideDesktopImage);
+});
+uploadHeroMobileBtn?.addEventListener('click', () => heroMobileImageFile?.click());
+heroMobileImageFile?.addEventListener('change', function() {
+    uploadToImgBB(this.files[0], uploadHeroMobileBtn, heroSlideMobileImage);
 });
 
 // 2. ربط رفع صورة المنتج الرئيسية
@@ -2416,13 +2931,18 @@ logoFile?.addEventListener('change', function() {
 
 saveHeroSlideBtn?.addEventListener('click', async function() {
     const image = heroSlideImage?.value.trim();
-    if (!image) {
-        showAdminMessage('Please provide a Slide Image URL.');
+    const desktopImage = heroSlideDesktopImage?.value.trim() || '';
+    const mobileImage = heroSlideMobileImage?.value.trim() || '';
+    const fallbackImage = image || desktopImage || mobileImage;
+    if (!fallbackImage) {
+        showAdminMessage('Please provide at least one Hero image URL.');
         return;
     }
 
     const slideData = {
-        image: image,
+        image: fallbackImage,
+        desktopImage: desktopImage || fallbackImage,
+        mobileImage: mobileImage || '',
         title: heroSlideTitle?.value.trim() || '',
         subtitle: heroSlideSubtitle?.value.trim() || '',
         btnText: heroSlideBtnText?.value.trim() || '',
@@ -2457,6 +2977,8 @@ function resetHeroForm() {
     if (editingHeroIndexInput) editingHeroIndexInput.value = '-1';
     if (heroFormTitle) heroFormTitle.textContent = 'Add New Hero Slide';
     if (heroSlideImage) heroSlideImage.value = '';
+    if (heroSlideDesktopImage) heroSlideDesktopImage.value = '';
+    if (heroSlideMobileImage) heroSlideMobileImage.value = '';
     if (heroSlideTitle) heroSlideTitle.value = '';
     if (heroSlideSubtitle) heroSlideSubtitle.value = '';
     if (heroSlideBtnText) heroSlideBtnText.value = '';
@@ -2570,6 +3092,7 @@ async function initAdmin() {
         await loadDeliveryRates();
         await loadOrders();
         await loadSettings();
+        await loadImageLibrary();
 
         updateCategoryStats();
         updateProductStats();

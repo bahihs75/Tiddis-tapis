@@ -9,8 +9,6 @@ import {
     signInWithEmailAndPassword,
     signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { initAdmin } from "./admin.js";
-
 const loginScreen = document.getElementById('admin-login-screen');
 const adminApp = document.getElementById('admin-app');
 const loginForm = document.getElementById('admin-login-form');
@@ -21,6 +19,15 @@ const errorEl = document.getElementById('admin-login-error');
 const currentEmailEl = document.getElementById('admin-current-email');
 const signOutBtn = document.getElementById('admin-sign-out-btn');
 
+let adminInitializer = null;
+
+async function loadAdminInitializer() {
+    if (adminInitializer) return adminInitializer;
+    const adminModule = await import('./admin.js?v=20260818-library-single-module');
+    adminInitializer = adminModule.initAdmin;
+    return adminInitializer;
+}
+
 // إظهار/إخفاء الشاشات حسب حالة تسجيل الدخول
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -28,12 +35,14 @@ onAuthStateChanged(auth, async (user) => {
         adminApp.style.display = '';
         if (currentEmailEl) currentEmailEl.textContent = user.email;
         
-        // تهيئة بيانات لوحة التحكم فقط بعد تسجيل الدخول الناجح
+        // تحميل وتهيئة بيانات لوحة التحكم فقط بعد تسجيل الدخول الناجح.
+        // إبقاء هذا الاستيراد ديناميكياً يمنع خطأً في admin.js من تعطيل نموذج الدخول.
         try {
+            const initAdmin = await loadAdminInitializer();
             await initAdmin();
         } catch (err) {
             console.error("Failed to initialize admin data:", err);
-            alert("Error loading admin data. Check console or Firebase permissions.");
+            if (errorEl) errorEl.textContent = 'Admin data could not be loaded. Check Firebase permissions and try again.';
         }
     } else {
         loginScreen.style.display = 'flex';

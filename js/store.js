@@ -352,8 +352,8 @@ function listenToStoreSettings() {
         } else {
             AppState.settings.storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
-                aboutImage: 'assets/about-tiddis.jpg',
-                logoUrl: '',
+                aboutImage: 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg',
+                logoUrl: 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png',
                 sidebarBgColor: '#ffffff',
                 mainBgColor: '#faf9f6',
                 contacts: [],
@@ -1221,7 +1221,7 @@ window.generateProductPDF = async function(productId, variantOverride = null) {
             <td>${escapeHtml(variant.price || product.basePrice || 0)} DZD</td>
         </tr>
     `).join('');
-    const logoUrl = settings.logoUrl || '';
+    const logoUrl = settings.logoUrl || 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png';
     const logoHtml = logoUrl
         ? `<img src="${escapeHtml(logoUrl)}" alt="TIDDIS TAPIS" class="sheet-logo-image">`
         : `<div class="sheet-wordmark"><span>TIDDIS</span><small>TAPIS</small></div>`;
@@ -1564,7 +1564,7 @@ function applyStoreSettings() {
     }
     
     // الشعار
-    const logoUrl = settings.logoUrl || '';
+    const logoUrl = settings.logoUrl || 'https://i.ibb.co/4RDRss4y/tiddis-logo-liquid-glass.png';
     const logoElements = [
         document.getElementById('sidebar-logo'),
         document.getElementById('mobile-logo'),
@@ -1587,7 +1587,7 @@ function applyStoreSettings() {
         DOM.aboutText.textContent = settings.aboutText;
     }
     if (DOM.aboutImage) {
-        const fallbackImage = 'assets/about-tiddis.jpg';
+        const fallbackImage = 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
         const requestedImage = typeof settings.aboutImage === 'string' && settings.aboutImage.trim()
             ? settings.aboutImage.trim()
             : fallbackImage;
@@ -1655,6 +1655,9 @@ function renderHeroSlider(slides) {
 
         let btnHref = "#products-grid";
         let isExternalLink = false;
+        const desktopImage = slide.desktopImage || slide.image || '';
+        const mobileImage = slide.mobileImage || desktopImage;
+        const responsiveHeroImage = window.matchMedia?.('(max-width: 767px)').matches ? mobileImage : desktopImage;
 
         if (slide.linkType === 'section' && slide.btnUrl) {
             btnHref = slide.btnUrl;
@@ -1669,7 +1672,7 @@ function renderHeroSlider(slides) {
         }
 
         container.innerHTML = `
-            <div class="hero-ambient-bg" style="background-image: url('${slide.image}');"></div>
+            <div class="hero-ambient-bg" style="background-image: url('${responsiveHeroImage}');"></div>
             <div class="hero-ambient-overlay"></div>
             
             <div class="hero-slide-card">
@@ -1679,7 +1682,10 @@ function renderHeroSlider(slides) {
                 </div>
 
                 <div class="hero-slide-image-frame">
-                    <img src="${slide.image}" alt="${slide.title || 'Hero Slide'}" onerror="this.src='https://via.placeholder.com/800x500?text=Tiddis+Tapis'">
+                    <picture>
+                        <source media="(max-width: 767px)" srcset="${mobileImage}">
+                        <img src="${desktopImage}" alt="${slide.title || 'Hero Slide'}" onerror="this.src='https://via.placeholder.com/800x500?text=Tiddis+Tapis'">
+                    </picture>
                     ${slide.btnText ? `<a href="${btnHref}" class="hero-slide-cta-btn" ${isExternalLink ? 'target="_blank" rel="noopener noreferrer"' : ''}>${slide.btnText}</a>` : ''}
                 </div>
 

@@ -58,6 +58,7 @@
             <a href="#" class="nav-link" data-section="products">Products</a>
             <a href="#" class="nav-link" data-section="delivery">Delivery</a>
             <a href="#" class="nav-link" data-section="orders">Orders</a>
+            <a href="#" class="nav-link" data-section="library">Image Library</a>
             <a href="#" class="nav-link" data-section="settings">Settings</a>
         </nav>
         <div class="sidebar-footer">
@@ -125,14 +126,33 @@
                 <h3 id="hero-form-title">Add New Hero Slide</h3>
                 <input type="hidden" id="editing-hero-index" value="-1">
                 <div class="form-group">
-                    <label for="hero-slide-image">Slide Image URL *</label>
+                    <label for="hero-slide-image">Fallback Slide Image URL *</label>
                     <div style="display:flex; gap:10px; align-items:center;">
                         <input type="text" id="hero-slide-image" placeholder="https://..." class="form-input" style="flex:1;">
                         <input type="file" id="hero-image-file" accept="image/*" style="display:none;">
                         <button type="button" id="upload-hero-img-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload Image</button>
                     </div>
-                    <small style="color:#666; font-size:11px; display:block; margin-top:4px;">Upload directly using ImgBB API or paste image URL.</small>
+                    <small style="color:#666; font-size:11px; display:block; margin-top:4px;">Used when a device-specific image is not provided. Upload via ImgBB or paste a URL.</small>
                 </div>
+                <div class="form-row hero-responsive-images-row">
+                    <div class="form-group">
+                        <label for="hero-slide-desktop-image">Desktop Image URL (landscape)</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="text" id="hero-slide-desktop-image" placeholder="Optional landscape image URL" class="form-input" style="flex:1;">
+                            <input type="file" id="hero-desktop-image-file" accept="image/*" style="display:none;">
+                            <button type="button" id="upload-hero-desktop-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="hero-slide-mobile-image">Mobile Image URL (portrait)</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="text" id="hero-slide-mobile-image" placeholder="Optional portrait image URL" class="form-input" style="flex:1;">
+                            <input type="file" id="hero-mobile-image-file" accept="image/*" style="display:none;">
+                            <button type="button" id="upload-hero-mobile-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload</button>
+                        </div>
+                    </div>
+                </div>
+                <small class="hero-responsive-images-hint">The desktop and mobile images are selected automatically according to the visitor's screen size.</small>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="hero-slide-title">Title</label>
@@ -411,7 +431,89 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 7. Settings Section -->
+        <!-- 7. Image Library Section -->
+        <!-- ========================================== -->
+        <section id="section-library" class="admin-section">
+            <h2>Image Library</h2>
+            <div class="admin-card image-library-card">
+                <div class="admin-card-heading-row">
+                    <div>
+                        <h3>All Site Images</h3>
+                        <p class="admin-help-text">A single catalog for images uploaded through ImgBB and used across products, Hero slides, About Us, logos, and technical sheets. Firestore stores metadata only; the image files remain with their provider.</p>
+                    </div>
+                    <div class="admin-inline-actions">
+                        <button type="button" id="refresh-image-library-btn" class="admin-action-btn edit-btn">Refresh</button>
+                        <button type="button" id="toggle-library-upload-btn" class="admin-action-btn">Upload Image</button>
+                    </div>
+                </div>
+                <div id="library-upload-panel" class="library-upload-panel" hidden>
+                    <div class="form-row library-upload-grid">
+                        <div class="form-group">
+                            <label for="library-image-file">Image file</label>
+                            <input type="file" id="library-image-file" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="library-image-name">Name</label>
+                            <input type="text" id="library-image-name" class="form-input" placeholder="e.g. manisa-living-room-01" maxlength="80">
+                        </div>
+                        <div class="form-group">
+                            <label for="library-image-usage">Usage</label>
+                            <select id="library-image-usage" class="form-input">
+                                <option value="other">Other</option>
+                                <option value="hero">Hero</option>
+                                <option value="product">Product</option>
+                                <option value="about">About Us</option>
+                                <option value="technical">Technical Sheet</option>
+                                <option value="logo">Logo / Icon</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row library-upload-grid">
+                        <div class="form-group">
+                            <label for="library-image-section">Section / collection</label>
+                            <input type="text" id="library-image-section" class="form-input" placeholder="e.g. Manisa" maxlength="80">
+                        </div>
+                        <div class="form-group library-upload-wide">
+                            <label for="library-image-tags">Tags</label>
+                            <input type="text" id="library-image-tags" class="form-input" placeholder="luxury, living room, neutral" maxlength="180">
+                        </div>
+                    </div>
+                    <div class="admin-inline-actions library-upload-actions">
+                        <button type="button" id="upload-library-image-btn" class="btn-primary">Upload to ImgBB</button>
+                        <button type="button" id="cancel-library-upload-btn" class="btn-ghost">Cancel</button>
+                        <span id="library-upload-status" class="admin-help-text" aria-live="polite"></span>
+                    </div>
+                </div>
+                <div class="form-row library-toolbar" role="search">
+                    <input type="search" id="library-search-input" class="form-input" placeholder="Search by name, tag, provider, or URL" autocomplete="off">
+                    <select id="library-provider-filter" class="form-input" aria-label="Filter by provider">
+                        <option value="all">All providers</option>
+                        <option value="imgbb">ImgBB</option>
+                        <option value="direct">Direct link</option>
+                        <option value="local">Local / legacy</option>
+                    </select>
+                    <select id="library-usage-filter" class="form-input" aria-label="Filter by usage">
+                        <option value="all">All usages</option>
+                        <option value="hero">Hero</option>
+                        <option value="product">Product</option>
+                        <option value="about">About Us</option>
+                        <option value="technical">Technical Sheet</option>
+                        <option value="logo">Logo / Icon</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="library-meta-row">
+                    <p id="library-summary" class="admin-help-text" aria-live="polite">Loading image library...</p>
+                    <p class="admin-help-text">Never delete an image before checking its usage references.</p>
+                </div>
+                <div id="image-library-list" class="image-library-list" aria-live="polite">
+                    <p class="admin-empty-state">Loading image library...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 8. Settings Section -->
         <!-- ========================================== -->
         <section id="section-settings" class="admin-section">
             <h2>Store Settings</h2>
@@ -474,7 +576,7 @@
                 </div>
                 <div class="form-group">
                     <label for="about-image-url">About Us Image URL</label>
-                    <input id="about-image-url" type="url" class="form-input" placeholder="assets/about-tiddis.jpg" autocomplete="off">
+                    <input id="about-image-url" type="url" class="form-input" placeholder="https://i.ibb.co/CK9zNFVq/about-tiddis.jpg" autocomplete="off">
                     <p class="admin-help-text">Use a local asset path or a trusted HTTPS image URL. Leave the existing value if you do not want to change the image.</p>
                 </div>
                 <button id="save-about-btn" class="btn-primary">Save About Us</button>
@@ -551,8 +653,7 @@
     <!-- تحميل JavaScript -->
     <!-- ============================================ -->
     <script type="module" src="js/firebase-config.js"></script>
-    <script type="module" src="js/admin.js"></script>
-    <script type="module" src="js/admin-auth.js?v=2.8"></script>
+    <script type="module" src="js/admin-auth.js?v=20260818-auth-guard"></script>
 
     <!-- ============================================ -->
     <!-- زر "Add New Product" (Toggle) -->
