@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Luxury Rugs &amp; Carpets</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260824-1">
+    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260824-1">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -27,12 +28,12 @@
     <!-- القائمة الجانبية (Desktop) -->
     <div class="sidebar" id="sidebar">
         <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close menu">✕</button>
-        <div class="logo-container" style="display:flex; align-items:center; gap:12px;">
-            <button class="hamburger desktop-hamburger" id="desktop-hamburger-btn" aria-label="Open navigation" aria-expanded="false" style="display:flex;">
+        <div class="logo-container sidebar-logo-header">
+            <button class="hamburger desktop-hamburger is-visible" id="desktop-hamburger-btn" aria-label="Open navigation" aria-expanded="false">
                 <span></span><span></span><span></span>
             </button>
             <div class="logo-wrapper" aria-hidden="true">
-                <img id="sidebar-logo" src="" alt="" style="display:none; max-height:32px; margin-right:10px; background:transparent;">
+                <img id="sidebar-logo" class="sidebar-logo-image" src="" alt="">
             </div>
         </div>
         <nav class="sidebar-nav" id="sidebar-nav">
@@ -46,7 +47,7 @@
     <!-- رأس الهاتف المحمول -->
     <div class="mobile-header">
         <a class="mobile-brand has-image" href="/" aria-label="Tiddis Tapis home">
-            <div class="logo-wrapper" style="display:flex; align-items:center;">
+            <div class="logo-wrapper">
                 <img id="mobile-logo" class="mobile-header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
             </div>
         </a>

@@ -1,0 +1,702 @@
+/*
+ * TIDDIS TAPIS — Canonical Design System Layer
+ *
+ * This file is loaded after style.css and the product-page inline styles.
+ * Keep brand decisions here; keep page-specific layout in the page styles.
+ */
+
+:root {
+    /* Color tokens */
+    --color-canvas: #faf9f6;
+    --color-surface: #ffffff;
+    --color-surface-soft: #f4f2ed;
+    --color-surface-glass: rgba(255, 255, 255, .62);
+    --color-surface-glass-strong: rgba(255, 255, 255, .78);
+    --color-ink: #1a1a1a;
+    --color-ink-muted: #6b6b6b;
+    --color-accent: #4e1a1d;
+    --color-accent-deep: #3a1214;
+    --color-danger: #8e262a;
+    --color-line: #e2e0d8;
+    --color-line-glass: rgba(255, 255, 255, .58);
+
+    /* Compatibility aliases used by legacy and product-page styles */
+    --muted: var(--color-ink-muted);
+    --text-secondary: var(--color-ink-muted);
+    --text-color: var(--color-ink);
+    --primary-color: var(--color-accent);
+    --quiet: var(--color-ink-muted);
+
+    /* Surface and elevation tokens */
+    --shadow-subtle: 0 8px 28px rgba(42, 31, 28, .06);
+    --shadow-glass: 0 16px 44px rgba(42, 31, 28, .10);
+    --shadow-float: 0 20px 60px rgba(42, 31, 28, .12);
+    --glass-blur-strong: 22px;
+
+    /* Shape tokens: sharp architecture with deliberate glass exceptions */
+    --radius-sharp: 0;
+    --radius-control: 6px;
+    --radius-glass: 14px;
+    --radius-pill: 999px;
+
+    /* Spacing and layout tokens */
+    --content-max-width: 1480px;
+    --reading-max-width: 68ch;
+    --page-gutter: clamp(16px, 3vw, 48px);
+    --tiddis-header-height: 76px;
+    --tiddis-hero-gap: clamp(8px, 1.1vw, 18px);
+
+    /* Layer scale */
+    --z-content: 1;
+    --z-floating: 80;
+    --z-consent: 90;
+    --z-sidebar: 1000;
+    --z-header: 1100;
+    --z-modal: 1200;
+}
+
+/* Canonical page surfaces and readable text rhythm. */
+body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+}
+
+p,
+.legal-page p,
+.admin-help-text,
+.admin-helper-text {
+    max-width: var(--reading-max-width);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.hero-title,
+.hero-slide-main-title,
+.product-name,
+.product-detail-title,
+.product-info-heading h1,
+.admin-section h2,
+.admin-card h3,
+.admin-card h4 {
+    text-wrap: balance;
+}
+
+/* Shared layer scale replaces scattered arbitrary z-index values. */
+.desktop-header,
+.mobile-header {
+    z-index: var(--z-header);
+}
+
+.sidebar {
+    z-index: var(--z-sidebar);
+    height: auto;
+    min-height: 100dvh;
+}
+
+.floating-hamburger {
+    z-index: var(--z-floating);
+}
+
+.modal-overlay {
+    z-index: var(--z-modal);
+}
+
+#admin-login-screen {
+    z-index: var(--z-modal);
+    height: auto !important;
+    min-height: 100dvh;
+}
+
+/* Keep the marketing canvas broad while constraining reading and control areas. */
+.search-filter-section,
+.products-grid,
+.store-section,
+.main-footer {
+    width: min(100%, var(--content-max-width));
+    margin-inline: auto;
+}
+
+.search-filter-section,
+.products-grid {
+    padding-inline: var(--page-gutter);
+}
+
+.products-grid {
+    box-sizing: border-box;
+}
+
+/* Solid surfaces are reserved for product media and high-information forms. */
+.product-card,
+.skeleton-card,
+.modal-box,
+.form-input,
+.form-group input:not([type="checkbox"]),
+.form-group select,
+.form-group textarea {
+    background: var(--color-surface);
+}
+
+.product-card,
+.skeleton-card {
+    border-color: var(--color-line);
+}
+
+.product-card:hover {
+    box-shadow: var(--shadow-subtle);
+    transform: translateY(-1px);
+}
+
+/* Glass surfaces share one treatment instead of many unrelated opacities. */
+.glass-element,
+.filters-panel,
+.product-page .main-viewer,
+.product-page .product-info-glass-box,
+.catalog-settings-card,
+.catalog-filter-create-card,
+.catalog-filters-list > .catalog-filter-editor,
+.admin-message-modal,
+.cookie-consent-banner {
+    border-color: var(--color-line-glass);
+    background: var(--color-surface-glass);
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(1.12);
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(1.12);
+    box-shadow: var(--shadow-glass);
+}
+
+.product-page .main-viewer,
+.product-page .product-info-glass-box {
+    border-radius: var(--radius-glass);
+}
+
+/* Cards used for administration communicate grouping, not floating decoration. */
+#admin-app .admin-card {
+    background: var(--color-surface-glass-strong);
+    border-color: rgba(78, 26, 29, .12);
+    box-shadow: none;
+}
+
+#admin-app .stat-card {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--color-line);
+    box-shadow: none;
+}
+
+/* One control language for visitor and admin actions. */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-ghost,
+.order-submit-btn,
+.admin-content .edit-btn,
+.admin-content .delete-btn,
+.admin-content .pdf-btn,
+.admin-content .btn-primary,
+.admin-content .btn-secondary,
+.admin-content .btn-danger,
+.admin-content .btn-ghost,
+.admin-content .hero-admin-actions button,
+.admin-content .admin-inline-actions button,
+.admin-content .admin-action-btn,
+.admin-content .upload-additional-btn {
+    min-height: 40px;
+    border-radius: var(--radius-control);
+    font-family: var(--font-mono);
+    letter-spacing: .035em;
+    transition: background-color .22s ease, color .22s ease, border-color .22s ease, transform .22s ease, box-shadow .22s ease;
+}
+
+.btn-primary,
+.order-submit-btn,
+.admin-content .btn-primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+}
+
+.btn-primary:hover,
+.order-submit-btn:hover,
+.admin-content .btn-primary:hover {
+    background: var(--color-accent-deep);
+    border-color: var(--color-accent-deep);
+}
+
+.btn-secondary,
+.btn-ghost,
+.admin-content .btn-secondary,
+.admin-content .btn-ghost,
+.admin-content .edit-btn,
+.admin-content .pdf-btn,
+.admin-content .admin-action-btn,
+.admin-content .upload-additional-btn {
+    background: var(--color-surface-glass);
+    border-color: rgba(78, 26, 29, .18);
+    color: var(--color-accent);
+}
+
+.btn-secondary:hover,
+.btn-ghost:hover,
+.admin-content .btn-secondary:hover,
+.admin-content .btn-ghost:hover,
+.admin-content .edit-btn:hover,
+.admin-content .pdf-btn:hover,
+.admin-content .admin-action-btn:hover,
+.admin-content .upload-additional-btn:hover {
+    background: var(--color-surface-glass-strong);
+    border-color: var(--color-accent);
+    color: var(--color-accent-deep);
+}
+
+.btn-danger,
+.admin-content .btn-danger,
+.admin-content .delete-btn {
+    background: rgba(142, 38, 42, .08);
+    border-color: rgba(142, 38, 42, .24);
+    color: var(--color-danger);
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-danger:hover,
+.btn-ghost:hover,
+.order-submit-btn:hover,
+.admin-content button:hover,
+.admin-content a.admin-action-btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active,
+.btn-ghost:active,
+.order-submit-btn:active,
+.admin-content button:active {
+    transform: translateY(1px) scale(.985);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+/* Consistent input language; keep the product-page technical sheet untouched. */
+.form-input,
+.form-group input:not([type="checkbox"]),
+.form-group select,
+.form-group textarea,
+.search-bar input,
+.mobile-search-inner input {
+    border-color: var(--color-line);
+    border-radius: var(--radius-control);
+}
+
+.form-input:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.search-bar input:focus,
+.mobile-search-inner input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(78, 26, 29, .08);
+}
+
+/* The consent notice is a compact glass utility, not a blocking modal. */
+.cookie-consent-banner {
+    z-index: var(--z-consent);
+}
+
+/* Hero CTA is the one intentionally brighter glass control. */
+.hero-slide-cta-btn {
+    border-radius: var(--radius-control);
+    box-shadow: var(--shadow-subtle);
+}
+
+/* Avoid viewport overflow on narrow administration layouts. */
+#admin-app,
+#admin-app .admin-layout,
+#admin-app .admin-content,
+#admin-app .admin-main,
+#admin-app .admin-section,
+#admin-app .admin-card,
+#admin-app .form-row,
+#admin-app .variant-row,
+#admin-app .image-upload-row {
+    min-width: 0;
+    max-width: 100%;
+}
+
+#admin-app .admin-content {
+    overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+    #admin-app .admin-content {
+        overflow-x: hidden;
+    }
+}
+
+@media (max-width: 900px) {
+    :root {
+        --tiddis-header-height: 64px;
+        --page-gutter: 16px;
+    }
+
+    .search-filter-section,
+    .products-grid,
+    .store-section,
+    .main-footer {
+        width: 100%;
+    }
+
+    .products-grid {
+        padding-inline: var(--page-gutter);
+    }
+
+    #admin-app .admin-content {
+        padding-inline: var(--page-gutter);
+    }
+
+    .product-page .main-viewer,
+    .product-page .product-info-glass-box {
+        border-radius: var(--radius-glass);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+/* Structural utilities replacing repeated inline layout declarations. */
+.inline-row,
+.admin-field-row,
+.admin-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inline-field,
+.flex-field {
+    flex: 1 1 160px;
+    min-width: 0;
+}
+
+.inline-action,
+.admin-inline-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.admin-inline-button {
+    padding-inline: 14px;
+}
+
+.admin-helper-copy,
+.admin-drag-copy,
+.admin-signed-in-copy {
+    margin: 6px 0 12px;
+    color: var(--color-ink-muted);
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    line-height: 1.6;
+}
+
+.admin-vertical-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-scroll-panel {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.admin-form-submit {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.admin-login-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 20px;
+    background: var(--color-canvas);
+    box-sizing: border-box;
+}
+
+.admin-login-card {
+    width: 100%;
+    max-width: 360px;
+    padding: 40px 30px;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px solid rgba(78, 26, 29, .10);
+    box-shadow: var(--shadow-float);
+}
+
+.admin-login-brand {
+    margin-bottom: 4px;
+    color: var(--color-accent);
+    font-family: var(--font-serif);
+    font-size: 1.8rem;
+    font-weight: 400;
+    letter-spacing: 3px;
+}
+
+.admin-login-subtitle {
+    margin-bottom: 32px;
+    color: var(--color-ink-muted);
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    letter-spacing: 2px;
+}
+
+.admin-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.admin-login-field {
+    padding: 10px 2px;
+    border: 0;
+    border-bottom: 1px solid var(--color-line);
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: .9rem;
+    text-align: center;
+    outline: none;
+}
+
+.admin-login-field:focus {
+    border-bottom-color: var(--color-accent);
+    box-shadow: 0 3px 0 rgba(78, 26, 29, .08);
+}
+
+.admin-login-submit {
+    margin-top: 12px;
+    padding: 12px 32px;
+    border: 0;
+    background: var(--color-accent);
+    color: #fff;
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.admin-login-submit:hover {
+    background: var(--color-accent-deep);
+    transform: translateY(-1px);
+}
+
+.admin-login-error {
+    min-height: 1em;
+    margin-top: 16px;
+    color: var(--color-danger);
+    font-family: var(--font-mono);
+    font-size: .8rem;
+}
+
+.admin-login-meta {
+    margin-top: 24px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-line);
+    color: #b7b0aa;
+    font-family: var(--font-mono);
+    font-size: 10px;
+}
+
+.sidebar-logo-image {
+    display: none;
+    max-height: 32px;
+    margin-right: 10px;
+    background: transparent;
+}
+
+.visually-hidden-input {
+    display: none;
+}
+
+.product-loading-state {
+    padding: 60px 20px;
+    color: var(--color-ink-muted);
+    font-family: var(--font-mono);
+    text-align: center;
+}
+
+.order-status-copy {
+    margin-top: 10px;
+    font-size: .9rem;
+}
+
+.success-modal-content {
+    padding: 10px 0;
+    text-align: center;
+}
+
+.success-modal-mark {
+    margin-bottom: 12px;
+    font-size: 48px;
+}
+
+.success-modal-title {
+    margin-bottom: 8px;
+    border-bottom: 0;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+
+.success-modal-copy {
+    margin-bottom: 20px;
+    color: var(--color-ink-muted);
+    font-size: 15px;
+}
+
+.success-modal-download {
+    margin-bottom: 8px;
+}
+
+.success-modal-close {
+    margin-top: 4px;
+}
+
+@media (max-width: 700px) {
+    .inline-row,
+    .admin-field-row,
+    .admin-logo-row {
+        flex-wrap: wrap;
+    }
+
+    .inline-field,
+    .flex-field,
+    .inline-action,
+    .admin-inline-button {
+        width: 100%;
+    }
+}
+
+.sidebar-logo-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.desktop-hamburger.is-visible {
+    display: flex;
+}
+
+/* Admin structural classes extracted from static markup. */
+.admin-recent-orders {
+    margin-top: 30px;
+}
+
+.admin-card-flush-bottom {
+    margin-bottom: 0;
+}
+
+.admin-form-row-tight {
+    gap: 10px;
+}
+
+.admin-image-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.admin-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.admin-top-button {
+    margin-top: 8px;
+}
+
+.admin-form-row-spaced {
+    margin-top: 16px;
+}
+
+.admin-form-row-compact {
+    margin-top: 12px;
+}
+
+.mono-input,
+.mono-code-input {
+    font-family: var(--font-mono) !important;
+}
+
+.mono-code-input {
+    font-size: 12px;
+}
+
+.admin-variant-meta {
+    color: var(--color-ink-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.color-confirm-modal-box {
+    max-width: 400px;
+}
+
+.color-confirm-modal-title {
+    margin-bottom: 16px;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+
+.color-confirm-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+@media (max-width: 700px) {
+    .admin-image-upload-row,
+    .color-confirm-modal-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+/* Deliberate rounded exceptions: these are Glass surfaces, not generic cards. */
+.cookie-consent-banner,
+.admin-message-modal {
+    border-radius: var(--radius-glass) var(--radius-glass) 0 0 !important;
+}
+
+.product-page .main-viewer,
+.product-page .product-info-glass-box {
+    border-radius: var(--radius-glass) !important;
+}

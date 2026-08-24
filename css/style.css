@@ -37,7 +37,7 @@
 /* إزالة جميع الزوايا المستديرة من جميع العناصر */
 /* ============================================ */
 /* إزالة الزوايا المستديرة افتراضياً، مع استثناء عناصر الـ Glass */
-*:not(.glass-element):not(.glass-element *):not(.main-viewer):not(.main-viewer *):not(.thumb-item):not(.thumb-item *):not(.product-info-glass-box):not(.product-info-glass-box *):not(.filters-panel):not(.filters-panel *):not(.modal-box):not(.modal-box *),
+*:not(.glass-element):not(.glass-element *):not(.main-viewer):not(.main-viewer *):not(.thumb-item):not(.thumb-item *):not(.product-info-glass-box):not(.product-info-glass-box *):not(.filters-panel):not(.filters-panel *):not(.modal-box):not(.modal-box *):not(.cookie-consent-banner):not(.admin-message-modal),
 *::before,
 *::after {
     border-radius: 0 !important;

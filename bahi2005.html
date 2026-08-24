@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Admin Panel</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260824-1">
+    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260824-1">
     <!-- SortableJS لتمكين السحب والإفلات -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- مكتبات PDF -->
@@ -17,20 +18,20 @@
     <!-- ============================================ -->
     <!-- شاشة تسجيل الدخول (Firebase Authentication) -->
     <!-- ============================================ -->
-    <div id="admin-login-screen" style="position:fixed; top:0; left:0; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; background:#faf9f6; z-index:9999; padding:20px; box-sizing:border-box;">
-        <div style="width:100%; max-width:360px; text-align:center; padding:40px 30px; background:#fff; border:1px solid rgba(78,26,29,0.08); box-shadow:0 20px 40px rgba(0,0,0,0.04); border-radius:4px;">
-            <div style="font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:3px; font-size:1.8rem; color:#4E1A1D; margin-bottom:4px;">TIDDIS</div>
-            <div style="font-family:'Space Mono', monospace; letter-spacing:2px; font-size:0.75rem; color:#6b6b6b; margin-bottom:32px;">ADMIN ACCESS</div>
-            <form id="admin-login-form" style="display:flex; flex-direction:column; gap:20px;">
+    <div id="admin-login-screen" class="admin-login-screen">
+        <div class="admin-login-card">
+            <div class="admin-login-brand">TIDDIS</div>
+            <div class="admin-login-subtitle">ADMIN ACCESS</div>
+            <form id="admin-login-form" class="admin-login-form">
                 <input type="text" id="admin-login-email" placeholder="Email" required autocomplete="username" autocapitalize="none"
-                    style="border:none; border-bottom:1px solid #ccc; background:transparent; padding:10px 2px; font-family:'Space Mono', monospace; font-size:0.9rem; text-align:center; outline:none;">
+                    class="admin-login-field">
                 <input type="password" id="admin-login-password" placeholder="Password" required autocomplete="current-password"
-                    style="border:none; border-bottom:1px solid #ccc; background:transparent; padding:10px 2px; font-family:'Space Mono', monospace; font-size:0.9rem; text-align:center; outline:none;">
+                    class="admin-login-field">
                 <button type="submit" id="admin-login-submit"
-                    style="margin-top:12px; padding:12px 32px; background:#4E1A1D; color:#fff; border:none; font-family:'Space Mono', monospace; letter-spacing:1px; cursor:pointer;">SIGN IN</button>
+                    class="admin-login-submit">SIGN IN</button>
             </form>
-            <p id="admin-login-error" style="font-family:'Space Mono', monospace; color:#a33; font-size:0.8rem; margin-top:16px; min-height:1em;"></p>
-            <div style="margin-top:24px; font-family:'Space Mono', monospace; font-size:10px; color:#ccc; border-top:1px solid #f0f0f0; padding-top:10px;">
+            <p id="admin-login-error" class="admin-login-error"></p>
+            <div class="admin-login-meta">
                 Firebase Project: <span id="debug-project-id">tiddis-tapis</span>
             </div>
         </div>
@@ -39,7 +40,7 @@
     <!-- ============================================ -->
     <!-- محتوى لوحة التحكم (مخفي حتى يتم التحقق من الهوية) -->
     <!-- ============================================ -->
-    <div id="admin-app" style="display:none;">
+    <div id="admin-app" class="admin-app-shell" style="display:none;">
 
     <!-- ============================================ -->
     <!-- القائمة الجانبية (تطابق تصميم المتجر) -->
@@ -125,7 +126,7 @@
                     <span class="stat-value" id="stat-orders-week">0</span>
                 </div>
             </div>
-            <div id="recent-orders-list" style="margin-top:30px;">
+            <div id="recent-orders-list" class="admin-recent-orders">
                 <p>No recent orders.</p>
             </div>
         </section>
@@ -192,31 +193,31 @@
                 <input type="hidden" id="editing-hero-index" value="-1">
                 <div class="form-group">
                     <label for="hero-slide-image">Fallback Slide Image URL *</label>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <input type="text" id="hero-slide-image" placeholder="https://..." class="form-input" style="flex:1;">
-                        <input type="file" id="hero-image-file" accept="image/*" style="display:none;">
-                        <button type="button" id="upload-hero-img-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload Image</button>
+                    <div class="inline-row">
+                        <input type="text" id="hero-slide-image" placeholder="https://..." class="form-input flex-field">
+                        <input type="file" id="hero-image-file" accept="image/*" class="visually-hidden-input">
+                        <button type="button" id="upload-hero-img-btn" class="btn-secondary admin-inline-button">Upload Image</button>
                             <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#hero-slide-image" data-media-usage="hero">Choose from Library</button>
                     </div>
-                    <small style="color:#666; font-size:11px; display:block; margin-top:4px;">Used when a device-specific image is not provided. Upload via ImgBB or paste a URL.</small>
+                    <small class="admin-helper-copy">Used when a device-specific image is not provided. Upload via ImgBB or paste a URL.</small>
                 </div>
                 <div class="form-row hero-responsive-images-row">
                     <div class="form-group">
                         <label for="hero-slide-desktop-image">Desktop Image URL (landscape)</label>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="text" id="hero-slide-desktop-image" placeholder="Optional landscape image URL" class="form-input" style="flex:1;">
-                            <input type="file" id="hero-desktop-image-file" accept="image/*" style="display:none;">
-                            <button type="button" id="upload-hero-desktop-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload</button>
+                        <div class="inline-row">
+                            <input type="text" id="hero-slide-desktop-image" placeholder="Optional landscape image URL" class="form-input flex-field">
+                            <input type="file" id="hero-desktop-image-file" accept="image/*" class="visually-hidden-input">
+                            <button type="button" id="upload-hero-desktop-btn" class="btn-secondary admin-inline-button">Upload</button>
                             <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#hero-slide-desktop-image" data-media-usage="hero">Library</button>
                         </div>
                         <div class="media-field-preview-row" data-media-preview-for="#hero-slide-desktop-image"></div>
                     </div>
                     <div class="form-group">
                         <label for="hero-slide-mobile-image">Mobile Image URL (portrait)</label>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="text" id="hero-slide-mobile-image" placeholder="Optional portrait image URL" class="form-input" style="flex:1;">
-                            <input type="file" id="hero-mobile-image-file" accept="image/*" style="display:none;">
-                            <button type="button" id="upload-hero-mobile-btn" class="btn-secondary" style="white-space:nowrap; padding:8px 14px;">Upload</button>
+                        <div class="inline-row">
+                            <input type="text" id="hero-slide-mobile-image" placeholder="Optional portrait image URL" class="form-input flex-field">
+                            <input type="file" id="hero-mobile-image-file" accept="image/*" class="visually-hidden-input">
+                            <button type="button" id="upload-hero-mobile-btn" class="btn-secondary admin-inline-button">Upload</button>
                             <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#hero-slide-mobile-image" data-media-usage="hero">Library</button>
                         </div>
                         <div class="media-field-preview-row" data-media-preview-for="#hero-slide-mobile-image"></div>
@@ -252,7 +253,7 @@
                     <select id="hero-slide-btn-url" class="form-input">
                         <option value="">Loading website sections...</option>
                     </select>
-                    <small style="color:#666; font-size:11px; display:block; margin-top:4px;">This list includes Overview, product categories and sub-categories, overview categories and sub-categories, About Us, Contact, and All Products. It refreshes automatically when you add or edit sections.</small>
+                    <small class="admin-helper-copy">This list includes Overview, product categories and sub-categories, overview categories and sub-categories, About Us, Contact, and All Products. It refreshes automatically when you add or edit sections.</small>
                 </div>
                 <div class="form-group" id="hero-external-url-group" style="display:none;">
                     <label for="hero-slide-external-url">External URL</label>
@@ -260,7 +261,8 @@
                 </div>
                 <div class="form-group">
                     <label for="hero-slide-svg-icon">SVG Icon Code (Small icon at bottom of slide)</label>
-                    <textarea id="hero-slide-svg-icon" rows="3" placeholder="<svg viewBox='0 0 24 24'>...</svg>" class="form-input" style="font-family:monospace; font-size:12px;"></textarea>
+                                            <textarea id="hero-slide-svg-icon" rows="3" placeholder="<svg viewBox='0 0 24 24'>...</svg>" class="form-input mono-code-input"></textarea>
+
                     <div class="form-row hero-text-controls">
                         <div class="form-group">
                             <label for="hero-text-color">Hero Text Color</label>
@@ -272,7 +274,7 @@
                     </div>
                     <button type="button" id="analyze-hero-text-color-btn" class="admin-action-btn">Analyze Text Contrast</button>
                 </div>
-                <div class="form-row" style="margin-top:16px;">
+                <div class="form-row admin-form-row-spaced">
                     <button id="save-hero-slide-btn" class="btn-primary">Save Hero Slide</button>
                     <button id="cancel-hero-edit-btn" class="btn-secondary" style="display:none;">Cancel</button>
                 </div>
@@ -280,7 +282,7 @@
 
             <div class="admin-card">
                 <h3>Existing Hero Slides</h3>
-                <div id="hero-slides-list" style="display:flex; flex-direction:column; gap:12px;">
+                <div id="hero-slides-list" class="admin-vertical-list">
                     <p>No slides added yet.</p>
                 </div>
             </div>
@@ -300,7 +302,7 @@
             </div>
             <div class="admin-card">
                 <h3>Existing Product Categories</h3>
-                <p style="font-size:0.85rem; color:#6b6b6b; margin-bottom:12px;">Drag and drop to reorder. Click "Save Order" when done.</p>
+                <p class="admin-drag-copy">Drag and drop to reorder. Click "Save Order" when done.</p>
                 <div id="categories-list">
                     <p>Loading categories...</p>
                 </div>
@@ -413,7 +415,7 @@
             </div>
             <div class="admin-card">
                 <h3>Existing Overview Categories</h3>
-                <p style="font-size:0.85rem; color:#6b6b6b; margin-bottom:12px;">Drag and drop to reorder. Click "Save Order" when done.</p>
+                <p class="admin-drag-copy">Drag and drop to reorder. Click "Save Order" when done.</p>
                 <div id="overview-categories-list">
                     <p>Loading overview categories...</p>
                 </div>
@@ -441,19 +443,19 @@
                 <button id="toggle-product-form-btn" class="btn-primary">
                     <span class="plus-icon">+</span> Add New Product
                 </button>
-                <span style="font-family:'Space Mono', monospace; font-size:12px; color:#6b6b6b;">
+                <span class="admin-variant-meta">
                     Click to show/hide the product form
                 </span>
             </div>
 
             <!-- نموذج إضافة المنتج (مخفي افتراضياً) -->
             <div id="product-form-wrapper" class="product-form-wrapper">
-                <div class="admin-card" style="margin-bottom:0;">
+                <div class="admin-card admin-card-flush-bottom">
                     <h3>Add / Edit Product</h3>
                     <form id="product-form">
                         <div class="form-group">
                             <label for="product-id">Product ID (hidden)</label>
-                            <input type="text" id="product-id" style="display:none;">
+                            <input type="text" id="product-id" class="visually-hidden-input">
                         </div>
                         <div class="form-group">
                             <label for="product-name">Product Name *</label>
@@ -501,11 +503,11 @@
                         </div>
                         <div class="form-group">
                             <label for="product-main-image">Main Image URL *</label>
-                            <div class="form-row" style="gap: 10px;">
-                                <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required style="flex: 1;">
-                                <button type="button" id="upload-product-main-btn" class="btn-secondary" style="padding: 0 15px;">Upload</button>
+                            <div class="form-row admin-form-row-tight">
+                                <input type="text" id="product-main-image" placeholder="https://i.ibb.co/..." required class="flex-field">
+                                <button type="button" id="upload-product-main-btn" class="btn-secondary admin-inline-button">Upload</button>
                                 <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#product-main-image" data-media-usage="product">Library</button>
-                                <input type="file" id="product-main-file" accept="image/*" style="display: none;">
+                                <input type="file" id="product-main-file" accept="image/*" class="visually-hidden-input">
                             </div>
                             <div id="main-image-preview" class="image-preview"></div>
                             <div class="media-field-preview-row" data-media-preview-for="#product-main-image"></div>
@@ -519,11 +521,11 @@
                         <div class="form-group">
                             <label>Product Additional Images (optional)</label>
                             <div id="additional-images-container">
-                                <div class="image-upload-row" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-                                    <input type="text" class="additional-image-url" placeholder="Image URL" style="flex: 1;">
-                                    <button type="button" class="admin-action-btn upload-additional-btn" style="padding: 5px 15px;">Upload</button>
+                                <div class="image-upload-row admin-image-upload-row">
+                                    <input type="text" class="additional-image-url flex-field" placeholder="Image URL">
+                                    <button type="button" class="admin-action-btn upload-additional-btn admin-inline-button">Upload</button>
                                     <button type="button" class="admin-action-btn media-library-trigger" data-media-target=".additional-image-url" data-media-usage="product">Library</button>
-                                    <input type="file" class="additional-image-file" accept="image/*" style="display: none;">
+                                    <input type="file" class="additional-image-file visually-hidden-input" accept="image/*">
                                     <button type="button" class="admin-action-btn admin-action-btn--danger btn-remove-image" style="display:none;">Remove</button>
                                 </div>
                             </div>
@@ -532,7 +534,7 @@
                         </div>
                         <div class="form-group">
                             <label>PDF Image Selection</label>
-                            <p style="font-size:0.85rem; color:#666;">Select which image should appear in the downloadable PDF.</p>
+                            <p class="admin-helper-copy">Select which image should appear in the downloadable PDF.</p>
                             <div id="pdf-image-selector"></div>
                         </div>
                         <hr>
@@ -540,7 +542,7 @@
                         <div id="variants-container"></div>
                         <button type="button" id="add-variant-btn" class="admin-action-btn admin-action-btn--quiet">Add Variant</button>
                         <hr>
-                        <button type="submit" class="btn-primary" style="width:100%; margin-top:16px;">Save Product</button>
+                        <button type="submit" class="btn-primary admin-form-submit">Save Product</button>
                     </form>
                 </div>
             </div>
@@ -564,11 +566,11 @@
                     <input type="number" id="bulk-delivery-price" placeholder="Set mutual price (e.g., 500)" class="form-input">
                     <button id="apply-bulk-price-btn" class="btn-primary">Apply to All Wilayas</button>
                 </div>
-                <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+                <div class="admin-action-row">
                     <button id="set-all-free-btn" class="btn-secondary">Set All as Free Delivery</button>
                     <button id="reset-all-delivery-btn" class="btn-secondary">Reset All Prices</button>
                 </div>
-                <div style="margin-top:24px; max-height:400px; overflow-y:auto;">
+                <div class="admin-scroll-panel">
                     <table id="delivery-table" class="admin-table">
                         <thead>
                             <tr>
@@ -689,7 +691,7 @@
                 <div class="form-group">
                     <label for="google-sheets-url">Google Sheets Web App URL</label>
                     <input type="text" id="google-sheets-url" placeholder="https://script.google.com/macros/s/.../exec">
-                    <button id="test-sheets-btn" class="btn-secondary" style="margin-top:8px;">Test Connection</button>
+                    <button id="test-sheets-btn" class="btn-secondary admin-top-button">Test Connection</button>
                 </div>
             </div>
             <div class="admin-card" id="marketing-analytics-settings">
@@ -742,11 +744,11 @@
                 <h3>Colors (Sidebar & Main Background)</h3>
                 <div class="form-group">
                     <label for="sidebar-bg-color">Sidebar Background Color (HEX)</label>
-                    <input type="text" id="sidebar-bg-color" placeholder="#ffffff" class="form-input" style="font-family:monospace;">
+                    <input type="text" id="sidebar-bg-color" placeholder="#ffffff" class="form-input mono-input">
                 </div>
                 <div class="form-group">
                     <label for="main-bg-color">Main Background Color (HEX)</label>
-                    <input type="text" id="main-bg-color" placeholder="#faf9f6" class="form-input" style="font-family:monospace;">
+                    <input type="text" id="main-bg-color" placeholder="#faf9f6" class="form-input mono-input">
                 </div>
                 <button id="save-colors-btn" class="btn-primary">Preview & Save Colors</button>
             </div>
@@ -769,20 +771,20 @@
                 <h3>Dynamic Logo</h3>
                 <div class="form-group">
                     <label for="logo-url">Logo URL (SVG or Image link)</label>
-                    <div class="form-row" style="gap: 10px;">
-                        <input type="text" id="logo-url" placeholder="https://example.com/logo.svg" style="flex: 1;">
-                        <button type="button" id="upload-logo-btn" class="btn-secondary" style="padding: 0 15px;">Upload</button>
-                        <input type="file" id="logo-file" accept="image/*,.svg" style="display: none;">
+                    <div class="form-row admin-form-row-tight">
+                        <input type="text" id="logo-url" placeholder="https://example.com/logo.svg" class="flex-field">
+                        <button type="button" id="upload-logo-btn" class="btn-secondary admin-inline-button">Upload</button>
+                        <input type="file" id="logo-file" accept="image/*,.svg" class="visually-hidden-input">
                     </div>
                     <div class="media-field-preview-row" data-media-preview-for="#logo-url"></div>
                     <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#logo-url" data-media-usage="logo">Choose from Library</button>
-                    <button id="save-logo-btn" class="btn-primary" style="margin-top:8px;">Update Logo</button>
+                    <button id="save-logo-btn" class="btn-primary admin-top-button">Update Logo</button>
                 </div>
             </div>
             <div class="admin-card">
                 <h3>Contact Icons (Dynamic)</h3>
                 <div id="contact-icons-list"></div>
-                <div class="form-row" style="margin-top:12px;">
+                <div class="form-row admin-form-row-compact">
                     <select id="new-contact-platform" class="form-input">
                         <option value="phone">Phone</option>
                         <option value="email">Email</option>
@@ -799,7 +801,7 @@
             <div class="admin-card">
                 <h3>Security</h3>
                 <div class="form-group">
-                    <p style="font-size:0.85rem; color:#666;">Signed in as <strong id="admin-current-email">—</strong></p>
+                    <p class="admin-signed-in-copy">Signed in as <strong id="admin-current-email">—</strong></p>
                 </div>
                 <button id="admin-sign-out-btn" class="btn-secondary">Sign Out</button>
             </div>
@@ -811,11 +813,11 @@
     <!-- نافذة تأكيد تغيير الألوان -->
     <!-- ============================================ -->
     <div id="color-confirm-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-box" style="max-width:400px;">
+        <div class="modal-box color-confirm-modal-box">
             <button class="modal-close" id="color-confirm-close">&times;</button>
-            <h2 style="font-family:var(--font-serif); font-weight:400; letter-spacing:1px; margin-bottom:16px;">Confirm Color Change</h2>
+            <h2 class="color-confirm-modal-title">Confirm Color Change</h2>
             <div id="color-confirm-text"></div>
-            <div style="display:flex; gap:12px; justify-content:center; margin-top:20px;">
+            <div class="color-confirm-modal-actions">
                 <button id="color-confirm-yes" class="btn-primary">Yes, Apply</button>
                 <button id="color-confirm-no" class="btn-secondary">Cancel</button>
             </div>
