@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Luxury Rugs &amp; Carpets</title>
-    <link rel="stylesheet" href="css/style.css?v=20260824-1">
-    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260824-1">
+    <link rel="stylesheet" href="css/style.css?v=20260827-ux4">
+    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260827-ux4">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -16,7 +16,12 @@
             <span></span><span></span><span></span>
         </button>
         <a class="header-brand has-image" href="/" aria-label="Tiddis Tapis home">
-            <img id="header-logo" class="header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
+            <span class="brand-lockup">
+                <img id="header-logo" class="header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
+                <span class="brand-wordmark-fallback" aria-hidden="true">
+                    <span class="brand-main">TIDDIS</span><span class="brand-sub">TAPIS</span>
+                </span>
+            </span>
         </a>
     </header>
 
@@ -47,9 +52,12 @@
     <!-- رأس الهاتف المحمول -->
     <div class="mobile-header">
         <a class="mobile-brand has-image" href="/" aria-label="Tiddis Tapis home">
-            <div class="logo-wrapper">
+            <span class="brand-lockup">
                 <img id="mobile-logo" class="mobile-header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
-            </div>
+                <span class="brand-wordmark-fallback" aria-hidden="true">
+                    <span class="brand-main">TIDDIS</span><span class="brand-sub">TAPIS</span>
+                </span>
+            </span>
         </a>
         <div class="mobile-header-actions">
             <button class="search-toggle-btn" id="search-toggle-btn" aria-label="Search">
@@ -84,15 +92,31 @@
             </div>
         </div>
 
+        <!-- مجموعات مختارة مبنية من نفس فئات Firebase -->
+        <section id="collections-section" class="collections-section" aria-labelledby="collections-title">
+            <div class="collections-header">
+                <div>
+                    <span class="section-eyebrow">THE TIDDIS EDIT</span>
+                    <h2 id="collections-title">Selected Collections</h2>
+                </div>
+                <p>Explore the collection by category, then choose the piece that fits your space.</p>
+            </div>
+            <div id="collections-grid" class="collections-grid" aria-live="polite" aria-busy="true">
+                <div class="collections-loading" aria-hidden="true"></div>
+                <div class="collections-loading" aria-hidden="true"></div>
+                <div class="collections-loading" aria-hidden="true"></div>
+            </div>
+        </section>
+
         <!-- شريط البحث والفلاتر المتقدمة -->
         <section class="search-filter-section" id="search-filter-section">
             <div class="search-bar-row">
                 <div class="search-bar desktop-search">
                     <input type="text" id="search-input" placeholder="Search rugs by name, size, or color...">
-                    <span id="product-count">0 products</span>
+                    <span id="product-count" role="status" aria-live="polite">0 products</span>
                 </div>
                 <div class="controls-row">
-                    <button id="toggle-filters-btn" class="btn-filter-toggle">
+                    <button id="toggle-filters-btn" class="btn-filter-toggle" aria-controls="advanced-filters-panel" aria-expanded="false">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
                         Filters
                     </button>
@@ -133,11 +157,12 @@
                     <button id="clear-filters-btn" class="btn-text">Clear All</button>
                     <button id="apply-filters-btn" class="btn-primary">Apply Filters</button>
                 </div>
+                <div id="active-filter-summary" class="active-filter-summary" aria-live="polite" hidden></div>
             </div>
         </section>
 
         <!-- شبكة المنتجات -->
-        <div id="products-grid" class="products-grid">
+        <div id="products-grid" class="products-grid" aria-busy="true">
             <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
             <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
             <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line-row"><div class="skeleton-line name"></div><div class="skeleton-line order"></div></div></div>
@@ -148,6 +173,22 @@
         <div id="load-more-container" style="text-align:center; margin-top:30px; display:none;">
             <button id="load-more-btn" class="btn-secondary">Load More Products</button>
         </div>
+
+        <!-- نقاط الثقة: معلومات واقعية مرتبطة بسلوك الموقع الحالي -->
+        <section class="trust-strip" aria-label="Tiddis service highlights">
+            <div class="trust-item">
+                <span class="trust-index">01</span>
+                <div><strong>Curated selection</strong><span>Pieces selected for considered interiors.</span></div>
+            </div>
+            <div class="trust-item">
+                <span class="trust-index">02</span>
+                <div><strong>Concierge request</strong><span>Send a request and confirm the details with our team.</span></div>
+            </div>
+            <div class="trust-item">
+                <span class="trust-index">03</span>
+                <div><strong>Delivery clarity</strong><span>Delivery and total are confirmed before fulfilment.</span></div>
+            </div>
+        </section>
 
         <!-- قسم About Us -->
         <section id="about-section" class="store-section about-section">
@@ -245,7 +286,7 @@
     </div>
 
     <!-- تحميل ملفات JavaScript -->
-    <script type="module" src="js/firebase-config.js?v=20260818-final-audit"></script>
-    <script type="module" src="js/store.js?v=20260818-final-audit"></script>
+    <script type="module" src="js/firebase-config.js?v=20260827-ux4"></script>
+    <script type="module" src="js/store.js?v=20260827-ux4"></script>
 </body>
 </html>

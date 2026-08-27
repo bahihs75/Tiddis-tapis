@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Admin Panel</title>
-    <link rel="stylesheet" href="css/style.css?v=20260824-1">
-    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260824-1">
+    <link rel="stylesheet" href="css/style.css?v=20260827-ux4">
+    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260827-ux4">
     <!-- SortableJS لتمكين السحب والإفلات -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- مكتبات PDF -->
@@ -51,21 +51,37 @@
             <div class="brand-sub">ADMIN</div>
             <span id="admin-role-badge" class="admin-role-badge" aria-label="Current admin role">ADMIN</span>
         </div>
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="Admin sections">
             <a href="#" class="nav-link active" data-section="dashboard">Dashboard</a>
-            <a href="#" class="nav-link" data-section="insights" data-required-role="marketing">Insights</a>
-            <a href="#" class="nav-link" data-section="activity">Activity Log</a>
-            <a href="#" class="nav-link" data-section="data-tools" data-required-role="admin">Data Tools</a>
-            <a href="#" class="nav-link" data-section="hero">Hero Slider</a>
-            <a href="#" class="nav-link" data-section="categories">Categories</a>
-            <a href="#" class="nav-link" data-section="overview">Overview Categories</a>
-            <a href="#" class="nav-link" data-section="attributes">Attributes</a>
-            <a href="#" class="nav-link" data-section="catalog">Catalog Experience</a>
-            <a href="#" class="nav-link" data-section="products">Products</a>
-            <a href="#" class="nav-link" data-section="delivery">Delivery</a>
-            <a href="#" class="nav-link" data-section="orders">Orders</a>
-            <a href="#" class="nav-link" data-section="library">Image Library</a>
-            <a href="#" class="nav-link" data-section="settings" data-required-role="admin">Settings</a>
+
+            <div class="admin-nav-group">
+                <span class="admin-nav-group-label">Catalog</span>
+                <a href="#" class="nav-link" data-section="products">Products</a>
+                <a href="#" class="nav-link" data-section="categories">Categories</a>
+                <a href="#" class="nav-link" data-section="overview">Overview Categories</a>
+                <a href="#" class="nav-link" data-section="attributes">Attributes</a>
+                <a href="#" class="nav-link" data-section="catalog">Catalog Experience</a>
+            </div>
+
+            <div class="admin-nav-group">
+                <span class="admin-nav-group-label">Content</span>
+                <a href="#" class="nav-link" data-section="hero">Hero Slider</a>
+                <a href="#" class="nav-link" data-section="library">Image Library</a>
+            </div>
+
+            <div class="admin-nav-group">
+                <span class="admin-nav-group-label">Operations</span>
+                <a href="#" class="nav-link" data-section="orders">Orders</a>
+                <a href="#" class="nav-link" data-section="delivery">Delivery</a>
+                <a href="#" class="nav-link" data-section="insights" data-required-role="marketing">Insights</a>
+                <a href="#" class="nav-link" data-section="activity">Activity Log</a>
+                <a href="#" class="nav-link" data-section="data-tools" data-required-role="admin">Data Tools</a>
+            </div>
+
+            <div class="admin-nav-group">
+                <span class="admin-nav-group-label">Settings</span>
+                <a href="#" class="nav-link" data-section="settings" data-required-role="admin">Settings</a>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-to-store admin-home-link" aria-label="Go to store home">
@@ -99,7 +115,18 @@
         <!-- 1. Dashboard Section -->
         <!-- ========================================== -->
         <section id="section-dashboard" class="admin-section active">
-            <h2>Dashboard</h2>
+            <div class="section-heading-row admin-dashboard-heading">
+                <div>
+                    <p class="eyebrow">COMMAND CENTER</p>
+                    <h2>Dashboard</h2>
+                    <p class="admin-help-text">A quick view of the catalog, orders, and the next actions for your team.</p>
+                </div>
+                <div class="admin-quick-actions" aria-label="Quick actions">
+                    <button type="button" class="admin-quick-link" data-admin-section="products">Add product</button>
+                    <button type="button" class="admin-quick-link" data-admin-section="hero">Edit Hero</button>
+                    <button type="button" class="admin-quick-link" data-admin-section="orders">Review orders</button>
+                </div>
+            </div>
             <div class="stats-grid">
                 <div class="stat-card">
                     <span class="stat-label">Total Products</span>
@@ -866,7 +893,7 @@
     <!-- تحميل JavaScript -->
     <!-- ============================================ -->
     <script type="module" src="js/firebase-config.js"></script>
-    <script type="module" src="js/admin-auth.js?v=20260818-auth-guard"></script>
+    <script type="module" src="js/admin-auth.js?v=20260827-ux4"></script>
 
     <!-- ============================================ -->
     <!-- زر "Add New Product" (Toggle) -->

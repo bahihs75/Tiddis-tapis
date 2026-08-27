@@ -78,6 +78,27 @@ const sections = {
 
 const adminNavLinks = document.querySelectorAll('#admin-sidebar .nav-link');
 
+function setupAdminHeaderScrollState() {
+    const header = document.querySelector('.admin-mobile-header');
+    if (!header) return;
+
+    let frameRequested = false;
+    const sync = () => {
+        frameRequested = false;
+        header.classList.toggle('is-scrolled', window.scrollY > 24);
+    };
+    const onScroll = () => {
+        if (frameRequested) return;
+        frameRequested = true;
+        window.requestAnimationFrame(sync);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    sync();
+}
+
+setupAdminHeaderScrollState();
+
 // عناصر إدارة الفئات (Products)
 const categoriesList = document.getElementById('categories-list');
 const parentCategorySelect = document.getElementById('parent-category-select');
@@ -328,6 +349,12 @@ document.addEventListener('click', function(e) {
     if (!link) return;
     e.preventDefault();
     activateAdminSection(link.dataset.section, link);
+});
+
+document.addEventListener('click', function(e) {
+    const quickAction = e.target.closest?.('[data-admin-section]');
+    if (!quickAction || quickAction.classList.contains('nav-link')) return;
+    activateAdminSection(quickAction.dataset.adminSection);
 });
 
 if (adminHamburger && adminSidebar) {

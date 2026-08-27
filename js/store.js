@@ -123,8 +123,12 @@ const DOM = {
     filtersPanel: document.getElementById('advanced-filters-panel'),
     applyFiltersBtn: document.getElementById('apply-filters-btn'),
     clearFiltersBtn: document.getElementById('clear-filters-btn'),
+    activeFilterSummary: document.getElementById('active-filter-summary'),
     dynamicFilterGroups: document.getElementById('dynamic-filter-groups'),
-    optionsCategories: document.getElementById('options-categories')
+    optionsCategories: document.getElementById('options-categories'),
+    collectionsGrid: document.getElementById('collections-grid'),
+    desktopHeader: document.getElementById('desktop-header'),
+    mobileHeader: document.querySelector('.mobile-header')
 };
 
 // عناصر صفحة التفاصيل
@@ -192,6 +196,38 @@ function escapeStoreHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     }[char]));
+}
+
+// Technical Sheet and product detail rendering share the same safe text encoder.
+const escapeHtml = escapeStoreHtml;
+
+function sanitizeUrl(value, allowedProtocols = ['http:', 'https:']) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw, document.baseURI);
+        return allowedProtocols.includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+        return '';
+    }
+}
+
+function sanitizeSvgMarkup(value) {
+    const raw = String(value ?? '').trim();
+    if (!/^<svg[\s>]/i.test(raw)) return '';
+    const template = document.createElement('template');
+    template.innerHTML = raw;
+    const svg = template.content.querySelector('svg');
+    if (!svg) return '';
+    template.content.querySelectorAll('script, foreignObject').forEach(node => node.remove());
+    template.content.querySelectorAll('*').forEach(node => {
+        [...node.attributes].forEach(attribute => {
+            if (/^on/i.test(attribute.name) || /^(href|src|xlink:href)$/i.test(attribute.name) && /^\s*javascript:/i.test(attribute.value)) {
+                node.removeAttribute(attribute.name);
+            }
+        });
+    });
+    return svg.outerHTML;
 }
 
 function normalizeCatalogColor(value) {
@@ -373,6 +409,7 @@ function listenToProducts() {
         AppState.products.categoryIndex = indexes.categoryIndex;
         AppState.products.overviewIndex = indexes.overviewIndex;
         AppState.products.loaded = true;
+        renderCollectionShowcase();
         
         if (AppState.catalogFallback) syncCatalogFallbackFromProducts();
 
@@ -454,6 +491,7 @@ async function loadCategories() {
         
         AppState.categories.products = productsCats;
         AppState.categories.overview = overviewCats;
+        renderCollectionShowcase();
         buildSidebarMenu();
         renderFilterUI();
         return { products: productsCats, overview: overviewCats };
@@ -575,6 +613,61 @@ async function loadCatalogFilters() {
         syncCatalogFallbackFromProducts();
         renderFilterUI();
     }
+}
+
+function getCollectionImage(categoryName) {
+    const categoryKey = String(categoryName || '').trim().toLowerCase();
+    if (!categoryKey) return '';
+    const products = AppState.products.all || [];
+    const product = products.find(item => {
+        const productCategories = [item.category, item.overviewCategory]
+            .filter(Boolean)
+            .map(value => String(value).trim().toLowerCase());
+        return productCategories.includes(categoryKey);
+    }) || products.find(item => String(item.name || '').toLowerCase().includes(categoryKey));
+    if (!product) return '';
+    return product.imageUrl
+        || product.additionalImages?.[0]
+        || product.variants?.find(variant => variant?.image)?.image
+        || '';
+}
+
+function renderCollectionShowcase() {
+    const grid = DOM.collectionsGrid;
+    if (!grid) return;
+
+    grid.setAttribute('aria-busy', 'false');
+    const categories = (AppState.categories.products || [])
+        .filter(category => category && category.name)
+        .slice(0, 6);
+
+    if (!categories.length) {
+        grid.innerHTML = '<p class="collection-empty">Selected collections will appear here as categories are published.</p>';
+        return;
+    }
+
+    grid.innerHTML = categories.map((category, index) => {
+        const name = String(category.name).trim();
+        const image = getCollectionImage(name);
+        const count = (AppState.products.all || []).filter(product => {
+            const values = [product.category, product.overviewCategory]
+                .filter(Boolean)
+                .map(value => String(value).trim().toLowerCase());
+            return values.includes(name.toLowerCase());
+        }).length;
+        const href = escapeStoreHtml(`/?category=${encodeURIComponent(name)}&type=products#products-grid`);
+        const imageMarkup = image
+            ? `<img src="${escapeStoreHtml(image)}" alt="${escapeStoreHtml(name)} collection" loading="lazy">`
+            : '<span class="collection-image-placeholder" aria-hidden="true">TIDDIS</span>';
+        return `<a class="collection-tile collection-tile--${index + 1}" href="${href}">
+            <span class="collection-image">${imageMarkup}</span>
+            <span class="collection-tile-meta">
+                <strong>${escapeStoreHtml(name)}</strong>
+                <span>${count ? `${count} ${count === 1 ? 'piece' : 'pieces'}` : 'Explore collection'}</span>
+            </span>
+            <span class="collection-arrow" aria-hidden="true">↗</span>
+        </a>`;
+    }).join('');
 }
 
 function renderFilterUI() {
@@ -846,6 +939,36 @@ function handleSidebarClick(e) {
 // 7. التصفية والعرض (محسّن)
 // ============================================
 
+/** تحديث الملخص المرئي للبحث والفلاتر النشطة */
+function renderActiveFilterSummary() {
+    const summary = DOM.activeFilterSummary;
+    if (!summary) return;
+
+    const items = [];
+    const { advanced, search } = AppState.filters;
+    if (search?.trim()) items.push(`Search: ${search.trim()}`);
+    (advanced.categories || []).forEach(value => items.push(`Category: ${value}`));
+    (advanced.prices || []).forEach(range => items.push(`Price: ${range.min}–${range.max} DZD`));
+    Object.values(advanced.attributes || {}).flat().forEach(value => items.push(String(value)));
+    Object.values(advanced.catalog || {}).forEach(selection => {
+        if (Array.isArray(selection)) selection.forEach(value => items.push(String(value)));
+        else if (selection && typeof selection === 'object') {
+            const range = [selection.min, selection.max].filter(value => value !== '' && value !== null && value !== undefined).join('–');
+            if (range) items.push(`${range} DZD`);
+        } else if (selection === true) items.push('Available');
+        else if (selection !== '' && selection !== null && selection !== undefined) items.push(String(selection));
+    });
+
+    if (!items.length) {
+        summary.hidden = true;
+        summary.innerHTML = '';
+        return;
+    }
+
+    summary.hidden = false;
+    summary.innerHTML = `<span class="active-filter-count">${items.length} active ${items.length === 1 ? 'filter' : 'filters'}</span>${items.slice(0, 5).map(item => `<span class="active-filter-chip">${escapeStoreHtml(item)}</span>`).join('')}${items.length > 5 ? `<span class="active-filter-more">+${items.length - 5} more</span>` : ''}`;
+}
+
 /** تصفية المنتجات وتحديث الشبكة */
 function filterProducts() {
     const filtered = getFilteredProducts(AppState);
@@ -858,11 +981,13 @@ function filterProducts() {
     const initialBatch = filtered.slice(0, pageSize);
     renderProducts(initialBatch, false);
     updateProductCount();
+    renderActiveFilterSummary();
 }
 
 /** عرض المنتجات مع DocumentFragment */
 function renderProducts(products, append = false) {
     if (!DOM.productsGrid) return;
+    DOM.productsGrid.setAttribute('aria-busy', 'false');
     
     if (!append) {
         DOM.productsGrid.innerHTML = '';
@@ -1023,8 +1148,7 @@ function createProductCard(product) {
     
     card.innerHTML = `
         <div class="product-image-wrap" data-product-id="${product.id}">
-            <img src="${defaultImage}" alt="${product.name || 'KSOR Rug'}" 
-                 class="product-main-image" loading="eager" draggable="false">
+            <img src="${escapeStoreHtml(defaultImage)}" alt="${escapeStoreHtml(product.name || 'Tiddis Tapis rug')}" class="product-main-image" loading="lazy" decoding="async" draggable="false">
             ${hasMultipleImages ? `
                 <button class="image-nav-btn prev" data-dir="-1">‹</button>
                 <button class="image-nav-btn next" data-dir="1">›</button>
@@ -1369,9 +1493,15 @@ if (DOM.successModal) {
 }
 
 // مستمعات أحداث الفلاتر المتقدمة
+function setFiltersPanelOpen(isOpen) {
+    const open = Boolean(isOpen);
+    DOM.filtersPanel?.classList.toggle('active', open);
+    DOM.toggleFiltersBtn?.setAttribute('aria-expanded', String(open));
+}
+
 if (DOM.toggleFiltersBtn) {
     DOM.toggleFiltersBtn.addEventListener('click', () => {
-        DOM.filtersPanel?.classList.toggle('active');
+        setFiltersPanelOpen(!DOM.filtersPanel?.classList.contains('active'));
     });
 }
 
@@ -1379,7 +1509,7 @@ if (DOM.applyFiltersBtn) {
     DOM.applyFiltersBtn.addEventListener('click', () => {
         updateAdvancedFilters();
         filterProducts();
-        DOM.filtersPanel?.classList.remove('active');
+        setFiltersPanelOpen(false);
     });
 }
 
@@ -1387,7 +1517,7 @@ if (DOM.clearFiltersBtn) {
     DOM.clearFiltersBtn.addEventListener('click', () => {
         clearAdvancedFilters();
         filterProducts();
-        DOM.filtersPanel?.classList.remove('active');
+        setFiltersPanelOpen(false);
     });
 }
 
@@ -1811,7 +1941,7 @@ function renderProductDetail(product) {
     // توليد HTML المعرض
     const thumbnailsHtml = uniqueImages.map((url, idx) => `
         <div class="thumb-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-            <img src="${url}" alt="Thumbnail ${idx + 1}">
+            <img src="${escapeHtml(url)}" alt="Thumbnail ${idx + 1}">
         </div>
     `).join('');
 
@@ -1820,10 +1950,11 @@ function renderProductDetail(product) {
         const val = product.attributes ? product.attributes[attr.id] : null;
         if (!val) return '';
         return `
-            <div class="info-item">
-                <label>${attr.label}</label>
-                <span>${Array.isArray(val) ? val.join(', ') : val}</span>
-            </div>
+                                <div class="info-item">
+                        <label>${escapeHtml(attr.label)}</label>
+                        <span>${escapeHtml(Array.isArray(val) ? val.join(', ') : val)}</span>
+                    </div>
+
         `;
     }).join('');
 
@@ -1836,7 +1967,7 @@ function renderProductDetail(product) {
 
             <div class="product-gallery-shell">
                 <div class="main-viewer" id="main-viewer">
-                    <img src="${uniqueImages[0] || ''}" id="main-product-img" alt="${product.name}">
+                    <img src="${escapeHtml(uniqueImages[0] || '')}" id="main-product-img" alt="${escapeHtml(product.name || 'Tiddis Tapis product')}">
                 </div>
                 <div class="thumbnails-sidebar" id="thumbnails-sidebar" aria-label="Product images">
                     ${thumbnailsHtml}
@@ -1846,14 +1977,14 @@ function renderProductDetail(product) {
 
             <section class="product-info-glass-box glass-element" aria-labelledby="product-detail-name">
                 <div class="product-info-heading">
-                    <h1 id="product-detail-name">${product.name}</h1>
+                    <h1 id="product-detail-name">${escapeHtml(product.name || 'Untitled rug')}</h1>
                     <span class="price-tag-large" id="product-detail-price">${defaultPrice} DZD</span>
                 </div>
 
                 <div class="info-grid">
                     <div class="info-item">
                         <label>Collection</label>
-                        <span>${product.category || 'KSOR'}</span>
+                        <span>${escapeHtml(product.category || 'KSOR')}</span>
                     </div>
                     ${attributesHtml}
                     ${catalogDetailsHtml}
@@ -1875,7 +2006,7 @@ function renderProductDetail(product) {
                 ${product.description ? `
                 <div class="product-detail-description">
                     <label>Description</label>
-                    <p>${product.description}</p>
+                    <p>${escapeHtml(product.description)}</p>
                 </div>
                 ` : ''}
 
@@ -1883,6 +2014,7 @@ function renderProductDetail(product) {
                     <button id="detail-order-btn" class="btn-primary" style="flex:2;">ORDER NOW</button>
                     <button id="detail-pdf-btn" class="btn-secondary" style="flex:1;">TECHNICAL SHEET</button>
                 </div>
+                <p class="product-order-helper">Submit your details to request this rug. Our team will confirm availability and delivery.</p>
             </section>
         </div>
     `;
@@ -2005,9 +2137,11 @@ function applyStoreSettings() {
         }
 
         image.dataset.logoFallbackApplied = 'false';
+        wrapper?.classList.remove('logo-fallback');
         image.onload = () => {
-            image.style.display = 'inline-block';
+            image.style.display = 'block';
             wrapper?.classList.add('has-image');
+            wrapper?.classList.remove('logo-fallback');
         };
         image.onerror = () => {
             if (image.dataset.logoFallbackApplied !== 'true' && image.src !== new URL(DEFAULT_TRANSPARENT_LOGO, document.baseURI).href) {
@@ -2015,9 +2149,10 @@ function applyStoreSettings() {
                 image.src = DEFAULT_TRANSPARENT_LOGO;
                 return;
             }
-            // حافظ على نفس حالة الهيدر ولا تُظهر نصاً بديلاً مختلفاً أثناء reload.
-            image.style.display = 'inline-block';
-            wrapper?.classList.add('has-image');
+            // إذا تعذر الشعار المحلي أيضاً، استخدم الاسم النصي الثابت داخل نفس الـlockup.
+            image.style.display = 'none';
+            wrapper?.classList.remove('has-image');
+            wrapper?.classList.add('logo-fallback');
         };
         image.src = logoUrl;
     });
@@ -2107,9 +2242,13 @@ function renderHeroSlider(slides) {
 
         let btnHref = "#products-grid";
         let isExternalLink = false;
-        const desktopImage = slide.desktopImage || slide.image || '';
-        const mobileImage = slide.mobileImage || desktopImage;
+        const desktopImage = sanitizeUrl(slide.desktopImage || slide.image || '');
+        const mobileImage = sanitizeUrl(slide.mobileImage || '') || desktopImage;
         const responsiveHeroImage = window.matchMedia?.('(max-width: 767px)').matches ? mobileImage : desktopImage;
+        const slideTitle = escapeStoreHtml(slide.title || '');
+        const slideSubtitle = escapeStoreHtml(slide.subtitle || '');
+        const slideBtnText = escapeStoreHtml(slide.btnText || '');
+        const slideIcon = sanitizeSvgMarkup(slide.svgIcon);
 
         if (slide.linkType === 'section' && slide.btnUrl) {
             btnHref = normalizeStoreInternalUrl(slide.btnUrl, '#products-grid');
@@ -2119,29 +2258,29 @@ function renderHeroSlider(slides) {
         } else if (slide.linkType === 'all') {
             btnHref = "#products-grid";
         } else if (slide.linkType === 'external' && slide.btnUrl) {
-            btnHref = slide.btnUrl;
-            isExternalLink = true;
+            btnHref = sanitizeUrl(slide.btnUrl) || '#products-grid';
+            isExternalLink = Boolean(sanitizeUrl(slide.btnUrl));
         }
 
         container.innerHTML = `
-            <div class="hero-ambient-bg" style="background-image: url('${responsiveHeroImage}');"></div>
+            <div class="hero-ambient-bg" style="background-image: url('${escapeStoreHtml(responsiveHeroImage)}');"></div>
             <div class="hero-ambient-overlay"></div>
             
             <div class="hero-slide-card">
                 <div class="hero-slide-header">
-                    ${slide.subtitle ? `<span class="hero-slide-subtitle-tag">${slide.subtitle}</span>` : ''}
-                    ${slide.title ? `<h1 class="hero-slide-main-title">${slide.title}</h1>` : ''}
+                    ${slideSubtitle ? `<span class="hero-slide-subtitle-tag">${slideSubtitle}</span>` : ''}
+                    ${slideTitle ? `<h1 class="hero-slide-main-title">${slideTitle}</h1>` : ''}
                 </div>
 
                 <div class="hero-slide-image-frame">
                     <picture>
-                        <source media="(max-width: 767px)" srcset="${mobileImage}">
-                        <img src="${desktopImage}" alt="${slide.title || 'Hero Slide'}" onerror="this.src='https://via.placeholder.com/800x500?text=Tiddis+Tapis'">
+                        <source media="(max-width: 767px)" srcset="${escapeStoreHtml(mobileImage)}">
+                        <img src="${escapeStoreHtml(desktopImage)}" alt="${slideTitle || 'Hero Slide'}" onerror="this.src='https://via.placeholder.com/800x500?text=Tiddis+Tapis'">
                     </picture>
-                    ${slide.btnText ? `<a href="${btnHref}" class="hero-slide-cta-btn" ${isExternalLink ? 'target="_blank" rel="noopener noreferrer"' : ''}>${slide.btnText}</a>` : ''}
+                    ${slideBtnText ? `<a href="${escapeStoreHtml(btnHref)}" class="hero-slide-cta-btn" ${isExternalLink ? 'target="_blank" rel="noopener noreferrer"' : ''}>${slideBtnText}</a>` : ''}
                 </div>
 
-                ${slide.svgIcon ? `<div class="hero-slide-bottom-icon">${slide.svgIcon}</div>` : ''}
+                ${slideIcon ? `<div class="hero-slide-bottom-icon">${slideIcon}</div>` : ''}
             </div>
 
             ${slides.length > 1 ? `
@@ -2230,22 +2369,32 @@ function renderHeroSlider(slides) {
 function renderContactIcons(contacts) {
     if (!DOM.contactIcons) return;
     
-    if (!contacts || contacts.length === 0) {
-        DOM.contactIcons.innerHTML = '<span style="color:#6b6b6b; font-size:13px;">No contacts configured</span>';
+    const validContacts = (Array.isArray(contacts) ? contacts : []).filter(contact => {
+        const platform = String(contact?.platform || '').toLowerCase();
+        const value = String(contact?.value || '').trim();
+        return value && ['phone', 'email', 'whatsapp', 'instagram', 'facebook', 'tiktok'].includes(platform);
+    });
+
+    if (!validContacts.length) {
+        DOM.contactIcons.innerHTML = '<span class="contact-empty">Concierge contact details will appear here soon.</span>';
         return;
     }
     
-    DOM.contactIcons.innerHTML = contacts.map(contact => {
-        const iconSvg = CONTACT_ICONS[contact.platform] || CONTACT_ICONS.phone;
-        const displayName = CONTACT_NAMES[contact.platform] || contact.platform;
-        const href = contact.platform === 'phone' ? `tel:${contact.value}` :
-                     contact.platform === 'email' ? `mailto:${contact.value}` :
-                     contact.value;
-        return `<a href="${href}" target="${contact.platform === 'phone' || contact.platform === 'email' ? '_self' : '_blank'}" class="contact-item">
+    DOM.contactIcons.innerHTML = validContacts.map(contact => {
+        const platform = String(contact.platform).toLowerCase();
+        const iconSvg = CONTACT_ICONS[platform] || CONTACT_ICONS.phone;
+        const displayName = CONTACT_NAMES[platform] || platform;
+        const rawValue = String(contact.value).trim();
+        const href = platform === 'phone' ? `tel:${rawValue.replace(/[^\d+]/g, '')}` :
+                     platform === 'email' ? `mailto:${rawValue}` :
+                     (rawValue.startsWith('https://') || rawValue.startsWith('http://')) ? rawValue : '';
+        if (!href) return '';
+        const external = platform !== 'phone' && platform !== 'email';
+        return `<a href="${escapeStoreHtml(href)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ''} class="contact-item">
                     <span class="contact-icon">${iconSvg}</span>
-                    <span>${displayName}</span>
+                    <span>${escapeStoreHtml(displayName)}</span>
                 </a>`;
-    }).join('');
+    }).filter(Boolean).join('');
 }
 
 // ============================================
@@ -2426,7 +2575,34 @@ window.addEventListener('resize', function() {
 });
 
 // ============================================
-// 22. زر الرجوع للأعلى
+// 22. حالة الهيدر عند التمرير
+// ============================================
+
+function setupHeaderScrollState() {
+    const headers = [DOM.desktopHeader, DOM.mobileHeader].filter(Boolean);
+    if (!headers.length) return;
+
+    let frameRequested = false;
+    const sync = () => {
+        frameRequested = false;
+        const isScrolled = window.scrollY > 24;
+        headers.forEach(header => header.classList.toggle('is-scrolled', isScrolled));
+    };
+
+    const onScroll = () => {
+        if (frameRequested) return;
+        frameRequested = true;
+        window.requestAnimationFrame(sync);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    sync();
+}
+
+setupHeaderScrollState();
+
+// ============================================
+// 23. زر الرجوع للأعلى
 // ============================================
 
 const backToTopBtn = document.getElementById('back-to-top-btn');
@@ -2440,7 +2616,7 @@ if (backToTopBtn) {
 }
 
 // ============================================
-// 23. التحميل الأولي
+// 24. التحميل الأولي
 // ============================================
 
 async function initStore() {

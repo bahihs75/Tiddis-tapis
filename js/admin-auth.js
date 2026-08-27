@@ -23,7 +23,7 @@ let adminInitializer = null;
 
 async function loadAdminInitializer() {
     if (adminInitializer) return adminInitializer;
-    const adminModule = await import('./admin.js?v=20260818-private-image-sources-v2');
+    const adminModule = await import('./admin.js?v=20260827-ux4');
     adminInitializer = adminModule.initAdmin;
     return adminInitializer;
 }

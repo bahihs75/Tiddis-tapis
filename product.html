@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Product Details</title>
-    <link rel="stylesheet" href="css/style.css?v=20260824-1">
+    <link rel="stylesheet" href="css/style.css?v=20260827-ux4">
+    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260827-ux4">
     <!-- مكتبات PDF -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -845,7 +846,6 @@
         }
 
     </style>
-    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260824-1">
     <link rel="manifest" href="manifest.json">
 </head>
 <body class="product-page">
@@ -855,8 +855,13 @@
         <button class="hamburger header-hamburger" id="header-hamburger-btn" aria-label="Toggle navigation" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
-        <a class="header-brand has-image" href="/" aria-label="Tiddis Tapis home">
-            <img id="header-logo" class="header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
+        <a class="header-brand" href="/" aria-label="Tiddis Tapis home">
+            <span class="brand-lockup">
+                <img id="header-logo" class="header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
+                <span class="brand-wordmark-fallback" aria-hidden="true">
+                    <span class="brand-main">TIDDIS</span><span class="brand-sub">TAPIS</span>
+                </span>
+            </span>
         </a>
     </header>
 
@@ -881,10 +886,13 @@
 
     <!-- رأس الهاتف -->
     <div class="mobile-header">
-        <a class="mobile-brand has-image" href="/" aria-label="Tiddis Tapis home">
-            <div class="logo-wrapper">
+        <a class="mobile-brand" href="/" aria-label="Tiddis Tapis home">
+            <span class="brand-lockup">
                 <img id="mobile-logo" class="mobile-header-logo-image" src="tiddis-logo.svg" alt="TIDDIS TAPIS">
-            </div>
+                <span class="brand-wordmark-fallback" aria-hidden="true">
+                    <span class="brand-main">TIDDIS</span><span class="brand-sub">TAPIS</span>
+                </span>
+            </span>
         </a>
         <div class="mobile-header-actions">
             <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
@@ -954,9 +962,9 @@
         </div>
     </div>
 
-    <script type="module" src="js/firebase-config.js?v=20260818-final-audit"></script>
+    <script type="module" src="js/firebase-config.js?v=20260827-ux4"></script>
     <script type="module">
-        import { loadProductDetail } from './js/store.js?v=20260818-final-audit';
+        import { loadProductDetail } from './js/store.js?v=20260827-ux4';
         loadProductDetail();
     </script>
 </body>
