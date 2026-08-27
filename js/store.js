@@ -734,105 +734,93 @@ function renderFilterUI() {
 let sidebarStructure = null;
 let sidebarBuilt = false;
 
+function sidebarSlug(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
+}
+
+function sidebarNodeName(value) {
+    if (value && typeof value === 'object') return String(value.name || value.label || value.value || '').trim();
+    return String(value || '').trim();
+}
+
+function renderSidebarNode(value, type, index, parentKey) {
+    const name = sidebarNodeName(value);
+    if (!name) return '';
+
+    const children = value && typeof value === 'object' && Array.isArray(value.subcategories)
+        ? value.subcategories.filter(child => sidebarNodeName(child))
+        : [];
+    const hasChildren = children.length > 0;
+    const nodeKey = `${parentKey}-${index}-${sidebarSlug(name)}`;
+    const submenuId = `sidebar-submenu-${sidebarSlug(nodeKey)}`;
+    const safeName = escapeStoreHtml(name);
+    const submenuMarkup = hasChildren ? `
+        <ul id="${submenuId}" class="sub-menu" data-parent="${safeName}" aria-hidden="true" hidden>
+            ${children.map((child, childIndex) => renderSidebarNode(child, type, childIndex, nodeKey)).join('')}
+        </ul>
+    ` : '';
+
+    return `
+        <li class="nav-item">
+            <button type="button" class="nav-link${hasChildren ? ' nav-parent-link' : ''}"
+                data-section="${type}" data-category="${safeName}" data-type="${type}"
+                ${hasChildren ? `data-has-children="true" aria-controls="${submenuId}" aria-expanded="false"` : ''}>
+                <span>${safeName}</span>
+                ${hasChildren ? '<span class="toggle-icon" aria-hidden="true">▸</span>' : ''}
+            </button>
+            ${submenuMarkup}
+        </li>
+    `;
+}
+
+function renderSidebarGroup(label, type, items) {
+    if (!Array.isArray(items) || !items.length) return '';
+    const safeLabel = escapeStoreHtml(label);
+    const submenuId = `sidebar-submenu-${type}-root`;
+    return `
+        <li class="nav-item nav-group-item">
+            <button type="button" class="nav-link nav-parent-link nav-group-toggle"
+                data-section="${type}" data-type="${type}" data-menu-trigger="true"
+                aria-controls="${submenuId}" aria-expanded="false">
+                <span>${safeLabel}</span><span class="toggle-icon" aria-hidden="true">▸</span>
+            </button>
+            <ul id="${submenuId}" class="sub-menu" data-parent="${type}" aria-hidden="true" hidden>
+                ${items.map((item, index) => renderSidebarNode(item, type, index, `${type}-root`)).join('')}
+            </ul>
+        </li>
+    `;
+}
+
 function buildSidebarMenu() {
     if (!DOM.sidebarNav) return;
-    
-    // بناء الهيكل مرة واحدة فقط
+
     if (sidebarBuilt && sidebarStructure) {
         DOM.sidebarNav.innerHTML = sidebarStructure;
         attachSidebarEvents();
         return;
     }
-    
+
     const { products, overview } = AppState.categories;
-    
-    // بناء فئات Overview
-    let overviewHtml = '';
-    if (overview.length > 0) {
-        overviewHtml = `<li class="nav-item">
-            <button class="nav-link" data-section="overview" data-type="overview">
-                Overview
-                <span class="toggle-icon">▸</span>
-            </button>
-            <ul class="sub-menu" data-parent="overview">
-                ${overview.map(cat => `
-                    <li class="nav-item">
-                        <button class="nav-link" data-section="overview" data-category="${cat.name}" data-type="overview">
-                            ${cat.name}
-                            ${cat.subcategories && cat.subcategories.length > 0 ? `<span class="toggle-icon">▸</span>` : ''}
-                        </button>
-                        ${cat.subcategories && cat.subcategories.length > 0 ? `
-                            <ul class="sub-menu" data-parent="${cat.name}">
-                                ${cat.subcategories.map(sub => `
-                                    <li class="nav-item">
-                                        <button class="nav-link" data-section="overview" data-category="${sub}" data-type="overview" data-parent="${cat.name}">
-                                            ${sub}
-                                        </button>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        ` : ''}
-                    </li>
-                `).join('')}
-            </ul>
-        </li>`;
-    }
-    
-    // بناء فئات Products
-    let productsHtml = '';
-    if (products.length > 0) {
-        productsHtml = `<li class="nav-item">
-            <button class="nav-link" data-section="products" data-type="products">
-                Products
-                <span class="toggle-icon">▸</span>
-            </button>
-            <ul class="sub-menu" data-parent="products">
-                ${products.map(cat => `
-                    <li class="nav-item">
-                        <button class="nav-link" data-section="products" data-category="${cat.name}" data-type="products">
-                            ${cat.name}
-                            ${cat.subcategories && cat.subcategories.length > 0 ? `<span class="toggle-icon">▸</span>` : ''}
-                        </button>
-                        ${cat.subcategories && cat.subcategories.length > 0 ? `
-                            <ul class="sub-menu" data-parent="${cat.name}">
-                                ${cat.subcategories.map(sub => `
-                                    <li class="nav-item">
-                                        <button class="nav-link" data-section="products" data-category="${sub}" data-type="products" data-parent="${cat.name}">
-                                            ${sub}
-                                        </button>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        ` : ''}
-                    </li>
-                `).join('')}
-            </ul>
-        </li>`;
-    }
-    
     const otherHtml = `
         <li class="nav-item">
-            <a href="#about-section" class="nav-link" data-section="about">About Us</a>
+            <a href="#about-section" class="nav-link nav-direct-link" data-section="about">About Us</a>
         </li>
         <li class="nav-item">
-            <a href="#contact-section" class="nav-link" data-section="contact">Contact</a>
+            <a href="#contact-section" class="nav-link nav-direct-link" data-section="contact">Contact</a>
         </li>
     `;
-    
+
     sidebarStructure = `
-        <ul style="list-style:none; padding:0; margin:0; width:100%;">
-            ${overviewHtml}
-            ${productsHtml}
+        <ul class="sidebar-menu-root" aria-label="Store navigation">
+            ${renderSidebarGroup('Overview', 'overview', overview)}
+            ${renderSidebarGroup('Products', 'products', products)}
             ${otherHtml}
         </ul>
     `;
-    
+
     DOM.sidebarNav.innerHTML = sidebarStructure;
     sidebarBuilt = true;
     attachSidebarEvents();
-    
-    // ترك جميع القوائم مغلقة افتراضياً بناءً على طلب المستخدم
-
 }
 
 /** ربط أحداث القائمة الجانبية */
@@ -855,16 +843,50 @@ function normalizeStoreInternalUrl(value, fallback = '/') {
     return raw;
 }
 
-/** معالج النقر على القائمة الجانبية */
+/** فتح أو إغلاق submenu مع إبقاء قائمة الهامبرغر مفتوحة. */
+function setSidebarSubmenuOpen(link, isOpen) {
+    const submenuId = link.getAttribute('aria-controls');
+    const submenu = submenuId ? document.getElementById(submenuId) : null;
+    if (!submenu) return false;
+
+    const parentLi = link.closest('.nav-item');
+    const parentUl = parentLi?.parentElement;
+    parentUl?.querySelectorAll(':scope > .nav-item > .sub-menu.open').forEach(sibling => {
+        if (sibling === submenu) return;
+        sibling.classList.remove('open');
+        sibling.hidden = true;
+        sibling.setAttribute('aria-hidden', 'true');
+        const siblingLink = sibling.closest('.nav-item')?.querySelector(':scope > .nav-link[aria-controls]');
+        siblingLink?.setAttribute('aria-expanded', 'false');
+        siblingLink?.classList.remove('is-expanded');
+        siblingLink?.querySelector(':scope > .toggle-icon')?.classList.remove('open');
+    });
+
+    submenu.classList.toggle('open', isOpen);
+    submenu.hidden = !isOpen;
+    submenu.setAttribute('aria-hidden', String(!isOpen));
+    link.setAttribute('aria-expanded', String(isOpen));
+    link.classList.toggle('is-expanded', isOpen);
+    link.querySelector(':scope > .toggle-icon')?.classList.toggle('open', isOpen);
+    return true;
+}
+
+/** معالج النقر على القائمة الجانبية: parent يفتح submenu، وleaf ينفذ الانتقال. */
 function handleSidebarClick(e) {
     e.preventDefault();
     const link = e.currentTarget;
     const section = link.dataset.section;
     const category = link.dataset.category || null;
     const type = link.dataset.type || null;
-    
-    // إذا كنا في صفحة تفاصيل المنتج، توجيه المستخدم للصفحة الرئيسية عند النقر على الفئات أو الأقسام
-    // استخدام href.includes('product') للتعامل مع الروابط التي تحذف .html تلقائياً
+    const hasChildren = link.dataset.hasChildren === 'true' || link.hasAttribute('aria-controls');
+
+    if (hasChildren) {
+        const isOpen = link.getAttribute('aria-expanded') === 'true';
+        setSidebarSubmenuOpen(link, !isOpen);
+        return;
+    }
+
+    // في صفحة المنتج، تنقل العناصر النهائية إلى الصفحة الرئيسية مع الفلتر المناسب.
     if (window.location.href.includes('product')) {
         if (category && type) {
             window.location.href = `/?category=${encodeURIComponent(category)}&type=${encodeURIComponent(type)}`;
@@ -879,60 +901,23 @@ function handleSidebarClick(e) {
             return;
         }
     }
-    
-    // تبديل القائمة الفرعية (إغلاق الأشقاء)
-    const parentLi = link.closest('.nav-item');
-    if (parentLi) {
-        const subMenu = parentLi.querySelector('.sub-menu');
-        const parentUl = parentLi.parentElement;
-        
-        if (subMenu) {
-            const isOpen = subMenu.classList.contains('open');
-            
-            // إغلاق جميع القوائم الفرعية في نفس المستوى
-            const siblingMenus = parentUl.querySelectorAll(':scope > .nav-item > .sub-menu');
-            siblingMenus.forEach(sm => {
-                if (sm !== subMenu) {
-                    sm.classList.remove('open');
-                    const siblingIcon = sm.closest('.nav-item')?.querySelector('.toggle-icon');
-                    if (siblingIcon) siblingIcon.classList.remove('open');
-                }
-            });
-            
-            if (!isOpen) {
-                subMenu.classList.add('open');
-                const icon = link.querySelector('.toggle-icon');
-                if (icon) icon.classList.add('open');
-            } else {
-                subMenu.classList.remove('open');
-                const icon = link.querySelector('.toggle-icon');
-                if (icon) icon.classList.remove('open');
-            }
-        }
-    }
-    
-    // إذا كان هناك تصنيف محدد، قم بتصفية المنتجات
+
     if (category && type) {
         AppState.filters.category = category;
         AppState.filters.type = type;
-        // إلغاء تحديد أزرار الفلتر
-        DOM.filterBtns.forEach(b => b.classList.remove('active'));
+        DOM.filterBtns.forEach(button => button.classList.remove('active'));
         filterProducts();
-        DOM.productsGrid?.scrollIntoView({ behavior: 'smooth' });
+        DOM.productsGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    
-    // التنقل للأقسام الأخرى
+
     if (section === 'about') {
-        document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (section === 'contact') {
-        document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    
-    // إغلاق القائمة على الهواتف
-    if (window.innerWidth <= 900) {
-        DOM.sidebar?.classList.remove('open');
-        DOM.hamburgerBtn?.classList.remove('active');
-    }
+
+    // الروابط النهائية فقط تغلق القائمة؛ فتح submenu لا يصل إلى هذه النقطة.
+    toggleSidebar(false);
 }
 
 // ============================================
