@@ -1,4 +1,4 @@
-const CACHE = 'tiddis-shell-v5-20260827-ux5';
+const CACHE = 'tiddis-shell-v5-20260827-ux6';
 const SHELL = ['./', './index.html', './product.html', './bahi2005.html', './css/style.css', './css/tiddis-design-system.css', './js/store.js', './js/admin-auth.js', './js/admin.js', './tiddis-logo.svg', './manifest.json'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));

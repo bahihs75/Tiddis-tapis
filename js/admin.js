@@ -209,6 +209,7 @@ const getAdminLogoUrl = value => {
     return !candidate || LEGACY_LOGO_URLS.has(candidate) ? DEFAULT_TRANSPARENT_LOGO : candidate;
 };
 const aboutUsTextarea = document.getElementById('about-us-text');
+const aboutHeroImageUrlInput = document.getElementById('about-hero-image-url');
 const aboutImageUrlInput = document.getElementById('about-image-url');
 const saveAboutBtn = document.getElementById('save-about-btn');
 const logoUrlInput = document.getElementById('logo-url');
@@ -2458,6 +2459,7 @@ async function loadSettings() {
         } else {
             storeSettings = {
                 aboutText: 'Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.',
+                aboutHeroImage: 'https://images.unsplash.com/photo-1600166898405-da9535204843?auto=format&fit=crop&w=1800&q=85',
                 aboutImage: 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg',
                 logoUrl: 'tiddis-logo.svg',
                 sidebarBgColor: '#ffffff',
@@ -2494,6 +2496,10 @@ async function loadSettings() {
         renderImageApiSourcesList();
         closeImageApiEditor();
         if (aboutUsTextarea) aboutUsTextarea.value = storeSettings.aboutText || '';
+        if (aboutHeroImageUrlInput) {
+            aboutHeroImageUrlInput.value = storeSettings.aboutHeroImage || 'https://images.unsplash.com/photo-1600166898405-da9535204843?auto=format&fit=crop&w=1800&q=85';
+            updateMediaFieldPreview(aboutHeroImageUrlInput);
+        }
         if (aboutImageUrlInput) {
             aboutImageUrlInput.value = storeSettings.aboutImage || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
             updateMediaFieldPreview(aboutImageUrlInput);
@@ -2640,20 +2646,22 @@ testSheetsBtn?.addEventListener('click', async function() {
 
 saveAboutBtn?.addEventListener('click', async function() {
     const text = aboutUsTextarea?.value.trim();
-    const imageUrl = aboutImageUrlInput?.value.trim() || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
-    const validImagePath = /^(https?:\/\/|\/|\.\/|\.\.\/|assets\/)/i.test(imageUrl);
+    const heroImageUrl = aboutHeroImageUrlInput?.value.trim() || 'https://images.unsplash.com/photo-1600166898405-da9535204843?auto=format&fit=crop&w=1800&q=85';
+    const storyImageUrl = aboutImageUrlInput?.value.trim() || 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
+    const validImagePath = value => /^(https?:\/\/|\/|\.\/|\.\.\/|assets\/)/i.test(value);
     if (!text) {
         showAdminMessage('Please enter some text for the About section.', 'error');
         return;
     }
-    if (!validImagePath) {
-        showAdminMessage('Use an HTTPS image URL for the About image.', 'error');
+    if (!validImagePath(heroImageUrl) || !validImagePath(storyImageUrl)) {
+        showAdminMessage('Use HTTPS image URLs for both About Us images.', 'error');
         return;
     }
     storeSettings.aboutText = text;
-    storeSettings.aboutImage = imageUrl;
+    storeSettings.aboutHeroImage = heroImageUrl;
+    storeSettings.aboutImage = storyImageUrl;
     if (await saveStoreSettings()) {
-        showAdminMessage('About Us text and image saved successfully!');
+        showAdminMessage('About Us text and both images saved successfully.');
     }
 });
 
@@ -3070,7 +3078,8 @@ function getLibraryUsageReferences(record) {
         if (condition && !references.includes(label)) references.push(label);
     };
     (storeSettings.heroSlides || []).forEach((slide, index) => addReference(slide.image === record.url, `Hero slide ${index + 1}`));
-    addReference(storeSettings.aboutImage === record.url, 'About Us');
+    addReference(storeSettings.aboutHeroImage === record.url, 'About Us editorial image');
+    addReference(storeSettings.aboutImage === record.url, 'About Us story image');
     addReference(storeSettings.logoUrl === record.url, 'Store logo');
     allProducts.forEach(product => {
         const productLabel = product.name || product.id || 'Untitled product';

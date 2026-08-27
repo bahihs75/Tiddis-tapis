@@ -23,7 +23,7 @@ let adminInitializer = null;
 
 async function loadAdminInitializer() {
     if (adminInitializer) return adminInitializer;
-    const adminModule = await import('./admin.js?v=20260827-ux5');
+    const adminModule = await import('./admin.js?v=20260827-ux6');
     adminInitializer = adminModule.initAdmin;
     return adminInitializer;
 }

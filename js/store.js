@@ -106,6 +106,7 @@ const DOM = {
     orderStatus: document.getElementById('order-status'),
     aboutText: document.getElementById('about-text'),
     aboutImage: document.getElementById('about-image'),
+    aboutHeroImage: document.getElementById('about-hero-image'),
     contactIcons: document.getElementById('contact-icons'),
     sidebar: document.getElementById('sidebar'),
     sidebarNav: document.getElementById('sidebar-nav'),
@@ -2154,23 +2155,29 @@ function applyStoreSettings() {
         legacyProductLogo.style.display = 'none';
     }
     
-    // About Us text and editorial image
+    // About Us editorial story: the large image and the small story image are independent.
+    const fallbackAboutHeroImage = 'https://images.unsplash.com/photo-1600166898405-da9535204843?auto=format&fit=crop&w=1800&q=85';
+    const fallbackAboutStoryImage = 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
     if (DOM.aboutText && settings.aboutText) {
         DOM.aboutText.textContent = settings.aboutText;
     }
-    if (DOM.aboutImage) {
-        const fallbackImage = 'https://i.ibb.co/CK9zNFVq/about-tiddis.jpg';
-        const requestedImage = typeof settings.aboutImage === 'string' && settings.aboutImage.trim()
-            ? settings.aboutImage.trim()
-            : fallbackImage;
-        DOM.aboutImage.dataset.fallbackApplied = 'false';
-        DOM.aboutImage.onerror = () => {
-            if (DOM.aboutImage.dataset.fallbackApplied === 'true') return;
-            DOM.aboutImage.dataset.fallbackApplied = 'true';
-            DOM.aboutImage.src = fallbackImage;
+
+    const applyImageWithFallback = (imageElement, requestedValue, fallbackValue) => {
+        if (!imageElement) return;
+        const requestedImage = typeof requestedValue === 'string' && requestedValue.trim()
+            ? requestedValue.trim()
+            : fallbackValue;
+        imageElement.dataset.fallbackApplied = 'false';
+        imageElement.onerror = () => {
+            if (imageElement.dataset.fallbackApplied === 'true') return;
+            imageElement.dataset.fallbackApplied = 'true';
+            imageElement.src = fallbackValue;
         };
-        DOM.aboutImage.src = requestedImage;
-    }
+        imageElement.src = requestedImage;
+    };
+
+    applyImageWithFallback(DOM.aboutHeroImage, settings.aboutHeroImage, fallbackAboutHeroImage);
+    applyImageWithFallback(DOM.aboutImage, settings.aboutImage, fallbackAboutStoryImage);
     
     // أيقونات التواصل (SVG)
     if (DOM.contactIcons && settings.contacts) {

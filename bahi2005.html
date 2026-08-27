@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TIDDIS TAPIS | Admin Panel</title>
-    <link rel="stylesheet" href="css/style.css?v=20260827-ux5">
-    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260827-ux5">
+    <link rel="stylesheet" href="css/style.css?v=20260827-ux6">
+    <link rel="stylesheet" href="css/tiddis-design-system.css?v=20260827-ux6">
     <!-- SortableJS لتمكين السحب والإفلات -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- مكتبات PDF -->
@@ -779,16 +779,24 @@
                 </div>
                 <button id="save-colors-btn" class="btn-primary">Preview & Save Colors</button>
             </div>
-            <div class="admin-card">
+            <div class="admin-card about-admin-card">
                 <h3>About Us</h3>
+                <p class="admin-help-text">The two image fields are independent. The large editorial image and the smaller story image can be changed separately from Image Library or by pasting an HTTPS URL.</p>
                 <div class="form-group">
-                    <label for="about-us-text">About Us Text</label>
-                    <textarea id="about-us-text" rows="4" class="form-input" placeholder="Enter about us text...">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</textarea>
+                    <label for="about-us-text">About Us Story Text</label>
+                    <textarea id="about-us-text" rows="4" class="form-input" placeholder="Enter the story text...">Tiddis Tapis is inspired by the deep-rooted history and ancient heritage of Constantine. We transform this timeless legacy into modern rugs.</textarea>
                 </div>
-                <div class="form-group">
-                    <label for="about-image-url">About Us Image URL</label>
+                <div class="form-group about-image-admin-field">
+                    <label for="about-hero-image-url">About Us Editorial Image (large)</label>
+                    <input id="about-hero-image-url" type="url" class="form-input" placeholder="https://images.unsplash.com/..." autocomplete="off">
+                    <p class="admin-help-text">This is the large image at the top of the About Us story. It is separate from the smaller story image below.</p>
+                    <div class="media-field-preview-row" data-media-preview-for="#about-hero-image-url"></div>
+                    <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#about-hero-image-url" data-media-usage="about">Choose from Library</button>
+                </div>
+                <div class="form-group about-image-admin-field">
+                    <label for="about-image-url">About Us Story Image (small)</label>
                     <input id="about-image-url" type="url" class="form-input" placeholder="https://i.ibb.co/CK9zNFVq/about-tiddis.jpg" autocomplete="off">
-                    <p class="admin-help-text">Use a local asset path or a trusted HTTPS image URL. Leave the existing value if you do not want to change the image.</p>
+                    <p class="admin-help-text">This is the smaller image beside the About Us story. You can replace it at any time without changing the large editorial image.</p>
                     <div class="media-field-preview-row" data-media-preview-for="#about-image-url"></div>
                     <button type="button" class="admin-action-btn media-library-trigger" data-media-target="#about-image-url" data-media-usage="about">Choose from Library</button>
                 </div>
@@ -893,7 +901,7 @@
     <!-- تحميل JavaScript -->
     <!-- ============================================ -->
     <script type="module" src="js/firebase-config.js"></script>
-    <script type="module" src="js/admin-auth.js?v=20260827-ux5"></script>
+    <script type="module" src="js/admin-auth.js?v=20260827-ux6"></script>
 
     <!-- ============================================ -->
     <!-- زر "Add New Product" (Toggle) -->
