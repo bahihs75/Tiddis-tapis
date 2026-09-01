@@ -658,7 +658,7 @@ function renderCollectionShowcase() {
         }).length;
         const href = escapeStoreHtml(`/?category=${encodeURIComponent(name)}&type=products#products-grid`);
         const imageMarkup = image
-            ? `<img src="${escapeStoreHtml(image)}" alt="${escapeStoreHtml(name)} collection" loading="lazy">`
+            ? `<img src="${escapeStoreHtml(image)}" alt="${escapeStoreHtml(name)} collection">`
             : '<span class="collection-image-placeholder" aria-hidden="true">TIDDIS</span>';
         return `<a class="collection-tile collection-tile--${index + 1}" href="${href}">
             <span class="collection-image">${imageMarkup}</span>
@@ -1134,7 +1134,7 @@ function createProductCard(product) {
     
     card.innerHTML = `
         <div class="product-image-wrap" data-product-id="${product.id}">
-            <img src="${escapeStoreHtml(defaultImage)}" alt="${escapeStoreHtml(product.name || 'Tiddis Tapis rug')}" class="product-main-image" loading="lazy" decoding="async" draggable="false">
+            <img src="${escapeStoreHtml(defaultImage)}" alt="${escapeStoreHtml(product.name || 'Tiddis Tapis rug')}" class="product-main-image" draggable="false">
             ${hasMultipleImages ? `
                 <button class="image-nav-btn prev" data-dir="-1">‹</button>
                 <button class="image-nav-btn next" data-dir="1">›</button>

@@ -179,6 +179,24 @@ const uploadLibraryImageBtn = document.getElementById('upload-library-image-btn'
 const cancelLibraryUploadBtn = document.getElementById('cancel-library-upload-btn');
 const libraryUploadStatus = document.getElementById('library-upload-status');
 const librarySearchInput = document.getElementById('library-search-input');
+
+// Optimization UI Elements
+const optimizationPanel = document.getElementById('optimization-panel');
+const optSavingsBadge = document.getElementById('opt-savings-badge');
+const optOriginalSize = document.getElementById('opt-original-size');
+const optOriginalMeta = document.getElementById('opt-original-meta');
+const optOptimizedSize = document.getElementById('opt-optimized-size');
+const optOptimizedMeta = document.getElementById('opt-optimized-meta');
+const optProgressFill = document.getElementById('opt-progress-fill');
+const optStatusText = document.getElementById('opt-status-text');
+const optPreviewBefore = document.getElementById('opt-preview-before');
+const optPreviewAfter = document.getElementById('opt-preview-after');
+const toggleOptAdvanced = document.getElementById('toggle-opt-advanced');
+const optAdvancedPanel = document.getElementById('opt-advanced-panel');
+const optPrefWidth = document.getElementById('opt-pref-width');
+const optPrefQuality = document.getElementById('opt-pref-quality');
+
+let currentOptimizedFile = null;
 const libraryProviderFilter = document.getElementById('library-provider-filter');
 const libraryUsageFilter = document.getElementById('library-usage-filter');
 const librarySummary = document.getElementById('library-summary');
@@ -2784,7 +2802,7 @@ function updateMediaFieldPreview(inputElement) {
         });
     previews.forEach(preview => {
         preview.innerHTML = url
-            ? `<img src="${libraryEscapeHtml(url)}" alt="Selected image preview" loading="lazy" onerror="this.classList.add('is-broken')"><span>${libraryEscapeHtml(url.split('/').pop()?.split('?')[0] || 'Selected image')}</span>`
+            ? `<img src="${libraryEscapeHtml(url)}" alt="Selected image preview" onerror="this.classList.add('is-broken')"><span>${libraryEscapeHtml(url.split('/').pop()?.split('?')[0] || 'Selected image')}</span>`
             : '';
         preview.hidden = !url;
     });
@@ -2808,7 +2826,7 @@ function renderMediaPickerOptions() {
     grid.innerHTML = records.map(record => {
         const usageText = (record.usages?.length ? record.usages : [record.usage]).map(item => libraryUsageLabels[item] || item).join(' · ');
         return `<button type="button" class="media-picker-option" data-media-url="${libraryEscapeHtml(record.url)}" data-media-name="${libraryEscapeHtml(record.name)}">
-            <span class="media-picker-option-thumb"><img src="${libraryEscapeHtml(record.thumbnailUrl || record.url)}" alt="${libraryEscapeHtml(record.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('is-broken')"></span>
+            <span class="media-picker-option-thumb"><img src="${libraryEscapeHtml(record.thumbnailUrl || record.url)}" alt="${libraryEscapeHtml(record.name)}" referrerpolicy="no-referrer" onerror="this.classList.add('is-broken')"></span>
             <span class="media-picker-option-copy"><strong>${libraryEscapeHtml(record.name)}</strong><small>${libraryEscapeHtml(String(record.provider || 'source').toUpperCase())} · ${libraryEscapeHtml(usageText || 'Image')}</small></span>
         </button>`;
     }).join('');
@@ -3116,7 +3134,7 @@ function renderImageLibrary() {
         return `
             <details class="library-item" data-library-id="${libraryEscapeHtml(record.id)}">
                 <summary class="library-item-summary">
-                    <span class="library-thumb-wrap"><img src="${libraryEscapeHtml(record.thumbnailUrl || record.url)}" alt="${libraryEscapeHtml(record.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('is-broken')"></span>
+                    <span class="library-thumb-wrap"><img src="${libraryEscapeHtml(record.thumbnailUrl || record.url)}" alt="${libraryEscapeHtml(record.name)}" referrerpolicy="no-referrer" onerror="this.classList.add('is-broken')"></span>
                     <span class="library-item-heading"><strong>${libraryEscapeHtml(record.name)}</strong><span>${libraryEscapeHtml(record.provider.toUpperCase())} · ${libraryEscapeHtml(usageText)}</span></span>
                     <span class="library-item-date">${libraryDateLabel(record.createdAt)}</span>
                 </summary>
@@ -3242,6 +3260,8 @@ function resetLibraryUploadForm() {
     if (libraryImageTags) libraryImageTags.value = '';
     if (libraryUploadStatus) libraryUploadStatus.textContent = '';
     if (libraryUploadPanel) libraryUploadPanel.hidden = true;
+    if (optimizationPanel) optimizationPanel.hidden = true;
+    currentOptimizedFile = null;
 }
 
 async function uploadLibraryFileToImgBB(file) {
@@ -3268,13 +3288,63 @@ cancelLibraryUploadBtn?.addEventListener('click', resetLibraryUploadForm);
 [librarySearchInput, libraryProviderFilter, libraryUsageFilter].forEach(input => input?.addEventListener('input', renderImageLibrary));
 [libraryProviderFilter, libraryUsageFilter].forEach(input => input?.addEventListener('change', renderImageLibrary));
 
+libraryImageFile?.addEventListener('change', async function() {
+    const file = this.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    if (optimizationPanel) optimizationPanel.hidden = false;
+    if (optStatusText) optStatusText.textContent = 'Optimizing locally...';
+    if (optProgressFill) optProgressFill.style.width = '30%';
+    
+    // Set "Before" preview
+    if (optPreviewBefore) optPreviewBefore.src = URL.createObjectURL(file);
+    if (optOriginalSize) optOriginalSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+    
+    const img = new Image();
+    img.onload = async () => {
+        if (optOriginalMeta) optOriginalMeta.textContent = `${img.width} × ${img.height} · ${file.type.split('/')[1].toUpperCase()}`;
+        
+        try {
+            const options = {
+                maxWidth: parseInt(optPrefWidth?.value) || 1800,
+                quality: (parseInt(optPrefQuality?.value) || 82) / 100
+            };
+            
+            const result = await window.TiddisImageOptimizer.optimize(file, options);
+            currentOptimizedFile = result.optimizedFile;
+            
+            if (optProgressFill) optProgressFill.style.width = '100%';
+            if (optStatusText) optStatusText.textContent = 'Optimization complete.';
+            if (optOptimizedSize) optOptimizedSize.textContent = `${(result.optimizedSize / 1024).toFixed(1)} KB`;
+            if (optOptimizedMeta) optOptimizedMeta.textContent = `${result.width} × ${result.height} · WebP`;
+            if (optPreviewAfter) optPreviewAfter.src = URL.createObjectURL(result.optimizedFile);
+            
+            if (optSavingsBadge) {
+                optSavingsBadge.textContent = `${result.savedPercent}% SAVED`;
+                optSavingsBadge.hidden = false;
+            }
+        } catch (err) {
+            console.error('Optimization failed:', err);
+            if (optStatusText) optStatusText.textContent = 'Optimization failed. Will upload original.';
+            currentOptimizedFile = file;
+        }
+    };
+    img.src = URL.createObjectURL(file);
+});
+
+toggleOptAdvanced?.addEventListener('click', () => {
+    if (optAdvancedPanel) optAdvancedPanel.hidden = !optAdvancedPanel.hidden;
+});
+
 uploadLibraryImageBtn?.addEventListener('click', async () => {
-    const file = libraryImageFile?.files?.[0];
+    const originalFile = libraryImageFile?.files?.[0];
+    const file = currentOptimizedFile || originalFile;
+    
     if (!file) {
         showAdminMessage('Choose an image file first.', 'error');
         return;
     }
-    const name = libraryImageName?.value.trim() || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
+    const name = libraryImageName?.value.trim() || originalFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
     const usage = libraryImageUsage?.value || 'other';
     const section = libraryImageSection?.value.trim() || '';
     const tags = libraryImageTags?.value.split(',').map(tag => tag.trim()).filter(Boolean) || [];
@@ -3667,14 +3737,28 @@ async function uploadToImgBB(file, buttonElement, inputElement) {
         showAdminMessage('Add and save an ImgBB API source in Settings before uploading images.', 'error');
         return;
     }
-    const formData = new FormData();
-    formData.append('image', file);
 
     const originalText = buttonElement.textContent;
-    buttonElement.textContent = 'Uploading...';
+    buttonElement.textContent = 'Optimizing...';
     buttonElement.disabled = true;
 
     try {
+        // Apply optimization before upload
+        let fileToUpload = file;
+        try {
+            const optResult = await window.TiddisImageOptimizer.optimize(file, {
+                maxWidth: 1800,
+                quality: 0.82
+            });
+            fileToUpload = optResult.optimizedFile;
+        } catch (optErr) {
+            console.warn('Silent optimization failed, uploading original:', optErr);
+        }
+
+        buttonElement.textContent = 'Uploading...';
+        const formData = new FormData();
+        formData.append('image', fileToUpload);
+
         const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
             method: 'POST',
             body: formData
@@ -3682,15 +3766,14 @@ async function uploadToImgBB(file, buttonElement, inputElement) {
         const data = await response.json();
         if (data.success && data.data && data.data.url) {
             if (inputElement) inputElement.value = data.data.url;
-            // إطلاق حدث تغيير يدوي لتحديث المعاينة إذا لزم الأمر
             inputElement.dispatchEvent(new Event('input'));
-            showAdminMessage('Image uploaded successfully!');
+            showAdminMessage('Image optimized and uploaded successfully!');
         } else {
-            showAdminMessage('Upload failed: ' + (data.error?.message || 'Unknown error'));
+            showAdminMessage('Upload failed: ' + (data.error?.message || 'Unknown error'), 'error');
         }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showAdminMessage('Network error during upload.');
+    } catch (error) {
+        console.error('Upload error:', error);
+        showAdminMessage('Upload failed. Check your connection and API key.', 'error');
     } finally {
         buttonElement.textContent = originalText;
         buttonElement.disabled = false;
