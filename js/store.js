@@ -962,9 +962,9 @@ function filterProducts() {
     AppState.ui.allLoaded = false;
     AppState.ui.displayedCount = 0;
     
-    // عرض الدفعة الأولى
-    const pageSize = getPageSize();
-    const initialBatch = filtered.slice(0, pageSize);
+    // عرض الدفعة الأولى (6 منتجات كما طلب المستخدم)
+    const initialSize = 6;
+    const initialBatch = filtered.slice(0, initialSize);
     renderProducts(initialBatch, false);
     updateProductCount();
     renderActiveFilterSummary();
@@ -1010,9 +1010,10 @@ function renderProducts(products, append = false) {
 function loadMoreProducts() {
     if (AppState.ui.allLoaded) return;
     
-    const pageSize = getPageSize();
+    // تحميل 10 منتجات إضافية عند كل ضغطة
+    const nextSize = 10;
     const start = AppState.ui.displayedCount;
-    const remaining = AppState.products.filtered.slice(start, start + pageSize);
+    const remaining = AppState.products.filtered.slice(start, start + nextSize);
     
     if (remaining.length === 0) {
         AppState.ui.allLoaded = true;
@@ -1169,7 +1170,12 @@ function createProductCard(product) {
             if (index < 0) index = allImages.length - 1;
             if (index >= allImages.length) index = 0;
             currentImageIndex = index;
-            img.src = allImages[index];
+            const newSrc = allImages[index];
+            img.src = newSrc;
+            
+            // تحديث الصورة الأصلية لمنع التداخل مع تأثير hover
+            card._lastStaticImage = newSrc;
+            
             dots.forEach((dot, i) => {
                 dot.classList.toggle('active', i === index);
             });
@@ -1193,16 +1199,24 @@ function createProductCard(product) {
     }
     
     // تبديل الصورة عند المرور على سطح المكتب، مع احترام إعداد المشرف وتقليل الحركة.
-    // نستخدم صورة اللون التالية أولاً، ثم الصورة الإضافية التالية كخطة بديلة.
     const hoverPreviewImage = colorEntries[1]?.image || allImages[1] || '';
     if (AppState.catalogExperience.desktopHoverPreview && hoverPreviewImage && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
         const image = card.querySelector('.product-main-image');
-        const originalImage = image?.src || '';
+        
+        // تخزين الصورة الحالية قبل الدخول في حالة hover
+        card._lastStaticImage = image?.src || '';
+        
         card.addEventListener('mouseenter', () => {
+            // تحديث الصورة الساكنة قبل التبديل لضمان حفظ أي تغيير يدوي (slider/swatches)
+            card._lastStaticImage = image.src;
             if (image) image.src = hoverPreviewImage;
         });
+        
         card.addEventListener('mouseleave', () => {
-            if (image && originalImage) image.src = originalImage;
+            // العودة للصورة الساكنة الأخيرة (التي قد تكون تغيرت بواسطة slider)
+            if (image && card._lastStaticImage) {
+                image.src = card._lastStaticImage;
+            }
         });
     }
 
